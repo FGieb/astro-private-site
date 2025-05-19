@@ -1,9 +1,7 @@
 ---
-const { cookies, redirect } = Astro;
-
-const authCookie = cookies.get("auth");
-if (!authCookie || authCookie.value !== "1") {
-  throw redirect("/login");
+const cookie = Astro.cookies.get("auth");
+if (!cookie || cookie.value !== "1") {
+  return Astro.redirect("/login");
 }
 ---
 
