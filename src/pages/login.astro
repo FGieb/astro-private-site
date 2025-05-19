@@ -1,3 +1,14 @@
+---
+let correctPassphrase = "your-passphrase-here"; // Change this to your own
+let isValid = false;
+
+if (Astro.request.method === "POST") {
+  const body = await Astro.request.formData();
+  const pass = body.get("passphrase");
+  isValid = pass === correctPassphrase;
+}
+---
+
 <body>
   {isValid ? (
     <script>
