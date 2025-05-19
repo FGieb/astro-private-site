@@ -1,9 +1,19 @@
 ---
+const cookieHeader = Astro.request.headers.get('cookie') || '';
+const hasSession = cookieHeader.includes('session=valid');
+
+if (!hasSession) {
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: '/login',
+    }
+  });
+}
 ---
 
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
     <title>Private Home</title>
   </head>
   <body>

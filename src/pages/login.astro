@@ -1,14 +1,28 @@
 ---
-let correctPassphrase = "alm.bumblebee"; // Your passphrase
+import { Astro } from 'astro';
+
+let correctPassphrase = "alm.bumblebee"; // Your private key
+let isValid = false;
+
+// Check submitted passphrase
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
   const pass = body.get("passphrase");
   if (pass === correctPassphrase) {
-    return Astro.redirect("/home"); // ✅ Proper server-side redirect
+    isValid = true;
+    // Set session cookie
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: '/home',
+        'Set-Cookie': `session=valid; Path=/; HttpOnly; SameSite=Strict`,
+      }
+    });
   }
 }
 ---
 
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -37,43 +51,24 @@ if (Astro.request.method === "POST") {
         width: 90%;
       }
 
-      h1 {
-        margin-bottom: 1rem;
-      }
-
-      input[type="password"] {
-        padding: 0.5rem;
-        width: 100%;
-        margin-bottom: 1rem;
-        font-size: 1rem;
-      }
-
-      button {
-        padding: 0.5rem 1.2rem;
-        font-size: 1rem;
-        border: none;
-        background-color: #222;
-        color: #fff;
-        cursor: pointer;
-        border-radius: 4px;
-      }
-
       .error {
         color: red;
-        margin-top: 0.5rem;
+        margin-top: 1rem;
       }
     </style>
   </head>
-
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
       <form method="POST">
         <input type="password" name="passphrase" placeholder="Enter passphrase" required />
-        <br />
+        <br /><br />
         <button type="submit">Enter</button>
       </form>
-      {Astro.request.method === 'POST' && <p class="error">❌ Incorrect passphrase.</p>}
+
+      {Astro.request.method === "POST" && !isValid ? (
+        <p class="error">❌ Incorrect passphrase</p>
+      ) : null}
     </div>
   </body>
 </html>
