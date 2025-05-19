@@ -1,11 +1,13 @@
 ---
-let correctPassphrase = "alm.bumblebee"; // Your passphrase
-let isValid = false;
+let correctPassphrase = "alm.bumblebee"; // ← your secret phrase
 
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
   const pass = body.get("passphrase");
-  isValid = pass === correctPassphrase;
+
+  if (pass === correctPassphrase) {
+    return Astro.redirect('/home'); // ✅ SERVER-SIDE REDIRECT
+  }
 }
 ---
 
@@ -65,18 +67,17 @@ if (Astro.request.method === "POST") {
     </style>
   </head>
   <body>
-    {
-      isValid
-        ? <meta http-equiv="refresh" content="0; url=/home" />
-        : <div class="login-box">
-            <h1>🔐 Private Access</h1>
-            <form method="POST">
-              <input type="password" name="passphrase" placeholder="Enter passphrase" required />
-              <br />
-              <button type="submit">Enter</button>
-            </form>
-            {Astro.request.method === 'POST' && <p class="error">❌ Incorrect passphrase.</p>}
-          </div>
-    }
+    <div class="login-box">
+      <h1>🔐 Private Access</h1>
+      <form method="POST">
+        <input type="password" name="passphrase" placeholder="Enter passphrase" required />
+        <br />
+        <button type="submit">Enter</button>
+      </form>
+
+      {Astro.request.method === 'POST' && (
+        <p class="error">❌ Incorrect passphrase.</p>
+      )}
+    </div>
   </body>
 </html>
