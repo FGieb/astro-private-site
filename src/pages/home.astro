@@ -1,5 +1,4 @@
 ---
-import { Astro } from "astro";
 const cookie = Astro.cookies.get("auth");
 if (!cookie || cookie.value !== "1") {
   throw Astro.redirect("/login");
