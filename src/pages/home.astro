@@ -5,11 +5,18 @@ if (!cookie || cookie.value !== "1") {
 }
 
 import snippets from '../data/snippets.json';
+import gallery from '../data/gallery.json';
 
-// Pick a consistent snippet each day
+// Consistent index by date
 const today = new Date();
-const dayIndex = today.getDate() % snippets.length;
-const snippet = snippets[dayIndex];
+const dayIndex = today.getDate();
+
+// Random quote/fact
+const snippet = snippets[dayIndex % snippets.length];
+
+// Daily image path
+const image = gallery[dayIndex % gallery.length];
+const imagePath = `/images/gallery/${image}`;
 ---
 
 <!DOCTYPE html>
@@ -27,11 +34,11 @@ const snippet = snippets[dayIndex];
         background-repeat: no-repeat;
         min-height: 100vh;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
         color: white;
         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-        flex-direction: column;
+        padding: 2rem;
       }
 
       .content-box {
@@ -40,18 +47,28 @@ const snippet = snippets[dayIndex];
         border-radius: 1rem;
         max-width: 600px;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
       }
 
       .daily-snippet {
         background-color: rgba(255, 255, 255, 0.85);
         color: black;
-        padding: 1.5rem;
+        padding: 1rem 1.5rem;
         border-radius: 1rem;
-        max-width: 600px;
+        max-width: 500px;
         text-align: center;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+      }
+
+      .daily-image {
+        max-width: 400px;
+        max-height: 300px;
+        width: auto;
+        height: auto;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       }
 
       h1 {
@@ -59,11 +76,18 @@ const snippet = snippets[dayIndex];
         margin-bottom: 1rem;
       }
 
+      h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
       p {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        margin: 0.3rem 0;
       }
     </style>
   </head>
+
   <body>
     <div class="content-box">
       <h1>🎉 Greetings big monkey!</h1>
@@ -71,9 +95,11 @@ const snippet = snippets[dayIndex];
     </div>
 
     <div class="daily-snippet">
-      <h2>📌 random quote or fact?</h2>
+      <h2>📌 Random quote or fact?</h2>
       <p>{snippet.text}</p>
       {snippet.source && <p><em>— {snippet.source}</em></p>}
     </div>
+
+    <img src={imagePath} alt="Daily Photo" class="daily-image" />
   </body>
 </html>
