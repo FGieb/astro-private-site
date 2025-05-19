@@ -1,12 +1,10 @@
 ---
-let correctPassphrase = "alm.bumblebee"; // ← your secret phrase
-
+let correctPassphrase = "alm.bumblebee"; // Your passphrase
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
   const pass = body.get("passphrase");
-
   if (pass === correctPassphrase) {
-    return Astro.redirect('/home'); // ✅ SERVER-SIDE REDIRECT
+    return Astro.redirect("/home"); // ✅ Proper server-side redirect
   }
 }
 ---
@@ -66,6 +64,7 @@ if (Astro.request.method === "POST") {
       }
     </style>
   </head>
+
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
@@ -74,10 +73,7 @@ if (Astro.request.method === "POST") {
         <br />
         <button type="submit">Enter</button>
       </form>
-
-      {Astro.request.method === 'POST' && (
-        <p class="error">❌ Incorrect passphrase.</p>
-      )}
+      {Astro.request.method === 'POST' && <p class="error">❌ Incorrect passphrase.</p>}
     </div>
   </body>
 </html>
