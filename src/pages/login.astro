@@ -1,5 +1,5 @@
 ---
-let correctPassphrase = "alwayslovingthemonkey.bumblebee"; // ← Your passphrase
+let correctPassphrase = "alm.bumblebee"; // Your passphrase
 let isValid = false;
 
 if (Astro.request.method === "POST") {
@@ -9,7 +9,6 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -66,20 +65,18 @@ if (Astro.request.method === "POST") {
     </style>
   </head>
   <body>
-    {isValid ? (
-      <script>
-        window.location.href = '/home';
-      </script>
-    ) : (
-      <div class="login-box">
-        <h1>🔐 Private Access</h1>
-        <form method="POST">
-          <input type="password" name="passphrase" placeholder="Enter passphrase" required />
-          <br />
-          <button type="submit">Enter</button>
-        </form>
-        {Astro.request.method === 'POST' && <p class="error">❌ Incorrect passphrase.</p>}
-      </div>
-    )}
+    {
+      isValid
+        ? <meta http-equiv="refresh" content="0; url=/home" />
+        : <div class="login-box">
+            <h1>🔐 Private Access</h1>
+            <form method="POST">
+              <input type="password" name="passphrase" placeholder="Enter passphrase" required />
+              <br />
+              <button type="submit">Enter</button>
+            </form>
+            {Astro.request.method === 'POST' && <p class="error">❌ Incorrect passphrase.</p>}
+          </div>
+    }
   </body>
 </html>
