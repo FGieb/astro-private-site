@@ -1,5 +1,5 @@
 ---
-let correctPassphrase = "alwayslovingthemonkey.bumblebee"; // ← Replace with your own
+let correctPassphrase = "alwayslovingthemonkey.bumblebee"; // ← Your passphrase
 let isValid = false;
 
 if (Astro.request.method === "POST") {
@@ -9,6 +9,7 @@ if (Astro.request.method === "POST") {
 }
 ---
 
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -17,7 +18,7 @@ if (Astro.request.method === "POST") {
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
-        background-image: url('/images/background1.jpg'); /* Use full filename with extension */
+        background-image: url('/images/background1.jpg');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -64,7 +65,6 @@ if (Astro.request.method === "POST") {
       }
     </style>
   </head>
-
   <body>
     {isValid ? (
       <script>
@@ -83,4 +83,3 @@ if (Astro.request.method === "POST") {
     )}
   </body>
 </html>
-
