@@ -1,10 +1,19 @@
 ---
 let correctPassphrase = "alwayslovingthemonkey.bumblebee"; // <-- change this to your own
 let isValid = false;
+
+---
+let correctPassphrase = "mypassword"; // your passphrase
+let isValid = false;
+
 if (Astro.request.method === "POST") {
   const body = await Astro.request.formData();
   const pass = body.get("passphrase");
   isValid = pass === correctPassphrase;
+
+  if (isValid) {
+    return Astro.redirect('/home');
+  }
 }
 ---
 
@@ -13,58 +22,7 @@ if (Astro.request.method === "POST") {
     <meta charset="UTF-8" />
     <title>Login</title>
     <style>
-      body {
-        margin: 0;
-        font-family: system-ui, sans-serif;
-        background-image: url('/images/background1.jpg');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .login-box {
-        background-color: rgba(255, 255, 255, 0.85);
-        padding: 2rem 3rem;
-        border-radius: 1rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        text-align: center;
-        max-width: 400px;
-        width: 90%;
-      }
-
-      h1 {
-        margin-bottom: 1rem;
-      }
-
-      input[type="password"] {
-        padding: 0.5rem;
-        width: 100%;
-        margin-bottom: 1rem;
-        font-size: 1rem;
-      }
-
-      button {
-        padding: 0.5rem 1.2rem;
-        font-size: 1rem;
-        border: none;
-        background-color: #222;
-        color: #fff;
-        cursor: pointer;
-        border-radius: 4px;
-      }
-
-      .success {
-        color: green;
-      }
-
-      .error {
-        color: red;
-        margin-top: 0.5rem;
-      }
+      /* your existing styling here */
     </style>
   </head>
   <body>
@@ -76,10 +34,7 @@ if (Astro.request.method === "POST") {
         <button type="submit">Enter</button>
       </form>
 
-      {isValid
-        ? <p class="success">✅ Access granted.</p>
-        : Astro.request.method === "POST" && <p class="error">❌ Incorrect passphrase.</p>
-      }
+      {Astro.request.method === "POST" && !isValid && <p class="error">❌ Incorrect passphrase.</p>}
     </div>
   </body>
 </html>
