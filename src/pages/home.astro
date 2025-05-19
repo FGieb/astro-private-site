@@ -3,17 +3,14 @@ const cookie = Astro.cookies.get("auth");
 if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
----
 
----
 import snippets from '../data/snippets.json';
 
-// Generate a consistent index based on the current day
+// Pick a consistent snippet each day
 const today = new Date();
 const dayIndex = today.getDate() % snippets.length;
 const snippet = snippets[dayIndex];
 ---
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -34,14 +31,8 @@ const snippet = snippets[dayIndex];
         align-items: center;
         color: white;
         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+        flex-direction: column;
       }
-
-      <div class="daily-snippet">
-  <h2>📌 Daily Inspiration</h2>
-  <p>{snippet.text}</p>
-  {snippet.source && <p><em>— {snippet.source}</em></p>}
-</div>
-
 
       .content-box {
         background-color: rgba(0, 0, 0, 0.6);
@@ -49,6 +40,18 @@ const snippet = snippets[dayIndex];
         border-radius: 1rem;
         max-width: 600px;
         text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .daily-snippet {
+        background-color: rgba(255, 255, 255, 0.85);
+        color: black;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        max-width: 600px;
+        text-align: center;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       }
 
       h1 {
@@ -60,23 +63,17 @@ const snippet = snippets[dayIndex];
         font-size: 1.2rem;
       }
     </style>
-    .daily-snippet {
-  background-color: rgba(255, 255, 255, 0.85);
-  padding: 1.5rem;
-  border-radius: 1rem;
-  max-width: 600px;
-  margin: 2rem auto;
-  text-align: center;
-  font-size: 1.2rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
   </head>
-  
   <body>
     <div class="content-box">
       <h1>🎉 Greetings big monkey!</h1>
-      <p>This is a work in process.... </p>
+      <p>This is a work in progress...</p>
+    </div>
+
+    <div class="daily-snippet">
+      <h2>📌 Daily Inspiration</h2>
+      <p>{snippet.text}</p>
+      {snippet.source && <p><em>— {snippet.source}</em></p>}
     </div>
   </body>
 </html>
