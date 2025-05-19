@@ -5,6 +5,16 @@ if (!cookie || cookie.value !== "1") {
 }
 ---
 
+---
+import snippets from '../data/snippets.json';
+
+// Generate a consistent index based on the current day
+const today = new Date();
+const dayIndex = today.getDate() % snippets.length;
+const snippet = snippets[dayIndex];
+---
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -26,6 +36,13 @@ if (!cookie || cookie.value !== "1") {
         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
       }
 
+      <div class="daily-snippet">
+  <h2>📌 Daily Inspiration</h2>
+  <p>{snippet.text}</p>
+  {snippet.source && <p><em>— {snippet.source}</em></p>}
+</div>
+
+
       .content-box {
         background-color: rgba(0, 0, 0, 0.6);
         padding: 2rem 3rem;
@@ -43,11 +60,23 @@ if (!cookie || cookie.value !== "1") {
         font-size: 1.2rem;
       }
     </style>
+    .daily-snippet {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  max-width: 600px;
+  margin: 2rem auto;
+  text-align: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
   </head>
+  
   <body>
     <div class="content-box">
-      <h1>🎉 Welcome to the private area!</h1>
-      <p>This is your protected space. You can add anything here — photos, notes, projects, or ideas.</p>
+      <h1>🎉 Greetings big monkey!</h1>
+      <p>This is a work in process.... </p>
     </div>
   </body>
 </html>
