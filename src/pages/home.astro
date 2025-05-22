@@ -91,41 +91,53 @@ const publicId = gallery[dayIndex % gallery.length];
     <p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
 
 
-    <!-- Client-side logic -->
-    <script type="module" is:inline>
-      const id = `${publicId}`;
-      const img = document.getElementById("dailyMedia");
-      const video = document.getElementById("dailyVideo");
-      const videoSource = document.getElementById("videoSource");
+  <!-- Client-side logic -->
+<script type="module" is:inline>
+  const id = `${publicId}`;
+  const img = document.getElementById("dailyMedia");
+  const video = document.getElementById("dailyVideo");
+  const videoSource = document.getElementById("videoSource");
 
-      const tryUrl = (url) =>
-        fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
+  const tryUrl = (url) =>
+    fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
 
-      const showMedia = async () => {
-        const base = "https://res.cloudinary.com/du2rss0bx";
-        const paths = [
-          `${base}/image/upload/daily-images/${id}.jpg`,
-          `${base}/video/upload/daily-images/${id}.jpg`,
-          `${base}/video/upload/daily-images/${id}.mov`,
-        ];
+  const showMedia = async () => {
+    const base = "https://res.cloudinary.com/du2rss0bx";
+    const paths = [
+      `${base}/image/upload/daily-images/${id}.jpg`,
+      `${base}/video/upload/daily-images/${id}.jpg`,
+      `${base}/video/upload/daily-images/${id}.mov`,
+    ];
 
-        for (const url of paths) {
-          const ok = await tryUrl(url);
-          if (ok) {
-            if (url.endsWith(".jpg")) {
-              img.src = url;
-              img.style.display = "block";
-            } else {
-              videoSource.src = url;
-              video.load();
-              video.style.display = "block";
-            }
-            break;
-          }
+    let shown = false;
+
+    for (const url of paths) {
+      const ok = await tryUrl(url);
+      if (ok) {
+        if (url.endsWith(".jpg")) {
+          img.src = url;
+          img.style.display = "block";
+        } else {
+          videoSource.src = url;
+          video.load();
+          video.style.display = "block";
         }
-      };
+        shown = true;
+        break;
+      }
+    }
 
-      showMedia();
+    // Fallback if nothing worked
+    if (!shown) {
+      const fallback = document.getElementById("fallbackImage");
+      fallback.style.display = "block";
+    }
+  };
+
+  showMedia(); // ✅ Don't forget to call the function!
+</script>
+
+
     </script>
   </body>
 </html>
