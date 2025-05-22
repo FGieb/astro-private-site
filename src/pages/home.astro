@@ -86,7 +86,7 @@ const publicId = gallery[dayIndex % gallery.length];
   <source id="videoSource" type="video/mp4" />
   Your browser does not support the video tag.
 </video>
-<img src="/images/corgi.jpg" alt="Fallback visual" class="media" id="fallbackImage" style="display: none;" />
+<img alt="Fallback visual" class="media" id="fallbackImage" style="display: none;" />
 <p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
 
 <!-- Client-side logic -->
@@ -99,7 +99,32 @@ const publicId = gallery[dayIndex % gallery.length];
   const img = document.getElementById("dailyMedia");
   const video = document.getElementById("dailyVideo");
   const videoSource = document.getElementById("videoSource");
-  const fallback = document.getElementById("fallbackImage");
+const fallback = document.getElementById("fallbackImage");
+
+// Your list of fallback images (must match filenames in /public/images/)
+const fallbackImages = [
+  "IMG_20250515_120530.jpg",
+  "IMG_20250515_121218.jpg",
+  "IMG_20250515_135154.jpg",
+  "IMG_20250515_192053.jpg",
+  "IMG-20240906-WA0006.jpg",
+  "IMG-20241020-WA0029.jpg",
+  "IMG-20241104-WA0059.jpg",
+  "IMG-20250130-WA0081.jpg",
+  "IMG-20250130-WA0099.jpg",
+  "IMG-20250303-WA0051.jpg",
+  "IMG-20250317-WA0027.jpg",
+  "IMG-20250407-WA0017.jpg",
+  "IMG-20250415-WA0048.jpg",
+  "IMG-20250415-WA0062.jpg",
+  "IMG-20250510-WA0007.jpg",
+  "IMG20250510210447.jpg"
+];
+
+// Rotate fallback image daily based on day of month
+const today = new Date();
+const fallbackIndex = today.getDate() % fallbackImages.length;
+fallback.src = `/images/${fallbackImages[fallbackIndex]}`;
 
   const tryUrl = (url) =>
     fetch(url, { method: 'HEAD' }).then(r => r.ok).catch(() => false);
