@@ -7,17 +7,17 @@ if (!cookie || cookie.value !== "1") {
 import snippets from '../data/snippets.json';
 import gallery from '../data/gallery.json';
 
-// Consistent index by date
+// Use today's day index to keep it consistent daily
 const today = new Date();
 const dayIndex = today.getDate();
 
-// Random quote/fact
+// Pick a quote or fact
 const snippet = snippets[dayIndex % snippets.length];
 
-// Daily image path
-const image = gallery[dayIndex % gallery.length];
-const imagePath = `/images/gallery/${image}`;
+// Pick a Cloudinary image URL directly from the JSON
+const imagePath = gallery[dayIndex % gallery.length];
 ---
+
 
 <!DOCTYPE html>
 <html lang="en">
