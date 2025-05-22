@@ -92,8 +92,11 @@ const publicId = gallery[dayIndex % gallery.length];
 
 
   <!-- Client-side logic -->
+<!-- Hidden element to pass Astro variable to script -->
+<div id="mediaData" data-id="{publicId}" style="display: none;"></div>
+
 <script type="module" is:inline>
-  const id = `${publicId}`;
+  const id = document.getElementById("mediaData").dataset.id;
   const img = document.getElementById("dailyMedia");
   const video = document.getElementById("dailyVideo");
   const videoSource = document.getElementById("videoSource");
@@ -134,8 +137,9 @@ const publicId = gallery[dayIndex % gallery.length];
     }
   };
 
-  showMedia(); // ✅ Don't forget to call the function!
+  showMedia();
 </script>
+
 
 
     </script>
