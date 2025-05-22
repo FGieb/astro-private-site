@@ -7,17 +7,18 @@ if (!cookie || cookie.value !== "1") {
 import snippets from '../data/snippets.json';
 import gallery from '../data/gallery.json';
 
-// Consistent daily index
+// Pick the day
 const today = new Date();
 const dayIndex = today.getDate();
 
-// Select snippet of the day
+// Select snippet
 const snippet = snippets[dayIndex % snippets.length];
 
-// Filter for image files only (e.g. skip .mov)
-const jpgOnly = gallery.filter(url => url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png'));
-const imagePath = jpgOnly[dayIndex % jpgOnly.length];
+// Get the Cloudinary public_id and construct the full image URL
+const publicId = gallery[dayIndex % gallery.length];
+const imagePath = `https://res.cloudinary.com/du2rss0bx/image/upload/daily-images/${publicId}.jpg`;
 ---
+
 
 <!DOCTYPE html>
 <html lang="en">
