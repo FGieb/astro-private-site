@@ -80,68 +80,56 @@ const publicId = gallery[dayIndex % gallery.length];
       <p>{snippet.text}</p>
       {snippet.source && <p><em>— {snippet.source}</em></p>}
     </div>
-
-    <!-- Dynamic media (img or video) -->
-    <img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
-    <video id="dailyVideo" class="media" controls style="display: none;">
-      <source id="videoSource" type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-    <img src="/images/corgi.jpg" alt="Fallback visual" class="media" id="fallbackImage" style="display: none;" />
-    <p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
-
-
-  <!-- Client-side logic -->
-<!-- Hidden element to pass Astro variable to script -->
-<div id="mediaData" data-id="{publicId}" style="display: none;"></div>
+<!-- Dynamic media (img or video) -->
+<img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
+<video id="dailyVideo" class="media" controls style="display: none;">
+  <source id="videoSource" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+<img src="/images/corgi.jpg" alt="Fallback visual" class="media" id="fallbackImage" style="display: none;" />
+<p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
 
 <script type="module" is:inline>
-  const id = document.getElementById("mediaData").dataset.id;
+  import gallery from '../data/gallery.json';
+
+  const base = "https://res.cloudinary.com/du2rss0bx";
   const img = document.getElementById("dailyMedia");
   const video = document.getElementById("dailyVideo");
   const videoSource = document.getElementById("videoSource");
+  const fallback = document.getElementById("fallbackImage");
 
-  const tryUrl = (url) =>
-    fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
+  const tryUrl = (url) => fetch(url, { method: 'HEAD' }).then(r => r.ok).catch(() => false);
 
-  const showMedia = async () => {
-    const base = "https://res.cloudinary.com/du2rss0bx";
-    const paths = [
-      `${base}/image/upload/daily-images/${id}.jpg`,
-      `${base}/video/upload/daily-images/${id}.jpg`,
-      `${base}/video/upload/daily-images/${id}.mov`,
-    ];
-
-    let shown = false;
-
-    for (const url of paths) {
-      const ok = await tryUrl(url);
-      if (ok) {
-        if (url.endsWith(".jpg")) {
-          img.src = url;
-          img.style.display = "block";
-        } else {
-          videoSource.src = url;
-          video.load();
-          video.style.display = "block";
+  const showFirstValidMedia = async () => {
+    const today = new Date();
+    for (let offset = 0; offset < 7; offset++) {
+      const index = (today.getDate() + offset) % gallery.length;
+      const id = gallery[index];
+      const paths = [
+        `${base}/image/upload/daily-images/${id}.jpg`,
+        `${base}/video/upload/daily-images/${id}.jpg`,
+        `${base}/video/upload/daily-images/${id}.mov`
+      ];
+      for (const url of paths) {
+        const ok = await tryUrl(url);
+        if (ok) {
+          if (url.endsWith('.jpg')) {
+            img.src = url;
+            img.style.display = 'block';
+          } else {
+            videoSource.src = url;
+            video.load();
+            video.style.display = 'block';
+          }
+          return;
         }
-        shown = true;
-        break;
       }
     }
-
-    // Fallback if nothing worked
-    if (!shown) {
-      const fallback = document.getElementById("fallbackImage");
-      fallback.style.display = "block";
-    }
+    fallback.style.display = 'block';
   };
-
-  showMedia();
+  showFirstValidMedia();
 </script>
 
 
-
-    </script>
   </body>
 </html>
