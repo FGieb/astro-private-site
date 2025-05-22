@@ -13,8 +13,8 @@ const dayIndex = today.getDate();
 const snippet = snippets[dayIndex % snippets.length];
 const publicId = gallery[dayIndex % gallery.length];
 
-// ✅ Treat all images and videos as .jpg previews from Cloudinary
-const mediaPath = `https://res.cloudinary.com/du2rss0bx/image/upload/daily-images/${publicId}.jpg`;
+// ✅ Always use Cloudinary's video endpoint to request a .jpg preview (even if the file is .mov)
+const mediaPath = `https://res.cloudinary.com/du2rss0bx/video/upload/daily-images/${publicId}.jpg`;
 ---
 
 <!DOCTYPE html>
