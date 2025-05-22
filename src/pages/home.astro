@@ -80,16 +80,20 @@ const publicId = gallery[dayIndex % gallery.length];
       <p>{snippet.text}</p>
       {snippet.source && <p><em>— {snippet.source}</em></p>}
     </div>
-<!-- Media section -->
+<!-- Dynamic media (img or video) -->
 <img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
 <video id="dailyVideo" class="media" controls style="display: none;">
   <source id="videoSource" type="video/mp4" />
   Your browser does not support the video tag.
 </video>
 <img src="/images/corgi.jpg" alt="Fallback visual" class="media" id="fallbackImage" style="display: none;" />
+<p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
 
+<!-- Client-side logic -->
 <script type="module" is:inline>
   const base = "https://res.cloudinary.com/du2rss0bx";
+
+  // ⬇ Properly inject the gallery list as a JS array
   const gallery = JSON.parse(`{{ JSON.stringify(gallery) }}`);
 
   const img = document.getElementById("dailyMedia");
@@ -98,7 +102,7 @@ const publicId = gallery[dayIndex % gallery.length];
   const fallback = document.getElementById("fallbackImage");
 
   const tryUrl = (url) =>
-    fetch(url, { method: "HEAD" }).then((r) => r.ok).catch(() => false);
+    fetch(url, { method: 'HEAD' }).then(r => r.ok).catch(() => false);
 
   const showFirstValidMedia = async () => {
     const today = new Date();
@@ -108,29 +112,28 @@ const publicId = gallery[dayIndex % gallery.length];
       const paths = [
         `${base}/image/upload/daily-images/${id}.jpg`,
         `${base}/video/upload/daily-images/${id}.jpg`,
-        `${base}/video/upload/daily-images/${id}.mov`,
+        `${base}/video/upload/daily-images/${id}.mov`
       ];
       for (const url of paths) {
         const ok = await tryUrl(url);
         if (ok) {
-          if (url.endsWith(".jpg")) {
+          if (url.endsWith('.jpg')) {
             img.src = url;
-            img.style.display = "block";
+            img.style.display = 'block';
           } else {
             videoSource.src = url;
             video.load();
-            video.style.display = "block";
+            video.style.display = 'block';
           }
           return;
         }
       }
     }
-    fallback.style.display = "block";
+    fallback.style.display = 'block';
   };
 
   showFirstValidMedia();
 </script>
-
 
   </body>
 </html>
