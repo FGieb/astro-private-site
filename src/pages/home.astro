@@ -90,7 +90,7 @@ const publicId = gallery[dayIndex % gallery.length];
 <p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
 
 <script type="module" is:inline>
-  import gallery from '../data/gallery.json';
+  const gallery = JSON.parse(`{JSON.stringify(gallery)}`);
 
   const base = "https://res.cloudinary.com/du2rss0bx";
   const img = document.getElementById("dailyMedia");
