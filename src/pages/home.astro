@@ -12,7 +12,7 @@ const dayIndex = today.getDate();
 const snippet = snippets[dayIndex % snippets.length];
 const publicId = gallery[dayIndex % gallery.length];
 
-// List of known video public IDs
+// ⬇️ List of .mov file IDs (we want to render them as image previews)
 const videoIds = new Set([
   "20250404_161410_CA9D7ED9",
   "20250404_161409_856271FF",
@@ -69,7 +69,7 @@ const videoIds = new Set([
 ]);
 
 
-// If it's a video, use Cloudinary's /video/ path to fetch a preview .jpg image
+// Use Cloudinary /video/.../xxx.jpg for .mov thumbnails
 const isVideo = videoIds.has(publicId);
 const mediaPath = `https://res.cloudinary.com/du2rss0bx/${isVideo ? 'video' : 'image'}/upload/daily-images/${publicId}.jpg`;
 ---
@@ -141,13 +141,6 @@ const mediaPath = `https://res.cloudinary.com/du2rss0bx/${isVideo ? 'video' : 'i
       {snippet.source && <p><em>— {snippet.source}</em></p>}
     </div>
 
-    {extension === 'jpg' ? (
-      <img src={mediaPath} alt="Daily Visual" class="media" />
-    ) : (
-      <video controls class="media">
-        <source src={fileUrl} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-    )}
+    <img src={mediaPath} alt="Daily Visual" class="media" />
   </body>
 </html>
