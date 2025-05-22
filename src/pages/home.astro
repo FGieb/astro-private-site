@@ -5,15 +5,14 @@ if (!cookie || cookie.value !== "1") {
 }
 
 import snippets from '../data/snippets.json';
-import gallery from '../data/gallery.json'; // your cleaned list of IDs
+import gallery from '../data/gallery.json';
 
 const today = new Date();
 const dayIndex = today.getDate();
-
 const snippet = snippets[dayIndex % snippets.length];
 const publicId = gallery[dayIndex % gallery.length];
 
-// 🔍 Simple logic: if publicId is in known video list, use .mov, else .jpg
+// List of known video public IDs
 const videoIds = new Set([
   "20250404_161410_CA9D7ED9",
   "20250404_161409_856271FF",
@@ -69,8 +68,10 @@ const videoIds = new Set([
   "20250511_202758_B06E5E1F",
 ]);
 
-const extension = videoIds.has(publicId) ? "mov" : "jpg";
-const fileUrl = `https://res.cloudinary.com/du2rss0bx/image/upload/daily-images/${publicId}.${extension}`;
+
+// If it's a video, use Cloudinary's /video/ path to fetch a preview .jpg image
+const isVideo = videoIds.has(publicId);
+const mediaPath = `https://res.cloudinary.com/du2rss0bx/${isVideo ? 'video' : 'image'}/upload/daily-images/${publicId}.jpg`;
 ---
 
 <!DOCTYPE html>
@@ -141,7 +142,7 @@ const fileUrl = `https://res.cloudinary.com/du2rss0bx/image/upload/daily-images/
     </div>
 
     {extension === 'jpg' ? (
-      <img src={fileUrl} alt="Daily Photo" class="media" />
+      <img src={mediaPath} alt="Daily Visual" class="media" />
     ) : (
       <video controls class="media">
         <source src={fileUrl} type="video/mp4" />
