@@ -2,9 +2,16 @@ const axios = require("axios");
 const crypto = require("crypto");
 
 exports.handler = async function () {
-const apiKey = process.env.TEST_CLOUDINARY_API_KEY;
-const apiSecret = process.env.TEST_CLOUDINARY_API_SECRET;
-const cloudName = process.env.TEST_CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.TEST_CLOUDINARY_API_KEY;
+  const apiSecret = process.env.TEST_CLOUDINARY_API_SECRET;
+  const cloudName = process.env.TEST_CLOUDINARY_CLOUD_NAME;
+
+  // ✅ TEMPORARY DEBUG LOGGING
+  console.log("Cloudinary credentials:", {
+    apiKey,
+    apiSecret: apiSecret ? "✔️" : "❌",
+    cloudName
+  });
 
   const folder = "daily-images";
   const timestamp = Math.floor(Date.now() / 1000);
