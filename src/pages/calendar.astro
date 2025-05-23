@@ -7,8 +7,6 @@ import FullCalendar from '../components/FullCalendar.astro';
   <head>
     <title>Shared Calendar</title>
     <meta charset="UTF-8" />
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.css" rel="stylesheet" />
     <style>
       body {
         font-family: system-ui, sans-serif;
@@ -16,53 +14,10 @@ import FullCalendar from '../components/FullCalendar.astro';
         margin: 0;
         padding: 2rem;
       }
-
-      #calendar {
-        max-width: 800px;
-        margin: 2rem auto;
-        background: white;
-        padding: 1rem;
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
     </style>
   </head>
   <body>
     <Nav />
-<FullCalendar />
-
-    <script type="module" client:load>
-      import { Calendar } from "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js";
-      import dayGridPlugin from "https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js";
-
-      const calendarEl = document.getElementById("calendar");
-      const calendar = new Calendar(calendarEl, {
-        plugins: [dayGridPlugin],
-        initialView: "dayGridMonth",
-        selectable: true,
-        dateClick: function(info) {
-          const title = prompt("Add event title:");
-          if (title) {
-            calendar.addEvent({ title, start: info.dateStr });
-            saveEvents(calendar.getEvents());
-          }
-        },
-        events: loadEvents()
-      });
-
-      calendar.render();
-
-      function saveEvents(events) {
-        const simplified = events.map(e => ({
-          title: e.title,
-          start: e.startStr
-        }));
-        localStorage.setItem("calendarEvents", JSON.stringify(simplified));
-      }
-
-      function loadEvents() {
-        return JSON.parse(localStorage.getItem("calendarEvents") || "[]");
-      }
-    </script>
+    <FullCalendar />
   </body>
 </html>
