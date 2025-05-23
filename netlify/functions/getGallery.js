@@ -1,17 +1,26 @@
 const axios = require("axios");
 const crypto = require("crypto");
 
-exports.handler = async function () {
-  const apiKey = process.env.TEST_CLOUDINARY_API_KEY;
-  const apiSecret = process.env.TEST_CLOUDINARY_API_SECRET;
-  const cloudName = process.env.TEST_CLOUDINARY_CLOUD_NAME;
+exports.handler = async function (event, context) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-  // ✅ TEMPORARY DEBUG LOGGING
-  console.log("Cloudinary credentials:", {
-    apiKey,
-    apiSecret: apiSecret ? "✔️" : "❌",
-    cloudName
+  // ✅ Log environment variable presence (but NOT their values!)
+  console.log("Cloudinary ENV present:", {
+    cloudName: !!cloudName,
+    apiKey: !!apiKey,
+    apiSecret: !!apiSecret
   });
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Missing Cloudinary environment variables"
+      })
+    };
+  }
 
   const folder = "daily-images";
   const timestamp = Math.floor(Date.now() / 1000);
@@ -32,6 +41,7 @@ exports.handler = async function () {
     });
 
     const publicIds = res.data.resources.map((file) => file.public_id);
+
     return {
       statusCode: 200,
       body: JSON.stringify(publicIds)
@@ -39,7 +49,9 @@ exports.handler = async function () {
   } catch (error) {
     return {
       statusCode: error.response?.status || 500,
-      body: JSON.stringify({ error: error.response?.data || error.message })
+      body: JSON.stringify({
+        error: error.response?.data || error.message
+      })
     };
   }
 };
