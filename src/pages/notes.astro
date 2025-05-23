@@ -1,0 +1,104 @@
+---
+import Nav from '../components/Nav.astro';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Shared Notes</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f2f2f2;
+        margin: 0;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 700px;
+        margin: auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      textarea {
+        width: 100%;
+        height: 100px;
+        padding: 1rem;
+        font-size: 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #ccc;
+        resize: vertical;
+      }
+
+      button {
+        margin-top: 1rem;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        background-color: #0077cc;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        cursor: pointer;
+      }
+
+      .note {
+        background: #fafafa;
+        border-left: 4px solid #0077cc;
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
+      }
+
+      .timestamp {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <Nav />
+    <div class="container">
+      <h1>📝 Shared Notes</h1>
+      <textarea id="noteInput" placeholder="Write a note..."></textarea>
+      <button id="submitNote">Add Note</button>
+      <div id="notesList"></div>
+    </div>
+
+    <script type="module" is:inline>
+      const input = document.getElementById("noteInput");
+      const button = document.getElementById("submitNote");
+      const list = document.getElementById("notesList");
+
+      function loadNotes() {
+        const notes = JSON.parse(localStorage.getItem("sharedNotes") || "[]");
+        list.innerHTML = "";
+        notes.reverse().forEach(note => {
+          const div = document.createElement("div");
+          div.className = "note";
+          div.innerHTML = `
+            <div>${note.text}</div>
+            <div class="timestamp">${new Date(note.timestamp).toLocaleString()}</div>
+          `;
+          list.appendChild(div);
+        });
+      }
+
+      button.addEventListener("click", () => {
+        const text = input.value.trim();
+        if (text) {
+          const notes = JSON.parse(localStorage.getItem("sharedNotes") || "[]");
+          notes.push({ text, timestamp: Date.now() });
+          localStorage.setItem("sharedNotes", JSON.stringify(notes));
+          input.value = "";
+          loadNotes();
+        }
+      });
+
+      loadNotes();
+    </script>
+  </body>
+</html>
