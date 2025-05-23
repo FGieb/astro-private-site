@@ -1,1 +1,23 @@
+---
+import Nav from '../components/Nav.astro'; // You’ll create this next if it doesn’t exist
+const events = []; // temporary static list – will replace later
+---
+
+<Nav />
+
+<h1>Shared Calendar</h1>
+
+<ul>
+  {events.map(event => (
+    <li>{event}</li>
+  ))}
+</ul>
+
+<form method="post">
+  <label>
+    Add a new event:
+    <input type="text" name="newEvent" required />
+  </label>
+  <button type="submit">Add</button>
+</form>
 
