@@ -1,3 +1,9 @@
+console.log('🔑 ENV CHECK:', {
+  apiKey: process.env.CLOUDINARY_API_KEY,
+  apiSecret: process.env.CLOUDINARY_API_SECRET,
+  cloudName: process.env.CLOUDINARY_CLOUD_NAME
+});
+
 const axios = require("axios");
 const crypto = require("crypto");
 
