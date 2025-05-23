@@ -9,7 +9,6 @@ exports.handler = async function () {
   const folder = "daily-images";
   const timestamp = Math.floor(Date.now() / 1000);
   const expression = `resource_type:image OR resource_type:video AND folder=${folder}`;
-
   const signature = crypto
     .createHash("sha1")
     .update(`expression=${expression}&timestamp=${timestamp}${apiSecret}`)
@@ -22,19 +21,18 @@ exports.handler = async function () {
       expression,
       timestamp,
       api_key: apiKey,
-      signature,
+      signature
     });
 
-    const publicIds = res.data.resources.map((file) => file.public_id.split("/").pop());
-
+    const publicIds = res.data.resources.map((file) => file.public_id);
     return {
       statusCode: 200,
-      body: JSON.stringify(publicIds),
+      body: JSON.stringify(publicIds)
     };
-  } catch (err) {
+  } catch (error) {
     return {
-      statusCode: err.response?.status || 500,
-      body: JSON.stringify({ error: err.response?.data || err.message }),
+      statusCode: error.response?.status || 500,
+      body: JSON.stringify({ error: error.response?.data || error.message })
     };
   }
 };
