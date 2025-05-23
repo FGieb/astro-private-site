@@ -5,13 +5,11 @@ if (!cookie || cookie.value !== "1") {
 }
 
 import snippets from '../data/snippets.json';
-import gallery from '../data/gallery.json';
 
 const today = new Date();
 const dayIndex = today.getDate();
 
 const snippet = snippets[dayIndex % snippets.length];
-const publicId = gallery[dayIndex % gallery.length];
 ---
 
 <!DOCTYPE html>
@@ -87,11 +85,17 @@ const publicId = gallery[dayIndex % gallery.length];
   Your browser does not support the video tag.
 </video>
 <img id="fallbackImage" alt="Fallback visual" class="media" style="display: none;" />
-<p style="font-size: 0.8rem; opacity: 0.6;">DEBUG: {publicId}</p>
 
 <script type="module" is:inline>
   const base = "https://res.cloudinary.com/du2rss0bx";
-  const gallery = {JSON.stringify(gallery)};
+let gallery = [];
+
+try {
+  const res = await fetch('/.netlify/functions/getGallery');
+  gallery = await res.json();
+} catch (err) {
+  console.error('Could not load Cloudinary gallery:', err);
+}
   const fallback = document.getElementById("fallbackImage");
   const img = document.getElementById("dailyMedia");
   const video = document.getElementById("dailyVideo");
