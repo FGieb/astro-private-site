@@ -12,6 +12,7 @@ import Nav from '../components/Nav.astro';
         background: #f2f2f2;
         margin: 0;
         padding: 2rem;
+        color: #222;
       }
 
       .container {
@@ -57,6 +58,11 @@ import Nav from '../components/Nav.astro';
         color: #666;
         margin-top: 0.5rem;
       }
+
+      a {
+        color: #0077cc;
+        word-break: break-all;
+      }
     </style>
   </head>
   <body>
@@ -80,8 +86,15 @@ import Nav from '../components/Nav.astro';
           const div = document.createElement("div");
           div.className = "note";
           div.innerHTML = `
-            <div>${note.text}</div>
-            <div class="timestamp">${new Date(note.timestamp).toLocaleString()}</div>
+            <div>
+              ${note.text.replace(
+                /(https?:\/\/[^\s]+)/g,
+                '<a href="$1" target="_blank" rel="noopener">$1</a>'
+              )}
+            </div>
+            <div class="timestamp">
+              ${note.author || 'Anonymous'} — ${new Date(note.timestamp).toLocaleString()}
+            </div>
           `;
           list.appendChild(div);
         });
@@ -90,8 +103,9 @@ import Nav from '../components/Nav.astro';
       button.addEventListener("click", () => {
         const text = input.value.trim();
         if (text) {
+          const author = prompt("Your name:") || "Anonymous";
           const notes = JSON.parse(localStorage.getItem("sharedNotes") || "[]");
-          notes.push({ text, timestamp: Date.now() });
+          notes.push({ text, author, timestamp: Date.now() });
           localStorage.setItem("sharedNotes", JSON.stringify(notes));
           input.value = "";
           loadNotes();
