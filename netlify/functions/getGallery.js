@@ -2,9 +2,9 @@ const axios = require("axios");
 const crypto = require("crypto");
 
 exports.handler = async function () {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+const apiKey = process.env.TEST_CLOUDINARY_API_KEY;
+const apiSecret = process.env.TEST_CLOUDINARY_API_SECRET;
+const cloudName = process.env.TEST_CLOUDINARY_CLOUD_NAME;
 
   const folder = "daily-images";
   const timestamp = Math.floor(Date.now() / 1000);
