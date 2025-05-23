@@ -1,23 +1,105 @@
 ---
-import Nav from '../components/Nav.astro'; // You’ll create this next if it doesn’t exist
-const events = []; // temporary static list – will replace later
+import Nav from '../components/Nav.astro';
 ---
 
-<Nav />
+<html lang="en">
+  <head>
+    <title>Shared Calendar</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 2rem;
+      }
 
-<h1>Shared Calendar</h1>
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
 
-<ul>
-  {events.map(event => (
-    <li>{event}</li>
-  ))}
-</ul>
+      h1 {
+        text-align: center;
+      }
 
-<form method="post">
-  <label>
-    Add a new event:
-    <input type="text" name="newEvent" required />
-  </label>
-  <button type="submit">Add</button>
-</form>
+      ul {
+        padding: 0;
+        list-style: none;
+      }
 
+      li {
+        background: #f0f0f0;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+      }
+
+      form {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 0.5rem;
+      }
+
+      button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: #0077cc;
+        color: white;
+        border-radius: 0.5rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <Nav />
+    <div class="container">
+      <h1>📅 Shared Calendar</h1>
+      <ul id="eventList"></ul>
+      <form id="eventForm">
+        <input type="text" id="eventInput" placeholder="Add event..." required />
+        <button type="submit">Add</button>
+      </form>
+    </div>
+
+    <script type="module" is:inline>
+      const eventForm = document.getElementById("eventForm");
+      const eventInput = document.getElementById("eventInput");
+      const eventList = document.getElementById("eventList");
+
+      const loadEvents = () => {
+        const events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
+        eventList.innerHTML = "";
+        events.forEach((event, index) => {
+          const li = document.createElement("li");
+          li.textContent = event;
+          eventList.appendChild(li);
+        });
+      };
+
+      eventForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const newEvent = eventInput.value.trim();
+        if (newEvent) {
+          const events = JSON.parse(localStorage.getItem("calendarEvents") || "[]");
+          events.push(newEvent);
+          localStorage.setItem("calendarEvents", JSON.stringify(events));
+          eventInput.value = "";
+          loadEvents();
+        }
+      });
+
+      loadEvents();
+    </script>
+  </body>
+</html>
