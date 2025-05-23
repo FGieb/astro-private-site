@@ -8,7 +8,6 @@ import Nav from '../components/Nav.astro';
     <meta charset="UTF-8" />
     <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.css" rel="stylesheet" />
-
     <style>
       body {
         font-family: system-ui, sans-serif;
@@ -23,47 +22,46 @@ import Nav from '../components/Nav.astro';
         background: white;
         padding: 1rem;
         border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
     </style>
   </head>
   <body>
     <Nav />
-
     <div id="calendar"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-          plugins: [FullCalendar.dayGridPlugin],
-          initialView: 'dayGridMonth',
-          selectable: true,
-          dateClick: function(info) {
-            const title = prompt("Add event title:");
-            if (title) {
-              calendar.addEvent({ title, start: info.dateStr });
-              saveEvents(calendar.getEvents());
-            }
-          },
-          events: loadEvents()
-        });
-        calendar.render();
+    <script type="module" client:load>
+      import { Calendar } from "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js";
+      import dayGridPlugin from "https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js";
 
-        function saveEvents(events) {
-          const simplified = events.map(e => ({
-            title: e.title,
-            start: e.startStr
-          }));
-          localStorage.setItem("calendarEvents", JSON.stringify(simplified));
-        }
-
-        function loadEvents() {
-          return JSON.parse(localStorage.getItem("calendarEvents") || "[]");
-        }
+      const calendarEl = document.getElementById("calendar");
+      const calendar = new Calendar(calendarEl, {
+        plugins: [dayGridPlugin],
+        initialView: "dayGridMonth",
+        selectable: true,
+        dateClick: function(info) {
+          const title = prompt("Add event title:");
+          if (title) {
+            calendar.addEvent({ title, start: info.dateStr });
+            saveEvents(calendar.getEvents());
+          }
+        },
+        events: loadEvents()
       });
+
+      calendar.render();
+
+      function saveEvents(events) {
+        const simplified = events.map(e => ({
+          title: e.title,
+          start: e.startStr
+        }));
+        localStorage.setItem("calendarEvents", JSON.stringify(simplified));
+      }
+
+      function loadEvents() {
+        return JSON.parse(localStorage.getItem("calendarEvents") || "[]");
+      }
     </script>
   </body>
 </html>
