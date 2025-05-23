@@ -1,5 +1,6 @@
 ---
 import Nav from '../components/Nav.astro';
+import FullCalendar from '../components/FullCalendar.astro';
 ---
 
 <html lang="en">
@@ -28,7 +29,7 @@ import Nav from '../components/Nav.astro';
   </head>
   <body>
     <Nav />
-    <div id="calendar"></div>
+<FullCalendar />
 
     <script type="module" client:load>
       import { Calendar } from "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js";
