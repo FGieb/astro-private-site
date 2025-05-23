@@ -5,12 +5,14 @@ if (!cookie || cookie.value !== "1") {
 }
 
 import snippets from '../data/snippets.json';
+import Nav from '../components/Nav.astro';
 
 const today = new Date();
 const dayIndex = today.getDate();
 
 const snippet = snippets[dayIndex % snippets.length];
 ---
+
 
 <!DOCTYPE html>
 <html lang="en">
