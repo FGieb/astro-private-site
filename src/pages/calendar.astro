@@ -1,25 +1,6 @@
 ---
-import Nav from '../components/Nav.astro';
 import FullCalendar from '../components/FullCalendar.astro';
-import BaseLayout from '../layouts/BaseLayout.astro';
-
+layout: '../layouts/BaseLayout.astro'
 ---
 
-<html lang="en">
-  <head>
-    <title>Shared Calendar</title>
-    <meta charset="UTF-8" />
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        background: #f9f9f9;
-        margin: 0;
-        padding: 2rem;
-      }
-    </style>
-  </head>
-  <body>
-    <Nav />
-    <FullCalendar />
-  </body>
-</html>
+<FullCalendar />
