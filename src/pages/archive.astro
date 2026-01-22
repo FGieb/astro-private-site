@@ -1,8 +1,13 @@
 ---
+import daily from "../data/daily.json";
+
 const cookie = Astro.cookies.get("auth");
 if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
+
+const entries = Object.entries(daily)
+  .sort(([a],[b]) => b.localeCompare(a));
 ---
 
 <!DOCTYPE html>
@@ -14,7 +19,7 @@ if (!cookie || cookie.value !== "1") {
   <style>
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: system-ui, sans-serif;
       min-height: 100vh;
       color: white;
       background:
@@ -25,7 +30,6 @@ if (!cookie || cookie.value !== "1") {
       background-attachment: fixed;
     }
 
-    /* NAV */
     .top-nav {
       display: flex;
       justify-content: center;
@@ -49,7 +53,6 @@ if (!cookie || cookie.value !== "1") {
 
     .nav-pill a:hover { opacity: 1; }
 
-    /* LAYOUT */
     .wrapper {
       max-width: 760px;
       margin: 3rem auto;
@@ -57,9 +60,8 @@ if (!cookie || cookie.value !== "1") {
     }
 
     h1 {
-      font-size: 1.8rem;
-      margin-bottom: 2rem;
       text-align: center;
+      margin-bottom: 2rem;
     }
 
     .entry {
@@ -95,17 +97,10 @@ if (!cookie || cookie.value !== "1") {
       opacity: 0.7;
       margin-top: 4rem;
     }
-
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 1.5rem;
-      }
-    }
   </style>
 </head>
 
 <body>
-
   <div class="top-nav">
     <div class="nav-pill">
       <a href="/calendar">📅 Calendar</a>
@@ -117,38 +112,18 @@ if (!cookie || cookie.value !== "1") {
 
   <main class="wrapper">
     <h1>Archive</h1>
-    <div id="archive"></div>
+
+    {entries.length === 0 ? (
+      <div class="empty">No entries yet.</div>
+    ) : (
+      entries.map(([date, entry]) => (
+        <div class="entry">
+          <div class="date">{date}</div>
+          <div class="reflection">{entry.reflective.text}</div>
+          <div class="fun">{entry.fun.text}</div>
+        </div>
+      ))
+    )}
   </main>
-
-  <script type="module" is:inline>
-    async function loadArchive() {
-      try {
-        const res = await fetch("/data/daily.json");
-        if (!res.ok) throw new Error();
-
-        const data = await res.json();
-        const container = document.getElementById("archive");
-
-        const entries = Object.entries(data)
-          .sort(([a],[b]) => b.localeCompare(a));
-
-        if (!entries.length) {
-          container.innerHTML =
-            '<div class="empty">No entries yet.</div>';
-          return;
-        }
-
-        entries.forEach(([date, entry]) => {
-          const el = document.createElement("div");
-          el.className = "entry";
-          el.innerHTML = `
-            <div class="date">${date}</div>
-            <div class="reflection">${entry.reflective.text}</div>
-            <div class="fun">${entry.fun.text}</div>
-          `;
-          container.appendChild(el);
-        });
-
-      } catch {
-        document.getElementById("archive").innerHTML =
-          '<div class="empty">Archive unavailable.</div>';
+</body>
+</html>
