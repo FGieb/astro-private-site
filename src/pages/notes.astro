@@ -1,120 +1,167 @@
 ---
-import Nav from '../components/Nav.astro';
-import BaseLayout from '../layouts/BaseLayout.astro';
-
+const cookie = Astro.cookies.get("auth");
+if (!cookie || cookie.value !== "1") {
+  return Astro.redirect("/login");
+}
 ---
 
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Shared Notes</title>
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        background: #f2f2f2;
-        margin: 0;
-        padding: 2rem;
-        color: #222;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <title>Notes</title>
 
-      .container {
-        max-width: 700px;
-        margin: auto;
-        background: white;
-        padding: 2rem;
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      color: white;
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.75)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
 
-      textarea {
-        width: 100%;
-        height: 100px;
-        padding: 1rem;
-        font-size: 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #ccc;
-        resize: vertical;
-      }
+    /* NAV (same everywhere) */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
 
-      button {
-        margin-top: 1rem;
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        background-color: #0077cc;
-        color: white;
-        border: none;
-        border-radius: 0.5rem;
-        cursor: pointer;
-      }
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
 
-      .note {
-        background: #fafafa;
-        border-left: 4px solid #0077cc;
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 0.5rem;
-      }
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+    }
 
-      .timestamp {
-        font-size: 0.8rem;
-        color: #666;
-        margin-top: 0.5rem;
-      }
+    .nav-pill a:hover { opacity: 1; }
 
-      a {
-        color: #0077cc;
-        word-break: break-all;
-      }
-    </style>
-  </head>
-  <body>
-    <Nav />
-    <div class="container">
-      <h1>📝 Shared Notes</h1>
-      <textarea id="noteInput" placeholder="Write a note..."></textarea>
-      <button id="submitNote">Add Note</button>
-      <div id="notesList"></div>
+    /* PAGE */
+    .wrapper {
+      max-width: 640px;
+      margin: 3rem auto;
+      padding: 0 1.25rem 4rem;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    /* INPUT CARD */
+    .note-input {
+      background: rgba(255,255,255,0.9);
+      color: #111;
+      border-radius: 1.2rem;
+      padding: 1.4rem 1.6rem;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      margin-bottom: 2rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      border-radius: 0.6rem;
+      border: none;
+      padding: 0.6rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 0.6rem;
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      border: none;
+      background: #1677ff; /* calendar blue */
+      color: white;
+      cursor: pointer;
+    }
+
+    /* NOTES LIST */
+    .note {
+      background: rgba(0,0,0,0.45);
+      border-radius: 1rem;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      backdrop-filter: blur(6px);
+    }
+
+    .meta {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      margin-top: 0.4rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <a href="/home">🏠 Home</a>
+      <a href="/notes">📝 Notes</a>
+      <a href="/archive">🗂 Archive</a>
+    </div>
+  </div>
+
+  <main class="wrapper">
+    <h1>📝 Shared Notes</h1>
+
+    <div class="note-input">
+      <textarea id="noteInput" placeholder="Write a note…"></textarea>
+      <button id="addNote">Add note</button>
     </div>
 
-    <script type="module" is:inline>
-      const input = document.getElementById("noteInput");
-      const button = document.getElementById("submitNote");
-      const list = document.getElementById("notesList");
+    <div id="notesList"></div>
+  </main>
 
-      function loadNotes() {
-        const notes = JSON.parse(localStorage.getItem("sharedNotes") || "[]");
-        list.innerHTML = "";
-        notes.reverse().forEach(note => {
-          const div = document.createElement("div");
-          div.className = "note";
-          div.innerHTML = `
-            <div>
-              ${note.text.replace(
-                /(https?:\/\/[^\s]+)/g,
-                '<a href="$1" target="_blank" rel="noopener">$1</a>'
-              )}
-            </div>
-            <div class="timestamp">
-              ${note.author || 'Anonymous'} — ${new Date(note.timestamp).toLocaleString()}
-            </div>
-          `;
-          list.appendChild(div);
-        });
-      }
+  <!-- NOTES LOGIC (reuse what you already have) -->
+  <script type="module" is:inline>
+    const input = document.getElementById("noteInput");
+    const list = document.getElementById("notesList");
+    const button = document.getElementById("addNote");
 
-      button.addEventListener("click", () => {
-        const text = input.value.trim();
-        if (text) {
-          const author = prompt("Your name:") || "Anonymous";
-          const notes = JSON.parse(localStorage.getItem("sharedNotes") || "[]");
-          notes.push({ text, author, timestamp: Date.now() });
-          localStorage.setItem("sharedNotes", JSON.stringify(notes));
-          input.value = "";
-          loadNotes();
-        }
+    const key = "shared-notes";
+
+    function render() {
+      const notes = JSON.parse(localStorage.getItem(key) || "[]");
+      list.innerHTML = notes.map(n => `
+        <div class="note">
+          <div>${n.text}</div>
+          <div class="meta">${new Date(n.createdAt).toLocaleString()}</div>
+        </div>
+      `).join("");
+    }
+
+    button.addEventListener("click", () => {
+      if (!input.value.trim()) return;
+      const notes = JSON.parse(localStorage.getItem(key) || "[]");
+      notes.unshift({
+        text: input.value.trim(),
+        createdAt: new Date().toISOString()
       });
+      localStorage.setItem(key, JSON.stringify(notes));
+      input.value = "";
+      render();
+    });
 
-      loadNotes();
-    </script>
-  </body>
+    render();
+  </script>
+
+</body>
 </html>
