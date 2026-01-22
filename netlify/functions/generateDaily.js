@@ -1,24 +1,37 @@
-import fs from "fs";
-import path from "path";
-
-const DATA_PATH = path.resolve("public/daily.json");
-
 export async function handler() {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
-    // ---- LOAD EXISTING DAILY DATA ----
-    let data = {};
-    if (fs.existsSync(DATA_PATH)) {
-      data = JSON.parse(fs.readFileSync(DATA_PATH, "utf-8"));
+    const repo = process.env.GITHUB_REPO;
+    const token = process.env.GITHUB_TOKEN;
+    const path = "src/data/daily.json";
+
+    // ---- FETCH DAILY.JSON FROM GITHUB ----
+    const fileRes = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${path}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+
+    if (!fileRes.ok) {
+      throw new Error("Could not fetch daily.json from GitHub");
     }
 
-    // ---- IF TODAY ALREADY EXISTS, RETURN IT ----
-    if (data[today]) {
+    const fileData = await fileRes.json();
+    const sha = fileData.sha;
+    const content = JSON.parse(
+      Buffer.from(fileData.content, "base64").toString("utf-8")
+    );
+
+    // ---- IF TODAY EXISTS, RETURN IT ----
+    if (content[today]) {
       return {
         statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data[today])
+        body: JSON.stringify(content[today])
       };
     }
 
@@ -26,7 +39,7 @@ export async function handler() {
     const reflectivePrompt = `
 Generate ONE daily reflective item for two people who share a private website.
 
-It can be ONE of the following (choose freely each day):
+It can be ONE of the following:
 - a thoughtful question
 - a concise reflective statement
 - a short attributed quote by a philosopher, writer, scientist, or thinker
@@ -36,22 +49,7 @@ Tone:
 - intelligent, not poetic
 - reflective but grounded
 - curious, sometimes slightly dry
-- emotionally restrained rather than sentimental
-
-Style guidance:
-- Prefer clarity over beauty
-- Avoid metaphor-heavy or lyrical language
-- It is okay to sound neutral, precise, or mildly analytical
-- Do not force intimacy
-
-Themes (optional, not mandatory):
-- time
-- memory
-- attention
-- chance and games
-- routines
-- closeness and distance
-- how meaning accumulates
+- emotionally restrained
 
 Constraints:
 - Max 2 sentences
@@ -67,23 +65,16 @@ Return only the text.
 Generate ONE non-cliché fun fact or curious observation.
 
 Rules:
-- It should be genuinely surprising or unintuitive
-- Not a common trivia fact
-- Can relate to anything (psychology, history, games, language, randomness)
-
-Tone:
-- playful but smart
-- not childish
-- not clickbait
+- genuinely surprising
+- not common trivia
+- any domain
 
 Constraints:
 - Max 2 sentences
 - No emojis
-- No trivia clichés
 Return only the text.
 `;
 
-    // ---- OPENAI CALL HELPER ----
     const callOpenAI = async (prompt) => {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -94,47 +85,57 @@ Return only the text.
         body: JSON.stringify({
           model: "gpt-4o",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.8
+          temperature: 0.7
         })
       });
 
-      const result = await res.json();
-
-      if (!result.choices || !result.choices[0]) {
-        console.error("OpenAI error:", result);
-        throw new Error(result.error?.message || "OpenAI returned no choices");
+      const data = await res.json();
+      if (!data.choices?.[0]) {
+        throw new Error("OpenAI returned no content");
       }
-
-      return result.choices[0].message.content.trim();
+      return data.choices[0].message.content.trim();
     };
 
-    // ---- GENERATE TODAY'S CONTENT ----
     const reflective = await callOpenAI(reflectivePrompt);
     const fun = await callOpenAI(funPrompt);
 
-    // ---- SAVE TO DAILY.JSON ----
-    data[today] = {
-      reflective: {
-        text: reflective,
-        responses: []
-      },
-      fun: {
-        text: fun
-      },
+    // ---- APPEND TODAY ----
+    content[today] = {
+      reflective: { text: reflective },
+      fun: { text: fun },
+      comments: [],
       generatedAt: new Date().toISOString()
     };
 
-    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
+    // ---- COMMIT BACK TO GITHUB ----
+    const updateRes = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${path}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json"
+        },
+        body: JSON.stringify({
+          message: `Add daily entry for ${today}`,
+          content: Buffer.from(
+            JSON.stringify(content, null, 2)
+          ).toString("base64"),
+          sha
+        })
+      }
+    );
 
-    // ---- RETURN TODAY ----
+    if (!updateRes.ok) {
+      throw new Error("Failed to commit daily.json");
+    }
+
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data[today])
+      body: JSON.stringify(content[today])
     };
 
   } catch (err) {
-    console.error(err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message })
