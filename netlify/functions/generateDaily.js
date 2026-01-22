@@ -1,5 +1,28 @@
+import fs from "fs";
+import path from "path";
+
+const DATA_PATH = path.resolve("public/daily.json");
+
 export async function handler() {
   try {
+    const today = new Date().toISOString().slice(0, 10);
+
+    // ---- LOAD EXISTING DAILY DATA ----
+    let data = {};
+    if (fs.existsSync(DATA_PATH)) {
+      data = JSON.parse(fs.readFileSync(DATA_PATH, "utf-8"));
+    }
+
+    // ---- IF TODAY ALREADY EXISTS, RETURN IT ----
+    if (data[today]) {
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data[today])
+      };
+    }
+
+    // ---- PROMPTS ----
     const reflectivePrompt = `
 Generate ONE daily reflective item for two people who share a private website.
 
@@ -57,10 +80,10 @@ Constraints:
 - Max 2 sentences
 - No emojis
 - No trivia clichés
-
 Return only the text.
 `;
 
+    // ---- OPENAI CALL HELPER ----
     const callOpenAI = async (prompt) => {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -75,29 +98,41 @@ Return only the text.
         })
       });
 
-      const data = await res.json();
+      const result = await res.json();
 
-      if (!data.choices || !data.choices[0]) {
-        console.error("OpenAI API error:", data);
-        throw new Error(data.error?.message || "OpenAI returned no choices");
+      if (!result.choices || !result.choices[0]) {
+        console.error("OpenAI error:", result);
+        throw new Error(result.error?.message || "OpenAI returned no choices");
       }
 
-      return data.choices[0].message.content.trim();
+      return result.choices[0].message.content.trim();
     };
 
-    // 👉 ACTUAL EXECUTION
+    // ---- GENERATE TODAY'S CONTENT ----
     const reflective = await callOpenAI(reflectivePrompt);
     const fun = await callOpenAI(funPrompt);
 
+    // ---- SAVE TO DAILY.JSON ----
+    data[today] = {
+      reflective: {
+        text: reflective,
+        responses: []
+      },
+      fun: {
+        text: fun
+      },
+      generatedAt: new Date().toISOString()
+    };
+
+    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
+
+    // ---- RETURN TODAY ----
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reflective,
-        fun,
-        generatedAt: new Date().toISOString()
-      })
+      body: JSON.stringify(data[today])
     };
+
   } catch (err) {
     console.error(err);
     return {
