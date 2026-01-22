@@ -1,10 +1,6 @@
-import fs from "fs";
-import path from "path";
-import OpenAI from "openai";
-
-const DATA_PATH = path.resolve("src/data/daily.json");
-
-const reflectivePrompt = `
+export async function handler() {
+  try {
+    const reflectivePrompt = `
 Generate ONE reflective daily prompt for two people who share a private website.
 
 It can be:
@@ -27,7 +23,7 @@ Themes:
 - closeness and distance
 - shared rituals
 
-Note: take the themes as inspiration, you can breach out if you feel like it fits the same vibe. 
+Note: take the themes as inspiration, you can branch out if it fits the same vibe.
 
 Constraints:
 - Max 3 sentences
@@ -38,14 +34,13 @@ Constraints:
 Return only the text.
 `;
 
-const funPrompt = `
+    const funPrompt = `
 Generate ONE non-cliché fun fact or curious observation.
 
 Rules:
 - It should be genuinely surprising or unintuitive
 - Not a common trivia fact
-- Can relate to anything, for example, psychology, history, games, language, habits, or randomness
-- Understandable without prior knowledge
+- Can relate to anything (psychology, history, games, language, randomness)
 
 Tone:
 - playful but smart
@@ -59,52 +54,40 @@ Constraints:
 Return only the text.
 `;
 
-export async function handler() {
-  const today = new Date().toISOString().slice(0, 10);
+    const callOpenAI = async (prompt) => {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.8
+        })
+      });
 
-  // Load existing data
-  let data = {};
-  if (fs.existsSync(DATA_PATH)) {
-    data = JSON.parse(fs.readFileSync(DATA_PATH, "utf-8"));
-  }
+      const data = await res.json();
+      return data.choices[0].message.content.trim();
+    };
 
-  // Do nothing if today already exists
-  if (data[today]) {
+    const reflective = await callOpenAI(reflectivePrompt);
+    const fun = await callOpenAI(funPrompt);
+
     return {
       statusCode: 200,
-      body: "Daily content already exists"
+      body: JSON.stringify({
+        date: new Date().toISOString().slice(0, 10),
+        reflective,
+        fun
+      })
+    };
+
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
     };
   }
-
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-  });
-
-  const reflective = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: reflectivePrompt }]
-  });
-
-  const fun = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: funPrompt }]
-  });
-
-  data[today] = {
-    reflective: {
-      text: reflective.choices[0].message.content.trim(),
-      responses: []
-    },
-    fun: {
-      text: fun.choices[0].message.content.trim()
-    },
-    generatedAt: new Date().toISOString()
-  };
-
-  fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
-
-  return {
-    statusCode: 200,
-    body: "Daily content generated"
-  };
 }
