@@ -107,11 +107,13 @@ const getMonthLabel = (month: number, year: number) =>
   .day-button.selected { background: #1a1a1a; border-color: #f5f5f5; }
 
   .day-button .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #f5f5f5;
-    opacity: 0.8;
-  }
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.9;
+  margin-top: 4px;
+}
 
   .day-button.inactive { opacity: 0.3; cursor: default; }
 
@@ -242,9 +244,11 @@ const getMonthLabel = (month: number, year: number) =>
 
       const key = keyForDate(displayMonth, day);
       if (events[key]?.length) {
-        const dot = document.createElement("span");
-        dot.className = "dot";
-        button.appendChild(dot);
+      button.classList.add("has-event");
+
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      button.appendChild(dot);
       }
 
       button.addEventListener("click", () => {
