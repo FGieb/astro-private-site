@@ -3,183 +3,223 @@ const cookie = Astro.cookies.get("auth");
 if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
-
-import Nav from "../components/Nav.astro";
 ---
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Private Home</title>
+<head>
+  <meta charset="UTF-8" />
+  <title>Private Home</title>
 
-    <style>
-      :root {
-        --card-bg: rgba(255, 255, 255, 0.88);
+  <style>
+    :root {
+      --card-bg: rgba(255,255,255,0.88);
+      --side-bg: rgba(0,0,0,0.45);
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      color: white;
+      background:
+        linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.65)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    /* NAV */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
+
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+    }
+
+    .nav-pill a:hover { opacity: 1; }
+
+    /* LAYOUT */
+    .layout {
+      max-width: 980px;
+      margin: 3rem auto 0;
+      padding: 0 1.25rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    /* CENTER */
+    .center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .welcome h1 {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .welcome p {
+      font-size: 0.95rem;
+      opacity: 0.7;
+      margin-bottom: 2rem;
+    }
+
+    .reflection-card {
+      background: var(--card-bg);
+      color: #111;
+      padding: 1.6rem 1.8rem;
+      border-radius: 1.25rem;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      margin-bottom: 1.2rem;
+    }
+
+    .reflection-card h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      opacity: 0.5;
+      margin-bottom: 0.75rem;
+    }
+
+    .reflection-text {
+      font-size: 1.1rem;
+      line-height: 1.55;
+    }
+
+    /* COMMENTS */
+    .thoughts {
+      background: rgba(0,0,0,0.45);
+      border-radius: 1rem;
+      padding: 1rem 1.2rem;
+      width: 100%;
+      max-width: 420px;
+      text-align: left;
+      backdrop-filter: blur(6px);
+    }
+
+    .thoughts h3 {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 0.6rem;
+    }
+
+    #commentList div {
+      font-size: 0.9rem;
+      margin-bottom: 0.35rem;
+    }
+
+    textarea {
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.6rem;
+      border-radius: 0.6rem;
+      border: none;
+      font-family: inherit;
+    }
+
+    button {
+      margin-top: 0.5rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      border: none;
+      background: rgba(255,255,255,0.9);
+      cursor: pointer;
+    }
+
+    /* RIGHT RAIL */
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .side-card {
+      background: var(--side-bg);
+      border-radius: 1rem;
+      padding: 1rem 1.1rem;
+      backdrop-filter: blur(6px);
+      font-size: 0.9rem;
+    }
+
+    .side-card h4 {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .side-link {
+      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      opacity: 0.75;
+    }
+
+    .side-link a {
+      color: white;
+      text-decoration: none;
+    }
+
+    .side-link a:hover { opacity: 1; }
+
+    /* MOBILE */
+    @media (max-width: 820px) {
+      .layout {
+        grid-template-columns: 1fr;
       }
 
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        min-height: 100vh;
-        color: white;
-        background:
-          linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.65)),
-          url("/images/homebackground.jpg");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
+      .side {
+        order: 2;
       }
 
-      /* === TOP NAV === */
-      .top-nav {
-        display: flex;
-        justify-content: center;
-        margin-top: 1.25rem;
+      .center {
+        order: 1;
       }
+    }
+  </style>
+</head>
 
-      .nav-pill {
-        display: flex;
-        gap: 1.2rem;
-        background: rgba(0, 0, 0, 0.55);
-        padding: 0.6rem 1.4rem;
-        border-radius: 999px;
-        font-size: 1rem;
-        backdrop-filter: blur(6px);
-      }
-
-      .nav-pill a {
-        color: white;
-        text-decoration: none;
-        opacity: 0.85;
-      }
-
-      .nav-pill a:hover {
-        opacity: 1;
-      }
-
-      /* === MAIN WRAPPER === */
-      .wrapper {
-        max-width: 720px;
-        margin: 3rem auto 0;
-        padding: 0 1.25rem 4rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-      }
-
-      /* === WELCOME === */
-      .welcome h1 {
-        font-size: 2rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-      }
-
-      .welcome p {
-        font-size: 0.95rem;
-        opacity: 0.7;
-        margin-bottom: 2rem;
-      }
-
-      /* === DAILY REFLECTION === */
-      .reflection-card {
-        background: var(--card-bg);
-        color: #111;
-        padding: 1.6rem 1.8rem;
-        border-radius: 1.25rem;
-        width: 100%;
-        max-width: 560px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-        margin-bottom: 1.2rem;
-      }
-
-      .reflection-card h2 {
-        font-size: 0.9rem;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        opacity: 0.55;
-        margin-bottom: 0.75rem;
-      }
-
-      .reflection-text {
-        font-size: 1.1rem;
-        line-height: 1.55;
-      }
-
-      /* === COMMENTS === */
-      .today-box {
-        background: rgba(0,0,0,0.5);
-        border-radius: 1rem;
-        padding: 1rem 1.2rem;
-        width: 100%;
-        max-width: 420px;
-        margin-bottom: 2rem;
-        backdrop-filter: blur(6px);
-        text-align: left;
-      }
-
-      .today-box h3 {
-        font-size: 0.95rem;
-        opacity: 0.8;
-        margin-bottom: 0.75rem;
-      }
-
-      #commentList div {
-        font-size: 0.9rem;
-        margin-bottom: 0.4rem;
-        opacity: 0.9;
-      }
-
-      textarea {
-        width: 100%;
-        margin-top: 0.6rem;
-        padding: 0.6rem;
-        border-radius: 0.6rem;
-        border: none;
-        font-family: inherit;
-      }
-
-      button {
-        margin-top: 0.5rem;
-        padding: 0.4rem 0.9rem;
-        border-radius: 999px;
-        border: none;
-        background: rgba(255,255,255,0.9);
-        cursor: pointer;
-      }
-
-      /* === CALENDAR EVENTS === */
-      .event-item {
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .event-note {
-        font-size: 0.8rem;
-        opacity: 0.7;
-      }
-    </style>
-  </head>
-
-  <body>
-    <!-- NAV -->
-    <div class="top-nav">
-      <div class="nav-pill">
-        <a href="/calendar">📅 Calendar</a>
-        <a href="/home">🏠 Home</a>
-        <a href="/notes">📝 Notes</a>
-        <a href="/archive">🗂 Archive</a>
-      </div>
+<body>
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <a href="/home">🏠 Home</a>
+      <a href="/notes">📝 Notes</a>
+      <a href="/archive">🗂 Archive</a>
     </div>
+  </div>
 
-    <main class="wrapper">
-      <section class="welcome">
+  <main class="layout">
+
+    <!-- CENTER -->
+    <section class="center">
+      <div class="welcome">
         <h1>🐒 Goedemiddag, monkey</h1>
         <p>Still becoming.</p>
-      </section>
+      </div>
 
-      <!-- DAILY REFLECTION -->
       <section class="reflection-card">
         <h2>Today</h2>
         <p id="dailyReflection" class="reflection-text">
@@ -187,87 +227,98 @@ import Nav from "../components/Nav.astro";
         </p>
       </section>
 
-      <!-- COMMENTS -->
-      <section class="today-box">
+      <section class="thoughts">
         <h3>💬 Thoughts</h3>
         <div id="commentList"></div>
         <textarea id="commentInput" placeholder="Leave a thought…"></textarea>
         <button id="saveComment">Add</button>
       </section>
+    </section>
 
-      <!-- TODAY EVENTS -->
-      <section id="todayEvent" class="today-box" style="display:none;">
-        <h3>📍 Today</h3>
+    <!-- RIGHT RAIL -->
+    <aside class="side">
+
+      <div id="todayEvent" class="side-card" style="display:none;">
+        <h4>📍 Today</h4>
         <div id="todayEventContent"></div>
-      </section>
-    </main>
+        <div class="side-link">
+          <a href="/calendar">↗ Open calendar</a>
+        </div>
+      </div>
 
-    <!-- === CALENDAR → TODAY === -->
-    <script type="module" is:inline>
-      const container = document.getElementById("todayEvent");
-      const content = document.getElementById("todayEventContent");
+      <div class="side-card">
+        <h4>💡 Also today</h4>
+        <div id="funFact">Loading…</div>
+      </div>
 
-      const keyForToday = () => {
-        const d = new Date();
-        return `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-      };
+    </aside>
 
-      const events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
-      const todayEvents = events[keyForToday()];
+  </main>
 
-      if (todayEvents?.length) {
-        container.style.display = "block";
-        content.innerHTML = todayEvents.map(evt => `
-          <div class="event-item">
-            <strong>${evt.title}</strong>
-            ${evt.note ? `<div class="event-note">${evt.note}</div>` : ""}
-          </div>
-        `).join("");
+  <!-- CALENDAR -->
+  <script type="module" is:inline>
+    const container = document.getElementById("todayEvent");
+    const content = document.getElementById("todayEventContent");
+
+    const keyForToday = () => {
+      const d = new Date();
+      return `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    };
+
+    const events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
+    const todayEvents = events[keyForToday()];
+
+    if (todayEvents?.length) {
+      container.style.display = "block";
+      content.innerHTML = todayEvents.map(evt => `
+        <div><strong>${evt.title}</strong></div>
+      `).join("");
+    }
+  </script>
+
+  <!-- DAILY CONTENT -->
+  <script type="module" is:inline>
+    async function loadDaily() {
+      try {
+        const res = await fetch("/.netlify/functions/generateDaily");
+        const data = await res.json();
+        document.getElementById("dailyReflection").textContent =
+          data.reflective.text;
+        document.getElementById("funFact").textContent =
+          data.fun.text;
+      } catch {
+        document.getElementById("dailyReflection").textContent =
+          "Today will reveal itself later.";
       }
-    </script>
+    }
+    loadDaily();
+  </script>
 
-    <!-- === DAILY REFLECTION FETCH === -->
-    <script type="module" is:inline>
-      async function loadDaily() {
-        try {
-          const res = await fetch("/.netlify/functions/generateDaily");
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          document.getElementById("dailyReflection").textContent =
-            data.reflective.text;
-        } catch {
-          document.getElementById("dailyReflection").textContent =
-            "Today will reveal itself later.";
-        }
-      }
-      loadDaily();
-    </script>
+  <!-- COMMENTS -->
+  <script type="module" is:inline>
+    const today = new Date().toISOString().slice(0,10);
+    const key = `daily-comments-${today}`;
 
-    <!-- === COMMENTS LOGIC === -->
-    <script type="module" is:inline>
-      const today = new Date().toISOString().slice(0, 10);
-      const key = `daily-comments-${today}`;
+    const list = document.getElementById("commentList");
+    const input = document.getElementById("commentInput");
+    const button = document.getElementById("saveComment");
 
-      const list = document.getElementById("commentList");
-      const input = document.getElementById("commentInput");
-      const button = document.getElementById("saveComment");
+    function render() {
+      const comments = JSON.parse(localStorage.getItem(key) || "[]");
+      list.innerHTML = comments.map(c => `<div>– ${c}</div>`).join("");
+    }
 
-      function render() {
-        const comments = JSON.parse(localStorage.getItem(key) || "[]");
-        list.innerHTML = comments.map(c => `<div>– ${c}</div>`).join("");
-      }
-
-      button.addEventListener("click", () => {
-        if (!input.value.trim()) return;
-        const comments = JSON.parse(localStorage.getItem(key) || "[]");
-        comments.push(input.value.trim());
-        localStorage.setItem(key, JSON.stringify(comments));
-        input.value = "";
-        render();
-      });
-
+    button.addEventListener("click", () => {
+      if (!input.value.trim()) return;
+      const comments = JSON.parse(localStorage.getItem(key) || "[]");
+      comments.push(input.value.trim());
+      localStorage.setItem(key, JSON.stringify(comments));
+      input.value = "";
       render();
-    </script>
+    });
 
-  </body>
+    render();
+  </script>
+
+</body>
 </html>
