@@ -5,7 +5,6 @@ if (!cookie || cookie.value !== "1") {
 }
 
 import Nav from "../components/Nav.astro";
-
 ---
 
 <!DOCTYPE html>
@@ -24,16 +23,26 @@ import Nav from "../components/Nav.astro";
         background-repeat: no-repeat;
         min-height: 100vh;
         color: white;
-        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-        padding: 2rem;
+        padding: 2.5rem;
+        position: relative;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(6px);
+        z-index: -1;
+        pointer-events: none;
       }
 
       /* === LAYOUT === */
       .home-layout {
         display: grid;
-        grid-template-columns: 1fr minmax(220px, 260px);
-        gap: 2rem;
-        max-width: 1000px;
+        grid-template-columns: 1fr minmax(240px, 280px);
+        gap: 2.5rem;
+        max-width: 1050px;
         margin: 0 auto;
         align-items: start;
       }
@@ -46,83 +55,85 @@ import Nav from "../components/Nav.astro";
 
       /* === WELCOME === */
       .welcome {
-        margin-bottom: 1rem;
+        margin-bottom: 2rem;
         text-align: center;
-        opacity: 0.85;
+        opacity: 0.9;
       }
 
       .welcome h1 {
-        font-size: 1.6rem;
-        margin-bottom: 0.25rem;
+        font-size: 1.9rem;
+        margin-bottom: 0.3rem;
         font-weight: 600;
       }
 
       .welcome p {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         opacity: 0.7;
       }
+
       /* === DAILY REFLECTION === */
       .daily-reflection {
-        background: rgba(255, 255, 255, 0.88);
+        background: rgba(255, 255, 255, 0.9);
         color: #111;
-        padding: 1.2rem 1.5rem;
-        border-radius: 1rem;
-        max-width: 520px;
+        padding: 1.5rem 1.8rem;
+        border-radius: 1.1rem;
+        max-width: 600px;
         text-align: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        margin-bottom: 2.2rem;
       }
-      
+
       .daily-reflection h2 {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
-        margin-bottom: 0.75rem;
-        opacity: 0.7;
+        margin-bottom: 0.8rem;
+        opacity: 0.6;
       }
-      
+
       .reflection-text {
-        font-size: 1.05rem;
-        line-height: 1.5;
+        font-size: 1.15rem;
+        line-height: 1.6;
         opacity: 0.85;
       }
-      
+
       .placeholder {
-        opacity: 0.6;
+        opacity: 0.75;
       }
 
       /* === MEDIA === */
       .media {
-        max-width: 300px;
-        max-height: 225px;
+        max-width: 260px;
         width: 100%;
         height: auto;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        margin-top: 1rem;
+        border-radius: 0.8rem;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        margin-top: 2rem;
       }
 
       /* === SIDE PANEL === */
       .side-panel {
-        background: rgba(0, 0, 0, 0.55);
-        border-radius: 0.9rem;
-        padding: 1rem;
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(4px);
+        border-radius: 1rem;
+        padding: 1.2rem;
         font-size: 0.9rem;
-        opacity: 0.9;
+        opacity: 0.95;
       }
 
       .today-event h3 {
         margin-top: 0;
         font-size: 1rem;
         opacity: 0.85;
+        margin-bottom: 0.75rem;
       }
 
       .today-event .event-item {
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.9rem;
         font-size: 0.85rem;
       }
 
       .event-note {
-        opacity: 0.75;
+        opacity: 0.7;
         margin-top: 0.25rem;
       }
 
@@ -161,11 +172,9 @@ import Nav from "../components/Nav.astro";
           </p>
         </div>
 
-        <!-- Dynamic media -->
         <img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
         <video id="dailyVideo" class="media" controls style="display: none;">
           <source id="videoSource" type="video/mp4" />
-          Your browser does not support the video tag.
         </video>
         <img id="fallbackImage" alt="Fallback visual" class="media" style="display: none;" />
       </div>
@@ -179,7 +188,7 @@ import Nav from "../components/Nav.astro";
       </aside>
     </div>
 
-    <!-- === MEDIA SCRIPT (unchanged) === -->
+    <!-- === MEDIA SCRIPT === -->
     <script type="module" is:inline>
       const base = "https://res.cloudinary.com/du2rss0bx";
       let gallery = [];
@@ -187,9 +196,7 @@ import Nav from "../components/Nav.astro";
       try {
         const res = await fetch("/.netlify/functions/getGallery");
         gallery = await res.json();
-      } catch (err) {
-        console.error("Could not load Cloudinary gallery:", err);
-      }
+      } catch {}
 
       const fallback = document.getElementById("fallbackImage");
       const img = document.getElementById("dailyMedia");
@@ -219,15 +226,13 @@ import Nav from "../components/Nav.astro";
         fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
 
       const showMedia = async () => {
-        const today = new Date();
-        const day = today.getDate();
+        const day = new Date().getDate();
 
         for (let offset = 0; offset < 7; offset++) {
           const index = (day + offset) % gallery.length;
           const id = gallery[index];
           const paths = [
             `${base}/image/upload/daily-images/${id}.jpg`,
-            `${base}/video/upload/daily-images/${id}.jpg`,
             `${base}/video/upload/daily-images/${id}.mov`
           ];
 
@@ -247,15 +252,14 @@ import Nav from "../components/Nav.astro";
           }
         }
 
-        const fallbackIndex = day % fallbackImages.length;
-        fallback.src = `/images/${fallbackImages[fallbackIndex]}`;
+        fallback.src = `/images/${fallbackImages[day % fallbackImages.length]}`;
         fallback.style.display = "block";
       };
 
       showMedia();
     </script>
 
-    <!-- === TODAY EVENT SCRIPT (calendar → homepage) === -->
+    <!-- === TODAY EVENT SCRIPT === -->
     <script type="module" is:inline>
       const container = document.getElementById("todayEvent");
       const content = document.getElementById("todayEventContent");
@@ -265,26 +269,14 @@ import Nav from "../components/Nav.astro";
         return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       };
 
-      const loadEvents = () =>
-        JSON.parse(localStorage.getItem("calendarEvents") || "{}");
-
-      const typeIcon = (type) => {
-        switch (type) {
-          case "memory": return "🧠";
-          case "plan": return "📍";
-          case "occasion": return "🌟";
-          default: return "📝";
-        }
-      };
-
-      const events = loadEvents();
+      const events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
       const todayEvents = events[keyForToday()];
 
-      if (todayEvents && todayEvents.length) {
+      if (todayEvents?.length) {
         container.classList.remove("hidden");
         content.innerHTML = todayEvents.map(evt => `
           <div class="event-item">
-            <strong>${typeIcon(evt.type)} ${evt.title}</strong>
+            <strong>${evt.title}</strong>
             ${evt.note ? `<div class="event-note">${evt.note}</div>` : ""}
           </div>
         `).join("");
