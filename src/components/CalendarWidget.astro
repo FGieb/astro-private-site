@@ -316,7 +316,7 @@ const getMonthLabel = (month: number, year: number) =>
       const icon = typeIcon(evt.type);
 
       item.innerHTML = `
-        <strong>${evt.title}</strong>
+        <strong>${icon} ${evt.title}</strong>
         <div class="type">${evt.type}</div>
         ${evt.note ? `<span>${evt.note}</span>` : ""}
       `;
