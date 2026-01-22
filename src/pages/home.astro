@@ -4,47 +4,69 @@ if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
 
-import snippets from '../data/snippets.json';
-import Nav from '../components/Nav.astro';
+import snippets from "../data/snippets.json";
+import Nav from "../components/Nav.astro";
 
 const today = new Date();
 const dayIndex = today.getDate();
-
 const snippet = snippets[dayIndex % snippets.length];
 ---
-
 
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Private Home</title>
+
     <style>
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
-        background-image: url('/images/homebackground.jpg');
+        background-image: url("/images/homebackground.jpg");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
         color: white;
         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
         padding: 2rem;
       }
 
-      .content-box {
-        background-color: rgba(0, 0, 0, 0.6);
-        padding: 2rem 3rem;
-        border-radius: 1rem;
-        max-width: 600px;
-        text-align: center;
-        margin-bottom: 1.5rem;
+      /* === LAYOUT === */
+      .home-layout {
+        display: grid;
+        grid-template-columns: 1fr minmax(220px, 260px);
+        gap: 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+        align-items: start;
       }
 
+      .main-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* === WELCOME === */
+      .welcome {
+        margin-bottom: 1rem;
+        text-align: center;
+        opacity: 0.85;
+      }
+
+      .welcome h1 {
+        font-size: 1.6rem;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+      }
+
+      .welcome p {
+        font-size: 0.9rem;
+        opacity: 0.7;
+      }
+
+      /* === DAILY SNIPPET === */
       .daily-snippet {
         background-color: rgba(255, 255, 255, 0.85);
         color: black;
@@ -52,122 +74,209 @@ const snippet = snippets[dayIndex % snippets.length];
         border-radius: 1rem;
         max-width: 500px;
         text-align: center;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         margin-bottom: 1.5rem;
       }
 
+      /* === MEDIA === */
       .media {
-  max-width: 300px;
-  max-height: 225px;
-  width: 100%;
-  height: auto;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  margin-top: 1rem;
-}
+        max-width: 300px;
+        max-height: 225px;
+        width: 100%;
+        height: auto;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        margin-top: 1rem;
+      }
 
+      /* === SIDE PANEL === */
+      .side-panel {
+        background: rgba(0, 0, 0, 0.55);
+        border-radius: 0.9rem;
+        padding: 1rem;
+        font-size: 0.9rem;
+        opacity: 0.9;
+      }
+
+      .today-event h3 {
+        margin-top: 0;
+        font-size: 1rem;
+        opacity: 0.85;
+      }
+
+      .today-event .event-item {
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .event-note {
+        opacity: 0.75;
+        margin-top: 0.25rem;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* === MOBILE === */
+      @media (max-width: 900px) {
+        .home-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .side-panel {
+          order: -1;
+        }
+      }
     </style>
   </head>
 
   <body>
+    <Nav />
 
----
-import Nav from '../components/Nav.astro';
----
-<Nav />
-
-    <div class="content-box">
-      <h1>🎉 Greetings big monkey!</h1>
-      <p>This is a work in progress...</p>
+    <div class="welcome">
+      <h1>🐒 Goedemiddag, monkey</h1>
+      <p>Still becoming.</p>
     </div>
 
-    <div class="daily-snippet">
-      <h2>📌 Random quote or fact?</h2>
-      <p>{snippet.text}</p>
-      {snippet.source && <p><em>— {snippet.source}</em></p>}
+    <div class="home-layout">
+      <!-- MAIN -->
+      <div class="main-column">
+        <div class="daily-snippet">
+          <h2>📌 Random quote or fact?</h2>
+          <p>{snippet.text}</p>
+          {snippet.source && <p><em>— {snippet.source}</em></p>}
+        </div>
+
+        <!-- Dynamic media -->
+        <img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
+        <video id="dailyVideo" class="media" controls style="display: none;">
+          <source id="videoSource" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <img id="fallbackImage" alt="Fallback visual" class="media" style="display: none;" />
+      </div>
+
+      <!-- SIDE -->
+      <aside class="side-panel">
+        <section id="todayEvent" class="today-event hidden">
+          <h3>📅 Today</h3>
+          <div id="todayEventContent"></div>
+        </section>
+      </aside>
     </div>
-<!-- Dynamic media (img or video) -->
-<img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
-<video id="dailyVideo" class="media" controls style="display: none;">
-  <source id="videoSource" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
-<img id="fallbackImage" alt="Fallback visual" class="media" style="display: none;" />
 
-<script type="module" is:inline>
-  const base = "https://res.cloudinary.com/du2rss0bx";
-let gallery = [];
+    <!-- === MEDIA SCRIPT (unchanged) === -->
+    <script type="module" is:inline>
+      const base = "https://res.cloudinary.com/du2rss0bx";
+      let gallery = [];
 
-try {
-  const res = await fetch('/.netlify/functions/getGallery');
-  gallery = await res.json();
-} catch (err) {
-  console.error('Could not load Cloudinary gallery:', err);
-}
-  const fallback = document.getElementById("fallbackImage");
-  const img = document.getElementById("dailyMedia");
-  const video = document.getElementById("dailyVideo");
-  const videoSource = document.getElementById("videoSource");
-
-  const fallbackImages = [
-    "IMG_20250515_120530.jpg",
-    "IMG_20250515_121218.jpg",
-    "IMG_20250515_135154.jpg",
-    "IMG_20250515_192053.jpg",
-    "IMG-20240906-WA0006.jpg",
-    "IMG-20241020-WA0029.jpg",
-    "IMG-20241104-WA0059.jpg",
-    "IMG-20250130-WA0081.jpg",
-    "IMG-20250130-WA0099.jpg",
-    "IMG-20250303-WA0051.jpg",
-    "IMG-20250317-WA0027.jpg",
-    "IMG-20250407-WA0017.jpg",
-    "IMG-20250415-WA0048.jpg",
-    "IMG-20250415-WA0062.jpg",
-    "IMG-20250510-WA0007.jpg",
-    "IMG20250510210447.jpg"
-  ];
-
-  const tryUrl = (url) =>
-    fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
-
-  const showMedia = async () => {
-    const today = new Date();
-    const day = today.getDate();
-    for (let offset = 0; offset < 7; offset++) {
-      const index = (day + offset) % gallery.length;
-      const id = gallery[index];
-      const paths = [
-        `${base}/image/upload/daily-images/${id}.jpg`,
-        `${base}/video/upload/daily-images/${id}.jpg`,
-        `${base}/video/upload/daily-images/${id}.mov`
-      ];
-      for (const url of paths) {
-        const ok = await tryUrl(url);
-        if (ok) {
-          if (url.endsWith(".jpg")) {
-            img.src = url;
-            img.style.display = "block";
-          } else {
-            videoSource.src = url;
-            video.load();
-            video.style.display = "block";
-          }
-          return;
-        }
+      try {
+        const res = await fetch("/.netlify/functions/getGallery");
+        gallery = await res.json();
+      } catch (err) {
+        console.error("Could not load Cloudinary gallery:", err);
       }
-    }
 
-    // Fallback to rotating local image
-    const fallbackIndex = day % fallbackImages.length;
-    fallback.src = `/images/${fallbackImages[fallbackIndex]}`;
-    fallback.style.display = "block";
-  };
+      const fallback = document.getElementById("fallbackImage");
+      const img = document.getElementById("dailyMedia");
+      const video = document.getElementById("dailyVideo");
+      const videoSource = document.getElementById("videoSource");
 
-  showMedia();
-</script>
+      const fallbackImages = [
+        "IMG_20250515_120530.jpg",
+        "IMG_20250515_121218.jpg",
+        "IMG_20250515_135154.jpg",
+        "IMG_20250515_192053.jpg",
+        "IMG-20240906-WA0006.jpg",
+        "IMG-20241020-WA0029.jpg",
+        "IMG-20241104-WA0059.jpg",
+        "IMG-20250130-WA0081.jpg",
+        "IMG-20250130-WA0099.jpg",
+        "IMG-20250303-WA0051.jpg",
+        "IMG-20250317-WA0027.jpg",
+        "IMG-20250407-WA0017.jpg",
+        "IMG-20250415-WA0048.jpg",
+        "IMG-20250415-WA0062.jpg",
+        "IMG-20250510-WA0007.jpg",
+        "IMG20250510210447.jpg"
+      ];
 
+      const tryUrl = (url) =>
+        fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
 
+      const showMedia = async () => {
+        const today = new Date();
+        const day = today.getDate();
+
+        for (let offset = 0; offset < 7; offset++) {
+          const index = (day + offset) % gallery.length;
+          const id = gallery[index];
+          const paths = [
+            `${base}/image/upload/daily-images/${id}.jpg`,
+            `${base}/video/upload/daily-images/${id}.jpg`,
+            `${base}/video/upload/daily-images/${id}.mov`
+          ];
+
+          for (const url of paths) {
+            const ok = await tryUrl(url);
+            if (ok) {
+              if (url.endsWith(".jpg")) {
+                img.src = url;
+                img.style.display = "block";
+              } else {
+                videoSource.src = url;
+                video.load();
+                video.style.display = "block";
+              }
+              return;
+            }
+          }
+        }
+
+        const fallbackIndex = day % fallbackImages.length;
+        fallback.src = `/images/${fallbackImages[fallbackIndex]}`;
+        fallback.style.display = "block";
+      };
+
+      showMedia();
+    </script>
+
+    <!-- === TODAY EVENT SCRIPT (calendar → homepage) === -->
+    <script type="module" is:inline>
+      const container = document.getElementById("todayEvent");
+      const content = document.getElementById("todayEventContent");
+
+      const keyForToday = () => {
+        const d = new Date();
+        return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      };
+
+      const loadEvents = () =>
+        JSON.parse(localStorage.getItem("calendarEvents") || "{}");
+
+      const typeIcon = (type) => {
+        switch (type) {
+          case "memory": return "🧠";
+          case "plan": return "📍";
+          case "occasion": return "🌟";
+          default: return "📝";
+        }
+      };
+
+      const events = loadEvents();
+      const todayEvents = events[keyForToday()];
+
+      if (todayEvents && todayEvents.length) {
+        container.classList.remove("hidden");
+        content.innerHTML = todayEvents.map(evt => `
+          <div class="event-item">
+            <strong>${typeIcon(evt.type)} ${evt.title}</strong>
+            ${evt.note ? `<div class="event-note">${evt.note}</div>` : ""}
+          </div>
+        `).join("");
+      }
+    </script>
   </body>
 </html>
