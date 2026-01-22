@@ -37,7 +37,7 @@ const getMonthLabel = (month: number, year: number) =>
         <option value="note">📝 Note</option>
         <option value="plan">📍 Plan</option>
         <option value="memory">🧠 Memory</option>
-        <option value="event">🌟 Highlight</option>
+        <option value="occasion">🌟 Occasion</option>
       </select>
 
 
@@ -277,7 +277,7 @@ const getMonthLabel = (month: number, year: number) =>
   switch (type) {
     case "memory": return "🧠";
     case "plan": return "📍";
-    case "event": return "🌟";
+    case "occasion": return "🌟";
     case "note":
     default: return "📝";
   }
