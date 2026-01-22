@@ -2,13 +2,17 @@ export async function handler() {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
-    const repo = process.env.GITHUB_REPO;
+    const repo = process.env.GITHUB_REPO; // e.g. "yourname/astro-private-site"
     const token = process.env.GITHUB_TOKEN;
-    const path = "src/data/daily.json";
+    const filePath = "src/data/daily.json";
 
-    // ---- FETCH DAILY.JSON FROM GITHUB ----
+    if (!repo || !token) {
+      throw new Error("Missing GITHUB_REPO or GITHUB_TOKEN");
+    }
+
+    // ---------- FETCH daily.json ----------
     const fileRes = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${path}`,
+      `https://api.github.com/repos/${repo}/contents/${filePath}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -23,19 +27,21 @@ export async function handler() {
 
     const fileData = await fileRes.json();
     const sha = fileData.sha;
+
     const content = JSON.parse(
       Buffer.from(fileData.content, "base64").toString("utf-8")
     );
 
-    // ---- IF TODAY EXISTS, RETURN IT ----
+    // ---------- RETURN IF TODAY EXISTS ----------
     if (content[today]) {
       return {
         statusCode: 200,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(content[today])
       };
     }
 
-    // ---- PROMPTS ----
+    // ---------- PROMPTS ----------
     const reflectivePrompt = `
 Generate ONE daily reflective item for two people who share a private website.
 
@@ -93,13 +99,15 @@ Return only the text.
       if (!data.choices?.[0]) {
         throw new Error("OpenAI returned no content");
       }
+
       return data.choices[0].message.content.trim();
     };
 
+    // ---------- GENERATE ----------
     const reflective = await callOpenAI(reflectivePrompt);
     const fun = await callOpenAI(funPrompt);
 
-    // ---- APPEND TODAY ----
+    // ---------- APPEND TODAY ----------
     content[today] = {
       reflective: { text: reflective },
       fun: { text: fun },
@@ -107,9 +115,9 @@ Return only the text.
       generatedAt: new Date().toISOString()
     };
 
-    // ---- COMMIT BACK TO GITHUB ----
+    // ---------- COMMIT BACK ----------
     const updateRes = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${path}`,
+      `https://api.github.com/repos/${repo}/contents/${filePath}`,
       {
         method: "PUT",
         headers: {
@@ -132,10 +140,12 @@ Return only the text.
 
     return {
       statusCode: 200,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(content[today])
     };
 
   } catch (err) {
+    console.error(err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message })
