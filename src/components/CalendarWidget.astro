@@ -29,11 +29,15 @@ const getMonthLabel = (month: number, year: number) =>
     <form class="event-form" id="eventForm">
       <input id="eventTitle" type="text" placeholder="Event title" required />
 
-      <select id="eventType">
-        <option value="note">Note</option>
-        <option value="plan">Plan</option>
-        <option value="memory">Memory</option>
-      </select>
+    <label class="event-type-label" for="eventType">
+      🏷️ Entry type
+    </label>
+
+    <select id="eventType" class="event-type">
+      <option value="note">Note</option>
+      <option value="plan">Plan</option>
+      <option value="memory">Memory</option>
+    </select>
 
       <textarea id="eventNote" rows="3" placeholder="Add a note (optional)"></textarea>
 
@@ -98,6 +102,29 @@ const getMonthLabel = (month: number, year: number) =>
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
+  .event-type-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #cfcfcf;
+    margin-top: 0.75rem;
+  }
+
+  .event-type {
+    background: #181818;
+    border: 1px solid #3a3a3a;
+    border-radius: 0.75rem;
+    padding: 0.6rem 1rem;
+    color: #ffffff;
+    font-weight: 600;
+  } 
+
+  .event-type:focus {
+    outline: none;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 1px #ffffff;
+  }
+
 
   /* === DAY BUTTONS === */
   .day-button {
