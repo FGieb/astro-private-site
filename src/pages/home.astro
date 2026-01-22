@@ -14,6 +14,7 @@ import Nav from "../components/Nav.astro";
     <title>Private Home</title>
 
     <style>
+      /* === BASE === */
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
@@ -23,26 +24,26 @@ import Nav from "../components/Nav.astro";
         background-repeat: no-repeat;
         min-height: 100vh;
         color: white;
-        padding: 2.5rem;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+        padding: 2rem;
         position: relative;
       }
 
+      /* Soft overlay to calm background */
       body::before {
         content: "";
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.55);
-        backdrop-filter: blur(6px);
+        background: rgba(0, 0, 0, 0.45);
         z-index: -1;
-        pointer-events: none;
       }
 
       /* === LAYOUT === */
       .home-layout {
         display: grid;
-        grid-template-columns: 1fr minmax(240px, 280px);
+        grid-template-columns: 1fr minmax(240px, 300px);
         gap: 2.5rem;
-        max-width: 1050px;
+        max-width: 1100px;
         margin: 0 auto;
         align-items: start;
       }
@@ -55,13 +56,13 @@ import Nav from "../components/Nav.astro";
 
       /* === WELCOME === */
       .welcome {
-        margin-bottom: 2rem;
         text-align: center;
+        margin-bottom: 2.5rem;
         opacity: 0.9;
       }
 
       .welcome h1 {
-        font-size: 1.9rem;
+        font-size: 2rem;
         margin-bottom: 0.3rem;
         font-weight: 600;
       }
@@ -73,14 +74,15 @@ import Nav from "../components/Nav.astro";
 
       /* === DAILY REFLECTION === */
       .daily-reflection {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.88);
         color: #111;
-        padding: 1.5rem 1.8rem;
-        border-radius: 1.1rem;
-        max-width: 600px;
+        padding: 1.4rem 1.6rem;
+        border-radius: 1rem;
+        max-width: 560px;
+        width: 100%;
         text-align: center;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        margin-bottom: 2.2rem;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        margin-bottom: 2rem;
       }
 
       .daily-reflection h2 {
@@ -88,12 +90,13 @@ import Nav from "../components/Nav.astro";
         font-weight: 600;
         margin-bottom: 0.8rem;
         opacity: 0.6;
+        letter-spacing: 0.02em;
       }
 
       .reflection-text {
-        font-size: 1.15rem;
-        line-height: 1.6;
-        opacity: 0.85;
+        font-size: 1.1rem;
+        line-height: 1.55;
+        opacity: 0.9;
       }
 
       .placeholder {
@@ -102,38 +105,35 @@ import Nav from "../components/Nav.astro";
 
       /* === MEDIA === */
       .media {
-        max-width: 260px;
+        max-width: 320px;
         width: 100%;
-        height: auto;
-        border-radius: 0.8rem;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-        margin-top: 2rem;
+        border-radius: 0.9rem;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+        margin-bottom: 2rem;
       }
 
-      /* === SIDE PANEL === */
+      /* === SIDE PANEL / TODAY === */
       .side-panel {
-        background: rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.55);
         border-radius: 1rem;
         padding: 1.2rem;
-        font-size: 0.9rem;
-        opacity: 0.95;
+        font-size: 0.95rem;
       }
 
       .today-event h3 {
         margin-top: 0;
-        font-size: 1rem;
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
         opacity: 0.85;
-        margin-bottom: 0.75rem;
       }
 
       .today-event .event-item {
         margin-bottom: 0.9rem;
-        font-size: 0.85rem;
+        font-size: 0.95rem;
       }
 
       .event-note {
-        opacity: 0.7;
+        opacity: 0.75;
         margin-top: 0.25rem;
       }
 
@@ -143,12 +143,39 @@ import Nav from "../components/Nav.astro";
 
       /* === MOBILE === */
       @media (max-width: 900px) {
+        body {
+          padding: 1.5rem 1.2rem;
+        }
+
+        body::before {
+          background: rgba(0, 0, 0, 0.65);
+          backdrop-filter: blur(8px);
+        }
+
         .home-layout {
           grid-template-columns: 1fr;
         }
 
+        .welcome h1 {
+          font-size: 1.8rem;
+        }
+
+        .media {
+          max-width: 280px;
+        }
+
         .side-panel {
-          order: -1;
+          order: 2;
+          margin-top: 2rem;
+          background: rgba(255, 255, 255, 0.12);
+        }
+
+        .today-event h3 {
+          font-size: 1.15rem;
+        }
+
+        .today-event .event-item {
+          font-size: 1rem;
         }
       }
     </style>
@@ -172,11 +199,11 @@ import Nav from "../components/Nav.astro";
           </p>
         </div>
 
-        <img id="dailyMedia" alt="Daily Visual" class="media" style="display: none;" />
-        <video id="dailyVideo" class="media" controls style="display: none;">
+        <img id="dailyMedia" class="media" style="display:none" />
+        <video id="dailyVideo" class="media" controls style="display:none">
           <source id="videoSource" type="video/mp4" />
         </video>
-        <img id="fallbackImage" alt="Fallback visual" class="media" style="display: none;" />
+        <img id="fallbackImage" class="media" style="display:none" />
       </div>
 
       <!-- SIDE -->
@@ -198,29 +225,10 @@ import Nav from "../components/Nav.astro";
         gallery = await res.json();
       } catch {}
 
-      const fallback = document.getElementById("fallbackImage");
       const img = document.getElementById("dailyMedia");
       const video = document.getElementById("dailyVideo");
-      const videoSource = document.getElementById("videoSource");
-
-      const fallbackImages = [
-        "IMG_20250515_120530.jpg",
-        "IMG_20250515_121218.jpg",
-        "IMG_20250515_135154.jpg",
-        "IMG_20250515_192053.jpg",
-        "IMG-20240906-WA0006.jpg",
-        "IMG-20241020-WA0029.jpg",
-        "IMG-20241104-WA0059.jpg",
-        "IMG-20250130-WA0081.jpg",
-        "IMG-20250130-WA0099.jpg",
-        "IMG-20250303-WA0051.jpg",
-        "IMG-20250317-WA0027.jpg",
-        "IMG-20250407-WA0017.jpg",
-        "IMG-20250415-WA0048.jpg",
-        "IMG-20250415-WA0062.jpg",
-        "IMG-20250510-WA0007.jpg",
-        "IMG20250510210447.jpg"
-      ];
+      const source = document.getElementById("videoSource");
+      const fallback = document.getElementById("fallbackImage");
 
       const tryUrl = (url) =>
         fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
@@ -228,32 +236,23 @@ import Nav from "../components/Nav.astro";
       const showMedia = async () => {
         const day = new Date().getDate();
 
-        for (let offset = 0; offset < 7; offset++) {
-          const index = (day + offset) % gallery.length;
-          const id = gallery[index];
-          const paths = [
-            `${base}/image/upload/daily-images/${id}.jpg`,
-            `${base}/video/upload/daily-images/${id}.mov`
-          ];
+        for (let i = 0; i < gallery.length; i++) {
+          const id = gallery[(day + i) % gallery.length];
+          const jpg = `${base}/image/upload/daily-images/${id}.jpg`;
+          const mov = `${base}/video/upload/daily-images/${id}.mov`;
 
-          for (const url of paths) {
-            const ok = await tryUrl(url);
-            if (ok) {
-              if (url.endsWith(".jpg")) {
-                img.src = url;
-                img.style.display = "block";
-              } else {
-                videoSource.src = url;
-                video.load();
-                video.style.display = "block";
-              }
-              return;
-            }
+          if (await tryUrl(jpg)) {
+            img.src = jpg;
+            img.style.display = "block";
+            return;
+          }
+          if (await tryUrl(mov)) {
+            source.src = mov;
+            video.load();
+            video.style.display = "block";
+            return;
           }
         }
-
-        fallback.src = `/images/${fallbackImages[day % fallbackImages.length]}`;
-        fallback.style.display = "block";
       };
 
       showMedia();
@@ -264,20 +263,20 @@ import Nav from "../components/Nav.astro";
       const container = document.getElementById("todayEvent");
       const content = document.getElementById("todayEventContent");
 
-      const keyForToday = () => {
+      const key = () => {
         const d = new Date();
         return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       };
 
       const events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
-      const todayEvents = events[keyForToday()];
+      const today = events[key()];
 
-      if (todayEvents?.length) {
+      if (today?.length) {
         container.classList.remove("hidden");
-        content.innerHTML = todayEvents.map(evt => `
+        content.innerHTML = today.map(e => `
           <div class="event-item">
-            <strong>${evt.title}</strong>
-            ${evt.note ? `<div class="event-note">${evt.note}</div>` : ""}
+            <strong>${e.title}</strong>
+            ${e.note ? `<div class="event-note">${e.note}</div>` : ""}
           </div>
         `).join("");
       }
