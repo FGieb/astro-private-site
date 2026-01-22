@@ -1,78 +1,69 @@
 ---
-import Nav from "../components/Nav.astro";
+const { title } = Astro.props;
 ---
 
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <slot name="head" />
+<head>
+  <meta charset="UTF-8" />
+  <title>{title}</title>
 
-    <style is:global>
-      /* base dark mode */
-      body {
-        font-family: system-ui, sans-serif;
-        background: #000;
-        margin: 0;
-        padding: 2rem;
-        color: #fff;
-      }
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      color: white;
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.75)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
 
-      a {
-        color: #4da6ff;
-        word-break: break-all;
-      }
+    /* NAV (global) */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
 
-      .container {
-        max-width: 700px;
-        margin: auto;
-        background: #111;
-        padding: 2rem;
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-      }
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
 
-      textarea {
-        width: 100%;
-        height: 100px;
-        padding: 1rem;
-        font-size: 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #444;
-        background: #222;
-        color: #fff;
-        resize: vertical;
-      }
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+    }
 
-      button {
-        margin-top: 1rem;
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        background-color: #0077cc;
-        color: #fff;
-        border: none;
-        border-radius: 0.5rem;
-        cursor: pointer;
-      }
+    .nav-pill a:hover {
+      opacity: 1;
+    }
+  </style>
+</head>
 
-      .note {
-        background: #222;
-        border-left: 4px solid #0077cc;
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        color: #ddd;
-      }
+<body>
 
-      .timestamp {
-        font-size: 0.8rem;
-        color: #aaa;
-        margin-top: 0.5rem;
-      }
-    </style>
-  </head>
+  <!-- GLOBAL NAV -->
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <a href="/home">🏠 Home</a>
+      <a href="/notes">📝 Notes</a>
+      <a href="/archive">🗂 Archive</a>
+    </div>
+  </div>
 
-  <body>
-    <Nav />
-    <slot />
-  </body>
+  <!-- PAGE CONTENT -->
+  <slot />
+
+</body>
 </html>
