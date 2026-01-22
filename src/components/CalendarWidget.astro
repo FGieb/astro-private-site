@@ -233,6 +233,9 @@ const eventNote = document.getElementById("eventNote");
 const prevMonth = document.getElementById("prevMonth");
 const nextMonth = document.getElementById("nextMonth");
 
+const getMonthLabel = (month, year) =>
+    new Date(year, month, 1).toLocaleString("default", { month: "long" });
+
 const today = new Date();
 let displayYear = today.getFullYear();
 let displayMonth = today.getMonth();
