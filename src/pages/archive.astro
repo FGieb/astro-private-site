@@ -110,20 +110,27 @@ const entries = Object.entries(daily)
     </div>
   </div>
 
-  <main class="wrapper">
-    <h1>Archive</h1>
+<main class="wrapper">
+  <h1>Archive</h1>
 
-    {entries.length === 0 ? (
-      <div class="empty">No entries yet.</div>
-    ) : (
-      entries.map(([date, entry]) => (
-        <div class="entry">
-          <div class="date">{date}</div>
-          <div class="reflection">{entry.reflective.text}</div>
-          <div class="fun">{entry.fun.text}</div>
-        </div>
-      ))
-    )}
-  </main>
-</body>
-</html>
+  {entries.length === 0 ? (
+    <div class="empty">No entries yet.</div>
+  ) : (
+    entries.map(([date, entry]) => (
+      <div class="entry">
+        <div class="date">{date}</div>
+        <div class="reflection">{entry.reflective.text}</div>
+        <div class="fun">{entry.fun.text}</div>
+
+        {entry.comments?.length > 0 && (
+          <div style="margin-top:0.8rem; font-size:0.85rem; opacity:0.8;">
+            {entry.comments.map(c => (
+              <div>– {c.text}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    ))
+  )}
+</main>
+
