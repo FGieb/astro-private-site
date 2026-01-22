@@ -14,269 +14,210 @@ import Nav from "../components/Nav.astro";
     <title>Private Home</title>
 
     <style>
-      /* === BASE === */
+      :root {
+        --card-bg: rgba(255, 255, 255, 0.88);
+        --soft-dark: rgba(0, 0, 0, 0.45);
+      }
+
       body {
         margin: 0;
-        font-family: system-ui, sans-serif;
-        background-image: url("/images/homebackground.jpg");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         min-height: 100vh;
         color: white;
-        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-        padding: 2rem;
-        position: relative;
+        background:
+          linear-gradient(
+            rgba(0,0,0,0.55),
+            rgba(0,0,0,0.65)
+          ),
+          url("/images/homebackground.jpg");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
       }
 
-      /* Soft overlay to calm background */
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: -1;
+      /* === TOP NAV === */
+      .top-nav {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.25rem;
       }
 
-      /* === LAYOUT === */
-      .home-layout {
-        display: grid;
-        grid-template-columns: 1fr minmax(240px, 300px);
-        gap: 2.5rem;
-        max-width: 1100px;
-        margin: 0 auto;
-        align-items: start;
+      .nav-pill {
+        display: flex;
+        gap: 1.2rem;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 0.6rem 1.4rem;
+        border-radius: 999px;
+        font-size: 1rem;
+        backdrop-filter: blur(6px);
       }
 
-      .main-column {
+      .nav-pill a {
+        color: white;
+        text-decoration: none;
+        opacity: 0.85;
+      }
+
+      .nav-pill a:hover {
+        opacity: 1;
+      }
+
+      /* === MAIN WRAPPER === */
+      .wrapper {
+        max-width: 720px;
+        margin: 3rem auto 0;
+        padding: 0 1.25rem 4rem;
         display: flex;
         flex-direction: column;
         align-items: center;
+        text-align: center;
       }
 
       /* === WELCOME === */
-      .welcome {
-        text-align: center;
-        margin-bottom: 2.5rem;
-        opacity: 0.9;
-      }
-
       .welcome h1 {
         font-size: 2rem;
-        margin-bottom: 0.3rem;
         font-weight: 600;
+        margin-bottom: 0.25rem;
       }
 
       .welcome p {
         font-size: 0.95rem;
         opacity: 0.7;
-      }
-
-      /* === DAILY REFLECTION === */
-      .daily-reflection {
-        background: rgba(255, 255, 255, 0.88);
-        color: #111;
-        padding: 1.4rem 1.6rem;
-        border-radius: 1rem;
-        max-width: 560px;
-        width: 100%;
-        text-align: center;
-        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
         margin-bottom: 2rem;
       }
 
-      .daily-reflection h2 {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-bottom: 0.8rem;
-        opacity: 0.6;
+      /* === DAILY REFLECTION (HERO) === */
+      .reflection-card {
+        background: var(--card-bg);
+        color: #111;
+        padding: 1.6rem 1.8rem;
+        border-radius: 1.25rem;
+        width: 100%;
+        max-width: 560px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        margin-bottom: 1.8rem;
+      }
+
+      .reflection-card h2 {
+        font-size: 0.9rem;
         letter-spacing: 0.02em;
+        text-transform: uppercase;
+        opacity: 0.55;
+        margin-bottom: 0.75rem;
       }
 
       .reflection-text {
         font-size: 1.1rem;
         line-height: 1.55;
-        opacity: 0.9;
       }
 
-      .placeholder {
-        opacity: 0.75;
-      }
-
-      /* === MEDIA === */
-      .media {
-        max-width: 320px;
-        width: 100%;
-        border-radius: 0.9rem;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
-        margin-bottom: 2rem;
-      }
-
-      /* === SIDE PANEL / TODAY === */
-      .side-panel {
-        background: rgba(0, 0, 0, 0.55);
+      /* === TODAY AGENDA === */
+      .today-box {
+        background: rgba(0,0,0,0.5);
         border-radius: 1rem;
-        padding: 1.2rem;
-        font-size: 0.95rem;
+        padding: 1rem 1.2rem;
+        width: 100%;
+        max-width: 420px;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(6px);
       }
 
-      .today-event h3 {
-        margin-top: 0;
-        font-size: 1.1rem;
-        margin-bottom: 0.8rem;
-        opacity: 0.85;
+      .today-box h3 {
+        font-size: 0.95rem;
+        opacity: 0.8;
+        margin-bottom: 0.75rem;
       }
 
-      .today-event .event-item {
-        margin-bottom: 0.9rem;
-        font-size: 0.95rem;
+      .event-item {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
       }
 
       .event-note {
-        opacity: 0.75;
-        margin-top: 0.25rem;
+        font-size: 0.8rem;
+        opacity: 0.7;
       }
 
-      .hidden {
-        display: none;
+      /* === IMAGE === */
+      .media {
+        width: 220px;
+        border-radius: 0.9rem;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.45);
       }
 
       /* === MOBILE === */
-      @media (max-width: 900px) {
-        body {
-          padding: 1.5rem 1.2rem;
-        }
-
-        body::before {
-          background: rgba(0, 0, 0, 0.65);
-          backdrop-filter: blur(8px);
-        }
-
-        .home-layout {
-          grid-template-columns: 1fr;
-        }
-
+      @media (max-width: 600px) {
         .welcome h1 {
-          font-size: 1.8rem;
+          font-size: 1.7rem;
         }
 
-        .media {
-          max-width: 280px;
+        .reflection-text {
+          font-size: 1.05rem;
         }
 
-        .side-panel {
-          order: 2;
-          margin-top: 2rem;
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        .today-event h3 {
-          font-size: 1.15rem;
-        }
-
-        .today-event .event-item {
-          font-size: 1rem;
+        .nav-pill {
+          font-size: 0.95rem;
         }
       }
     </style>
   </head>
 
   <body>
-    <Nav />
-
-    <div class="welcome">
-      <h1>🐒 Goedemiddag, monkey</h1>
-      <p>Still becoming.</p>
-    </div>
-
-    <div class="home-layout">
-      <!-- MAIN -->
-      <div class="main-column">
-        <div class="daily-reflection placeholder">
-          <h2>Today</h2>
-          <p class="reflection-text">
-            Today’s reflection will appear here.
-          </p>
-        </div>
-
-        <img id="dailyMedia" class="media" style="display:none" />
-        <video id="dailyVideo" class="media" controls style="display:none">
-          <source id="videoSource" type="video/mp4" />
-        </video>
-        <img id="fallbackImage" class="media" style="display:none" />
+    <!-- NAV -->
+    <div class="top-nav">
+      <div class="nav-pill">
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/home">🏠 Home</a>
+        <a href="/notes">📝 Notes</a>
       </div>
-
-      <!-- SIDE -->
-      <aside class="side-panel">
-        <section id="todayEvent" class="today-event hidden">
-          <h3>📅 Today</h3>
-          <div id="todayEventContent"></div>
-        </section>
-      </aside>
     </div>
 
-    <!-- === MEDIA SCRIPT === -->
-    <script type="module" is:inline>
-      const base = "https://res.cloudinary.com/du2rss0bx";
-      let gallery = [];
+    <!-- CONTENT -->
+    <main class="wrapper">
+      <section class="welcome">
+        <h1>🐒 Goedemiddag, monkey</h1>
+        <p>Still becoming.</p>
+      </section>
 
-      try {
-        const res = await fetch("/.netlify/functions/getGallery");
-        gallery = await res.json();
-      } catch {}
+      <section class="reflection-card">
+        <h2>Today</h2>
+        <p class="reflection-text">
+          Today’s reflection will appear here.
+        </p>
+      </section>
 
-      const img = document.getElementById("dailyMedia");
-      const video = document.getElementById("dailyVideo");
-      const source = document.getElementById("videoSource");
-      const fallback = document.getElementById("fallbackImage");
+      <section id="todayEvent" class="today-box" style="display:none;">
+        <h3>📍 Today</h3>
+        <div id="todayEventContent"></div>
+      </section>
 
-      const tryUrl = (url) =>
-        fetch(url, { method: "HEAD" }).then(r => r.ok).catch(() => false);
+      <img
+        id="dailyMedia"
+        class="media"
+        alt="Daily visual"
+        style="display:none;"
+      />
+    </main>
 
-      const showMedia = async () => {
-        const day = new Date().getDate();
-
-        for (let i = 0; i < gallery.length; i++) {
-          const id = gallery[(day + i) % gallery.length];
-          const jpg = `${base}/image/upload/daily-images/${id}.jpg`;
-          const mov = `${base}/video/upload/daily-images/${id}.mov`;
-
-          if (await tryUrl(jpg)) {
-            img.src = jpg;
-            img.style.display = "block";
-            return;
-          }
-          if (await tryUrl(mov)) {
-            source.src = mov;
-            video.load();
-            video.style.display = "block";
-            return;
-          }
-        }
-      };
-
-      showMedia();
-    </script>
-
-    <!-- === TODAY EVENT SCRIPT === -->
+    <!-- === CALENDAR → HOMEPAGE === -->
     <script type="module" is:inline>
       const container = document.getElementById("todayEvent");
       const content = document.getElementById("todayEventContent");
 
-      const key = () => {
+      const keyForToday = () => {
         const d = new Date();
-        return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
       };
 
       const events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
-      const today = events[key()];
+      const todayEvents = events[keyForToday()];
 
-      if (today?.length) {
-        container.classList.remove("hidden");
-        content.innerHTML = today.map(e => `
+      if (todayEvents?.length) {
+        container.style.display = "block";
+        content.innerHTML = todayEvents.map(evt => `
           <div class="event-item">
-            <strong>${e.title}</strong>
-            ${e.note ? `<div class="event-note">${e.note}</div>` : ""}
+            <strong>${evt.title}</strong>
+            ${evt.note ? `<div class="event-note">${evt.note}</div>` : ""}
           </div>
         `).join("");
       }
