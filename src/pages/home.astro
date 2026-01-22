@@ -4,12 +4,8 @@ if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
 
-import snippets from "../data/snippets.json";
 import Nav from "../components/Nav.astro";
 
-const today = new Date();
-const dayIndex = today.getDate();
-const snippet = snippets[dayIndex % snippets.length];
 ---
 
 <!DOCTYPE html>
@@ -65,18 +61,33 @@ const snippet = snippets[dayIndex % snippets.length];
         font-size: 0.9rem;
         opacity: 0.7;
       }
-
-      /* === DAILY SNIPPET === */
-      .daily-snippet {
-        background-color: rgba(255, 255, 255, 0.85);
-        color: black;
-        padding: 1rem 1.5rem;
+      /* === DAILY REFLECTION === */
+      .daily-reflection {
+        background: rgba(255, 255, 255, 0.88);
+        color: #111;
+        padding: 1.2rem 1.5rem;
         border-radius: 1rem;
-        max-width: 500px;
+        max-width: 520px;
         text-align: center;
-        font-size: 1.05rem;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
         margin-bottom: 1.5rem;
+      }
+      
+      .daily-reflection h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        opacity: 0.7;
+      }
+      
+      .reflection-text {
+        font-size: 1.05rem;
+        line-height: 1.5;
+        opacity: 0.85;
+      }
+      
+      .placeholder {
+        opacity: 0.6;
       }
 
       /* === MEDIA === */
@@ -143,10 +154,11 @@ const snippet = snippets[dayIndex % snippets.length];
     <div class="home-layout">
       <!-- MAIN -->
       <div class="main-column">
-        <div class="daily-snippet">
-          <h2>📌 Random quote or fact?</h2>
-          <p>{snippet.text}</p>
-          {snippet.source && <p><em>— {snippet.source}</em></p>}
+        <div class="daily-reflection placeholder">
+          <h2>Today</h2>
+          <p class="reflection-text">
+            Today’s reflection will appear here.
+          </p>
         </div>
 
         <!-- Dynamic media -->
