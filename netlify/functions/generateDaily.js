@@ -54,40 +54,29 @@ Constraints:
 Return only the text.
 `;
 
-    const callOpenAI = async (prompt) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.8
-        })
-      });
+const callOpenAI = async (prompt) => {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o", // ← switch to stable model
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.8
+    })
+  });
 
-      const data = await res.json();
-      return data.choices[0].message.content.trim();
-    };
+  const data = await res.json();
 
-    const reflective = await callOpenAI(reflectivePrompt);
-    const fun = await callOpenAI(funPrompt);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        date: new Date().toISOString().slice(0, 10),
-        reflective,
-        fun
-      })
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message })
-    };
+  // 🔍 DEBUG GUARD
+  if (!data.choices || !data.choices[0]) {
+    console.error("OpenAI API error:", data);
+    throw new Error(
+      data.error?.message || "OpenAI returned no choices"
+    );
   }
-}
+
+  return data.choices[0].message.content.trim();
+};
