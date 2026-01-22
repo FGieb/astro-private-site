@@ -1,35 +1,42 @@
 export async function handler() {
   try {
     const reflectivePrompt = `
-Generate ONE reflective daily prompt for two people who share a private website.
+Generate ONE daily reflective item for two people who share a private website.
 
-It can be:
+It can be ONE of the following (choose freely each day):
 - a thoughtful question
-- a reflective quote (original or paraphrased)
-- a short observation that invites reflection
+- a concise reflective statement
+- a short attributed quote by a philosopher, writer, scientist, or thinker
+- an observation about time, memory, habits, games, or relationships
 
 Tone:
-- calm
-- intimate
-- slightly philosophical
-- curious rather than instructive
+- intelligent, not poetic
+- reflective but grounded
+- curious, sometimes slightly dry
+- emotionally restrained rather than sentimental
 
-Themes:
+Style guidance:
+- Prefer clarity over beauty
+- Avoid metaphor-heavy or lyrical language
+- It is okay to sound neutral, precise, or mildly analytical
+- Do not force intimacy
+
+Themes (optional, not mandatory):
 - time
 - memory
-- awareness
-- morality 
-- games and chance
+- attention
+- chance and games
+- routines
 - closeness and distance
-- shared rituals
+- how meaning accumulates
 
 Constraints:
-- Max 3 sentences
+- Max 2 sentences
 - No clichés
 - No motivational language
 - No emojis
 - No "you should"
-
+- If quoting someone, include their name
 Return only the text.
 `;
 
