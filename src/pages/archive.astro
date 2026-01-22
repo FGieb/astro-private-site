@@ -1,0 +1,154 @@
+---
+const cookie = Astro.cookies.get("auth");
+if (!cookie || cookie.value !== "1") {
+  return Astro.redirect("/login");
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Archive</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      color: white;
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.75)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    /* NAV */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
+
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+    }
+
+    .nav-pill a:hover { opacity: 1; }
+
+    /* LAYOUT */
+    .wrapper {
+      max-width: 760px;
+      margin: 3rem auto;
+      padding: 0 1.25rem 4rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .entry {
+      background: rgba(255,255,255,0.9);
+      color: #111;
+      border-radius: 1.2rem;
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.6rem;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+    }
+
+    .date {
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 0.6rem;
+    }
+
+    .reflection {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      margin-bottom: 0.6rem;
+    }
+
+    .fun {
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+
+    .empty {
+      text-align: center;
+      opacity: 0.7;
+      margin-top: 4rem;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <a href="/home">🏠 Home</a>
+      <a href="/notes">📝 Notes</a>
+      <a href="/archive">🗂 Archive</a>
+    </div>
+  </div>
+
+  <main class="wrapper">
+    <h1>Archive</h1>
+    <div id="archive"></div>
+  </main>
+
+  <script type="module" is:inline>
+    async function loadArchive() {
+      try {
+        const res = await fetch("/data/daily.json");
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        const container = document.getElementById("archive");
+
+        const entries = Object.entries(data)
+          .sort(([a],[b]) => b.localeCompare(a));
+
+        if (!entries.length) {
+          container.innerHTML =
+            '<div class="empty">No entries yet.</div>';
+          return;
+        }
+
+        entries.forEach(([date, entry]) => {
+          const el = document.createElement("div");
+          el.className = "entry";
+          el.innerHTML = `
+            <div class="date">${date}</div>
+            <div class="reflection">${entry.reflective.text}</div>
+            <div class="fun">${entry.fun.text}</div>
+          `;
+          container.appendChild(el);
+        });
+
+      } catch {
+        document.getElementById("archive").innerHTML =
+          '<div class="empty">Archive unavailable.</div>';
