@@ -296,41 +296,40 @@ if (!cookie || cookie.value !== "1") {
 
   <!-- COMMENTS -->
   <script type="module" is:inline>
-    const date = new Date().toISOString().slice(0,10);
-  
-    const list = document.getElementById("commentList");
-    const input = document.getElementById("commentInput");
-    const button = document.getElementById("saveComment");
-  
-    async function submitComment() {
-      if (!input.value.trim()) return;
-  
-      await fetch("/.netlify/functions/addComment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date,
-          text: input.value.trim()
-        })
-      });
-  
-      input.value = "";
-      loadComments();
-    }
-  
-    async function loadComments() {
-      const res = await fetch("/.netlify/functions/generateDaily");
-      const data = await res.json();
-  
-      const comments = data.comments || [];
-      list.innerHTML = comments
-        .map(c => `<div>– ${c.text}</div>`)
-        .join("");
-    }
-  
-    button.addEventListener("click", submitComment);
-    loadComments();
-  </script>
+  const date = new Date().toISOString().slice(0,10);
+
+  const list = document.getElementById("commentList");
+  const input = document.getElementById("commentInput");
+  const button = document.getElementById("saveComment");
+
+  async function submitComment() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    // 1️⃣ Optimistically render immediately
+    list.insertAdjacentHTML("beforeend", `<div>– ${text}</div>`);
+    input.value = "";
+
+    // 2️⃣ Persist in background
+    await fetch("/.netlify/functions/addComment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date, text })
+    });
+  }
+
+  async function loadComments() {
+    const res = await fetch("/.netlify/functions/generateDaily");
+    const data = await res.json();
+
+    const comments = data.comments || [];
+    list.innerHTML = comments.map(c => `<div>– ${c.text}</div>`).join("");
+  }
+
+  button.addEventListener("click", submitComment);
+  loadComments();
+</script>
+
 
 </body>
 </html>
