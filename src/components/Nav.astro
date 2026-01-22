@@ -1,5 +1,38 @@
-<nav style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 1rem; margin-bottom: 2rem; text-align: center;">
-  <a href="/calendar" style="margin: 0 1rem; color: white;">&#128197; Calendar</a>
-<a href="/home">&#127968; Home</a>
-<a href="/notes" style="margin: 0 1rem; color: white;">📝 Notes</a>
+<nav class="nav">
+  <a href="/calendar">📅 Calendar</a>
+  <a href="/home" class="active">🏠 Home</a>
+  <a href="/notes">📝 Notes</a>
 </nav>
+
+<style>
+  .nav {
+    display: inline-flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    margin-bottom: 2rem;
+  }
+
+  .nav a {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+  }
+
+  .nav a:hover {
+    opacity: 1;
+  }
+
+  .nav a.active {
+    color: white;
+    font-weight: 600;
+  }
+</style>
