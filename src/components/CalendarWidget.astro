@@ -124,6 +124,21 @@ const getMonthLabel = (month: number, year: number) =>
     border-color: #ffffff;
     box-shadow: 0 0 0 1px #ffffff;
   }
+  .event-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .event-icon {
+    font-size: 1.1rem;
+  }
+
+  .event-note {
+    margin-top: 0.25rem;
+    color: #bdbdbd;
+    font-size: 0.85rem;
+  }
 
 
   /* === DAY BUTTONS === */
@@ -255,6 +270,15 @@ const getMonthLabel = (month: number, year: number) =>
   let displayMonth = today.getMonth();
   let selectedDate = { month: displayMonth, day: today.getDate() };
 
+  const typeIcon = (type) => {
+    switch (type) {
+      case "memory": return "🧠";
+      case "plan": return "📍";
+      case "note":
+      default: return "📝";
+    }
+  };
+
   const loadEvents = () =>
     JSON.parse(localStorage.getItem("calendarEvents") || "{}");
 
@@ -283,6 +307,9 @@ const getMonthLabel = (month: number, year: number) =>
     list.forEach(evt => {
       const item = document.createElement("div");
       item.className = "event-item";
+
+      const icon = typeIcon(evt.type);
+
       item.innerHTML = `
         <strong>${evt.title}</strong>
         <div class="type">${evt.type}</div>
