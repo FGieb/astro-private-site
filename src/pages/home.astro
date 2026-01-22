@@ -16,7 +16,6 @@ import Nav from "../components/Nav.astro";
     <style>
       :root {
         --card-bg: rgba(255, 255, 255, 0.88);
-        --soft-dark: rgba(0, 0, 0, 0.45);
       }
 
       body {
@@ -25,10 +24,7 @@ import Nav from "../components/Nav.astro";
         min-height: 100vh;
         color: white;
         background:
-          linear-gradient(
-            rgba(0,0,0,0.55),
-            rgba(0,0,0,0.65)
-          ),
+          linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.65)),
           url("/images/homebackground.jpg");
         background-size: cover;
         background-position: center;
@@ -86,7 +82,7 @@ import Nav from "../components/Nav.astro";
         margin-bottom: 2rem;
       }
 
-      /* === DAILY REFLECTION (HERO) === */
+      /* === DAILY REFLECTION === */
       .reflection-card {
         background: var(--card-bg);
         color: #111;
@@ -95,7 +91,7 @@ import Nav from "../components/Nav.astro";
         width: 100%;
         max-width: 560px;
         box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-        margin-bottom: 1.8rem;
+        margin-bottom: 1.2rem;
       }
 
       .reflection-card h2 {
@@ -111,7 +107,7 @@ import Nav from "../components/Nav.astro";
         line-height: 1.55;
       }
 
-      /* === TODAY AGENDA === */
+      /* === COMMENTS === */
       .today-box {
         background: rgba(0,0,0,0.5);
         border-radius: 1rem;
@@ -120,6 +116,7 @@ import Nav from "../components/Nav.astro";
         max-width: 420px;
         margin-bottom: 2rem;
         backdrop-filter: blur(6px);
+        text-align: left;
       }
 
       .today-box h3 {
@@ -128,6 +125,31 @@ import Nav from "../components/Nav.astro";
         margin-bottom: 0.75rem;
       }
 
+      #commentList div {
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+        opacity: 0.9;
+      }
+
+      textarea {
+        width: 100%;
+        margin-top: 0.6rem;
+        padding: 0.6rem;
+        border-radius: 0.6rem;
+        border: none;
+        font-family: inherit;
+      }
+
+      button {
+        margin-top: 0.5rem;
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        border: none;
+        background: rgba(255,255,255,0.9);
+        cursor: pointer;
+      }
+
+      /* === CALENDAR EVENTS === */
       .event-item {
         font-size: 0.9rem;
         margin-bottom: 0.5rem;
@@ -136,28 +158,6 @@ import Nav from "../components/Nav.astro";
       .event-note {
         font-size: 0.8rem;
         opacity: 0.7;
-      }
-
-      /* === IMAGE === */
-      .media {
-        width: 220px;
-        border-radius: 0.9rem;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.45);
-      }
-
-      /* === MOBILE === */
-      @media (max-width: 600px) {
-        .welcome h1 {
-          font-size: 1.7rem;
-        }
-
-        .reflection-text {
-          font-size: 1.05rem;
-        }
-
-        .nav-pill {
-          font-size: 0.95rem;
-        }
       }
     </style>
   </head>
@@ -169,37 +169,40 @@ import Nav from "../components/Nav.astro";
         <a href="/calendar">📅 Calendar</a>
         <a href="/home">🏠 Home</a>
         <a href="/notes">📝 Notes</a>
+        <a href="/archive">🗂 Archive</a>
       </div>
     </div>
 
-    <!-- CONTENT -->
     <main class="wrapper">
       <section class="welcome">
         <h1>🐒 Goedemiddag, monkey</h1>
         <p>Still becoming.</p>
       </section>
 
+      <!-- DAILY REFLECTION -->
       <section class="reflection-card">
         <h2>Today</h2>
-        <p class="reflection-text">
-          Today’s reflection will appear here.
+        <p id="dailyReflection" class="reflection-text">
+          Loading today’s reflection…
         </p>
       </section>
 
+      <!-- COMMENTS -->
+      <section class="today-box">
+        <h3>💬 Thoughts</h3>
+        <div id="commentList"></div>
+        <textarea id="commentInput" placeholder="Leave a thought…"></textarea>
+        <button id="saveComment">Add</button>
+      </section>
+
+      <!-- TODAY EVENTS -->
       <section id="todayEvent" class="today-box" style="display:none;">
         <h3>📍 Today</h3>
         <div id="todayEventContent"></div>
       </section>
-
-      <img
-        id="dailyMedia"
-        class="media"
-        alt="Daily visual"
-        style="display:none;"
-      />
     </main>
 
-    <!-- === CALENDAR → HOMEPAGE === -->
+    <!-- === CALENDAR → TODAY === -->
     <script type="module" is:inline>
       const container = document.getElementById("todayEvent");
       const content = document.getElementById("todayEventContent");
@@ -222,5 +225,49 @@ import Nav from "../components/Nav.astro";
         `).join("");
       }
     </script>
+
+    <!-- === DAILY REFLECTION FETCH === -->
+    <script type="module" is:inline>
+      async function loadDaily() {
+        try {
+          const res = await fetch("/.netlify/functions/generateDaily");
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          document.getElementById("dailyReflection").textContent =
+            data.reflective.text;
+        } catch {
+          document.getElementById("dailyReflection").textContent =
+            "Today will reveal itself later.";
+        }
+      }
+      loadDaily();
+    </script>
+
+    <!-- === COMMENTS LOGIC === -->
+    <script type="module" is:inline>
+      const today = new Date().toISOString().slice(0, 10);
+      const key = `daily-comments-${today}`;
+
+      const list = document.getElementById("commentList");
+      const input = document.getElementById("commentInput");
+      const button = document.getElementById("saveComment");
+
+      function render() {
+        const comments = JSON.parse(localStorage.getItem(key) || "[]");
+        list.innerHTML = comments.map(c => `<div>– ${c}</div>`).join("");
+      }
+
+      button.addEventListener("click", () => {
+        if (!input.value.trim()) return;
+        const comments = JSON.parse(localStorage.getItem(key) || "[]");
+        comments.push(input.value.trim());
+        localStorage.setItem(key, JSON.stringify(comments));
+        input.value = "";
+        render();
+      });
+
+      render();
+    </script>
+
   </body>
 </html>
