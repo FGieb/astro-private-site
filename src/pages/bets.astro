@@ -4,60 +4,229 @@ import bets from "../data/bets.json";
 ---
 
 <BaseLayout title="Bets">
-  <main style="max-width: 1100px; margin: 0 auto; padding: 2rem;">
-    <h1>🎲 Bets</h1>
+  <main class="bets-shell">
+
+    <!-- HEADER -->
+    <header class="bets-header">
+      <h1>🎲 Bets</h1>
+      <p class="subtitle">A small ledger of promises.</p>
+    </header>
 
     <!-- TABLE -->
-    <table style="width: 100%; border-collapse: collapse; margin-top: 1.5rem;">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Title</th>
-          <th>Stakes</th>
-          <th>Owner</th>
-          <th>Status</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
+    <section class="bets-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Stakes</th>
+            <th>Owner</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        {bets.map((bet) => {
-          return (
+        <tbody>
+          {bets.length === 0 ? (
             <tr>
-              <td>{bet.date}</td>
-              <td>{bet.title}</td>
-              <td>{bet.stakes}</td>
-              <td>{bet.owner || "—"}</td>
-              <td>{bet.status}</td>
-              <td>{bet.notes || ""}</td>
+              <td colspan="6" class="empty">
+                No bets yet — the first one always feels ceremonial.
+              </td>
             </tr>
-          );
-        })}
-      </tbody>
-    </table>
+          ) : (
+            bets.map((bet) => {
+              return (
+                <tr
+                  class:list={{
+                    open: bet.status === "open",
+                    done: bet.status !== "open"
+                  }}
+                >
+                  <td>{bet.date}</td>
+                  <td>{bet.title}</td>
+                  <td>{bet.stakes}</td>
+                  <td>{bet.owner || "—"}</td>
+                  <td>
+                    <span
+                      class:list={{
+                        status: true,
+                        open: bet.status === "open",
+                        done: bet.status !== "open"
+                      }}
+                    >
+                      {bet.status}
+                    </span>
+                  </td>
+                  <td>{bet.notes || ""}</td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </section>
 
-    <!-- ADD BET -->
-    <h2 style="margin-top: 3rem;">Add a bet</h2>
+    <!-- FORM -->
+    <section class="bets-form">
+      <h2>Add a bet</h2>
 
-    <form method="POST" action="/.netlify/functions/add-bet">
-      <input type="hidden" name="date" value={new Date().toISOString().slice(0,10)} />
+      <form method="POST" action="/.netlify/functions/add-bet">
+        <input
+          type="hidden"
+          name="date"
+          value={new Date().toISOString().slice(0, 10)}
+        />
 
-      <div>
-        <label>Title</label><br />
-        <input name="title" required />
-      </div>
+        <label>
+          Title
+          <input name="title" required />
+        </label>
 
-      <div>
-        <label>Stakes</label><br />
-        <input name="stakes" required />
-      </div>
+        <label>
+          Stakes
+          <input name="stakes" required />
+        </label>
 
-      <div>
-        <label>Notes</label><br />
-        <textarea name="notes"></textarea>
-      </div>
+        <label>
+          Notes
+          <textarea name="notes" rows="3"></textarea>
+        </label>
 
-      <button type="submit" style="margin-top: 1rem;">Add bet</button>
-    </form>
+        <button type="submit">Add bet</button>
+      </form>
+    </section>
+
   </main>
 </BaseLayout>
+
+<style>
+/* SHELL */
+
+.bets-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+/* HEADER */
+
+.bets-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.bets-header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+/* TABLE */
+
+.bets-table {
+  background: rgba(0,0,0,0.35);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  backdrop-filter: blur(6px);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.65rem 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+
+th {
+  text-align: left;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+tr.open {
+  background: rgba(120,150,255,0.08);
+}
+
+tr.done {
+  opacity: 0.6;
+}
+
+td.empty {
+  text-align: center;
+  padding: 1.5rem;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* STATUS PILL */
+
+.status {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: lowercase;
+}
+
+.status.open {
+  background: rgba(120,150,255,0.2);
+}
+
+.status.done {
+  background: rgba(255,255,255,0.15);
+}
+
+/* FORM */
+
+.bets-form {
+  margin-top: 3rem;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(255,255,255,0.92);
+  color: #111;
+  padding: 1.4rem 1.5rem 1.6rem;
+  border-radius: 1.1rem;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+}
+
+.bets-form h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.bets-form label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+
+.bets-form input,
+.bets-form textarea {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0,0,0,0.2);
+  font-family: inherit;
+}
+
+.bets-form button {
+  margin-top: 0.8rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: none;
+  background: #111;
+  color: white;
+  cursor: pointer;
+}
+</style>
