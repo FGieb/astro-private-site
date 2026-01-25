@@ -19,23 +19,26 @@ import bets from "../data/bets.json";
           <th>Notes</th>
         </tr>
       </thead>
+
       <tbody>
-        {bets.map(bet => (
-          <tr
-            class:list={{
-              open: bet.status === "open",
-              done: bet.status !== "open"
-            }}
-          >
-            <td>{bet.date}</td>
-            <td>{bet.game}</td>
-            <td>{bet.bet}</td>
-            <td>{bet.stakes}</td>
-            <td>{bet.winner || "—"}</td>
-            <td>{bet.status}</td>
-            <td>{bet.notes}</td>
-          </tr>
-        ))}
+        {bets.map((bet) => {
+          return (
+            <tr
+              class:list={{
+                open: bet.status === "open",
+                done: bet.status !== "open"
+              }}
+            >
+              <td>{bet.date}</td>
+              <td>{bet.game}</td>
+              <td>{bet.bet}</td>
+              <td>{bet.stakes}</td>
+              <td>{bet.winner || "—"}</td>
+              <td>{bet.status}</td>
+              <td>{bet.notes}</td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   </main>
@@ -54,9 +57,10 @@ table {
   margin-top: 1.5rem;
 }
 
-th, td {
+th,
+td {
   padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   text-align: left;
   font-size: 0.95rem;
 }
@@ -67,7 +71,7 @@ th {
 }
 
 tr.open {
-  background: rgba(80,120,255,0.06);
+  background: rgba(80, 120, 255, 0.06);
 }
 
 tr.done {
