@@ -34,33 +34,31 @@ import bets from "../data/bets.json";
               </td>
             </tr>
           ) : (
-            bets.map((bet) => {
-              return (
-                <tr
-                  class:list={{
-                    open: bet.status === "open",
-                    done: bet.status !== "open"
-                  }}
-                >
-                  <td>{bet.date}</td>
-                  <td>{bet.title}</td>
-                  <td>{bet.stakes}</td>
-                  <td>{bet.owner || "—"}</td>
-                  <td>
-                    <span
-                      class:list={{
-                        status: true,
-                        open: bet.status === "open",
-                        done: bet.status !== "open"
-                      }}
-                    >
-                      {bet.status}
-                    </span>
-                  </td>
-                  <td>{bet.notes || ""}</td>
-                </tr>
-              );
-            })
+            bets.map((bet) => (
+              <tr
+                class:list={{
+                  open: bet.status === "open",
+                  done: bet.status !== "open"
+                }}
+              >
+                <td>{bet.date}</td>
+                <td>{bet.title}</td>
+                <td>{bet.stakes}</td>
+                <td>{bet.owner || "—"}</td>
+                <td>
+                  <span
+                    class:list={{
+                      status: true,
+                      open: bet.status === "open",
+                      done: bet.status !== "open"
+                    }}
+                  >
+                    {bet.status}
+                  </span>
+                </td>
+                <td>{bet.notes || ""}</td>
+              </tr>
+            ))
           )}
         </tbody>
       </table>
@@ -100,8 +98,12 @@ import bets from "../data/bets.json";
 </BaseLayout>
 
 <style>
-/* SHELL */
+/* BLUE ACCENT (shared with calendar) */
+:root {
+  --accent-blue: #1e78c8;
+}
 
+/* SHELL */
 .bets-shell {
   max-width: 1100px;
   margin: 0 auto;
@@ -109,7 +111,6 @@ import bets from "../data/bets.json";
 }
 
 /* HEADER */
-
 .bets-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -117,6 +118,18 @@ import bets from "../data/bets.json";
 
 .bets-header h1 {
   margin-bottom: 0.25rem;
+  position: relative;
+}
+
+.bets-header h1::after {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 3px;
+  margin: 0.4rem auto 0;
+  border-radius: 999px;
+  background: var(--accent-blue);
+  opacity: 0.85;
 }
 
 .subtitle {
@@ -125,12 +138,12 @@ import bets from "../data/bets.json";
 }
 
 /* TABLE */
-
 .bets-table {
   background: rgba(0,0,0,0.35);
   border-radius: 1rem;
   padding: 1rem 1.25rem;
   backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(30,120,200,0.25);
 }
 
 table {
@@ -153,7 +166,7 @@ th {
 }
 
 tr.open {
-  background: rgba(120,150,255,0.08);
+  background: rgba(30,120,200,0.08);
 }
 
 tr.done {
@@ -168,7 +181,6 @@ td.empty {
 }
 
 /* STATUS PILL */
-
 .status {
   display: inline-block;
   padding: 0.15rem 0.5rem;
@@ -178,7 +190,8 @@ td.empty {
 }
 
 .status.open {
-  background: rgba(120,150,255,0.2);
+  background: rgba(30,120,200,0.25);
+  color: #fff;
 }
 
 .status.done {
@@ -186,7 +199,6 @@ td.empty {
 }
 
 /* FORM */
-
 .bets-form {
   margin-top: 3rem;
   max-width: 420px;
@@ -218,6 +230,13 @@ td.empty {
   border-radius: 0.5rem;
   border: 1px solid rgba(0,0,0,0.2);
   font-family: inherit;
+}
+
+.bets-form input:focus,
+.bets-form textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(30,120,200,0.25);
 }
 
 .bets-form button {
