@@ -46,16 +46,24 @@ export async function handler() {
 Generate ONE daily reflective item for two people who share a private website.
 
 It can be ONE of the following:
-- a thoughtful question
-- a concise reflective statement
+- a precise, slightly unsettling question
+- a compact observation about human behavior, institutions, or memory
 - a short attributed quote by a philosopher, writer, scientist, or thinker
 - an observation about time, memory, habits, games, or relationships
 
+Themes to draw from, but not limited to, you can be creative in other themes as well: 
+- incentives vs intentions
+- how systems shape behavior
+- memory, trauma, and forgetting
+- time, routines, and constraint
+- games, rules, and unintended consequences
+
+
 Tone:
-- intelligent, not poetic
-- reflective but grounded
-- curious, sometimes slightly dry
-- emotionally restrained
+- intellectually curious
+- restrained, not poetic
+- slightly dry or clinical
+- intimate without sentimentality
 
 Constraints:
 - Max 2 sentences
@@ -68,17 +76,30 @@ Return only the text.
 `;
 
     const funPrompt = `
-Generate ONE non-cliché fun fact or curious observation.
+Generate ONE concise, non-obvious fact or observation about humans, institutions, law, psychology, history, design, or statistics.
 
-Rules:
-- genuinely surprising
-- not common trivia
-- any domain
+Strongly prefer facts that involve:
+- unintended consequences
+- incentives backfiring
+- design flaws shaping behavior
+- legal or institutional quirks
+- psychological biases revealed by data
+- counterintuitive statistics about society
+
+Avoid:
+- animal biology
+- marine life
+- insects
+- generic nature trivia
+- pop science "wow" facts
 
 Constraints:
 - Max 2 sentences
+- Precise and factual
 - No emojis
+- No moralizing
 Return only the text.
+
 `;
 
     const callOpenAI = async (prompt) => {
