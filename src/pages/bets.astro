@@ -1,0 +1,71 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import bets from "../data/bets.json";
+---
+
+<BaseLayout title="Bets">
+  <main class="bets">
+    <h1>🎲 Bets</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Game</th>
+          <th>Bet</th>
+          <th>Stakes</th>
+          <th>Winner</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {bets.map(bet => (
+          <tr class={bet.status === "open" ? "open" : "done"}>
+            <td>{bet.date}</td>
+            <td>{bet.game}</td>
+            <td>{bet.bet}</td>
+            <td>{bet.stakes}</td>
+            <td>{bet.winner || "—"}</td>
+            <td>{bet.status}</td>
+            <td>{bet.notes}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </main>
+</BaseLayout>
+
+<style>
+.bets {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+th, td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+th {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+tr.open {
+  background: rgba(80,120,255,0.06);
+}
+
+tr.done {
+  opacity: 0.7;
+}
+</style>
