@@ -1,0 +1,63 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import bets from "../data/bets.json";
+---
+
+<BaseLayout title="Bets">
+  <main style="max-width: 1100px; margin: 0 auto; padding: 2rem;">
+    <h1>🎲 Bets</h1>
+
+    <!-- TABLE -->
+    <table style="width: 100%; border-collapse: collapse; margin-top: 1.5rem;">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Title</th>
+          <th>Stakes</th>
+          <th>Owner</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {bets.map((bet) => {
+          return (
+            <tr>
+              <td>{bet.date}</td>
+              <td>{bet.title}</td>
+              <td>{bet.stakes}</td>
+              <td>{bet.owner || "—"}</td>
+              <td>{bet.status}</td>
+              <td>{bet.notes || ""}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+
+    <!-- ADD BET -->
+    <h2 style="margin-top: 3rem;">Add a bet</h2>
+
+    <form method="POST" action="/.netlify/functions/add-bet">
+      <input type="hidden" name="date" value={new Date().toISOString().slice(0,10)} />
+
+      <div>
+        <label>Title</label><br />
+        <input name="title" required />
+      </div>
+
+      <div>
+        <label>Stakes</label><br />
+        <input name="stakes" required />
+      </div>
+
+      <div>
+        <label>Notes</label><br />
+        <textarea name="notes"></textarea>
+      </div>
+
+      <button type="submit" style="margin-top: 1rem;">Add bet</button>
+    </form>
+  </main>
+</BaseLayout>
