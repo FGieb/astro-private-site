@@ -1,9 +1,13 @@
 ---
+import { isValidSession } from "../lib/auth";
+
 const cookie = Astro.cookies.get("auth");
-if (!cookie || cookie.value !== "1") {
+
+if (!(await isValidSession(cookie?.value))) {
   return Astro.redirect("/login");
 }
 ---
+
 
 <!DOCTYPE html>
 <html lang="en">
