@@ -1,27 +1,29 @@
 ---
+import { createSession } from "../lib/auth";
+
 const correctPassphrase = "alm.bumblebee";
 const isPost = Astro.request.method === "POST";
-
-let isValid = false;
 
 if (isPost) {
   const formData = await Astro.request.formData();
   const pass = formData.get("passphrase");
 
   if (pass === correctPassphrase) {
-    // Set a cookie to mark as logged in
-    Astro.cookies.set("auth", "1", {
+    const token = await createSession();
+
+    Astro.cookies.set("auth", token, {
       path: "/",
       httpOnly: true,
       secure: true,
       sameSite: "Strict",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
-    // Redirect to home
-    return Astro.redirect("/home");
+    return Astro.redirect("/home"); // 👈 THIS LINE
   }
 }
 ---
+
 
 <html lang="en">
   <head>
