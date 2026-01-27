@@ -296,40 +296,67 @@ if (!cookie || cookie.value !== "1") {
   </script>
 
   <!-- COMMENTS -->
-  <script type="module" is:inline>
-  const date = new Date().toISOString().slice(0,10);
-
+  <!-- COMMENTS -->
+<script type="module" is:inline>
   const list = document.getElementById("commentList");
   const input = document.getElementById("commentInput");
   const button = document.getElementById("saveComment");
 
-  async function submitComment() {
-    const text = input.value.trim();
-    if (!text) return;
+  const today = new Date().toISOString().slice(0, 10);
+  let dailyEntries = {};
+  let todayEntry = null;
 
-    // 1️⃣ Optimistically render immediately
-    list.insertAdjacentHTML("beforeend", `<div>– ${text}</div>`);
-    input.value = "";
+  async function loadDaily() {
+    const res = await fetch("/.netlify/functions/daily-load");
+    dailyEntries = await res.json();
 
-    // 2️⃣ Persist in background
-    await fetch("/.netlify/functions/addComment", {
+    todayEntry = dailyEntries[today] || {
+      reflective: null,
+      fun: null,
+      comments: [],
+    };
+
+    renderComments();
+  }
+
+  async function saveDaily() {
+    await fetch("/.netlify/functions/daily-save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, text })
+      body: JSON.stringify({
+        date: today,
+        update: {
+          comments: todayEntry.comments,
+        },
+      }),
     });
   }
 
-  async function loadComments() {
-    const res = await fetch("/.netlify/functions/generateDaily");
-    const data = await res.json();
-
-    const comments = data.comments || [];
-    list.innerHTML = comments.map(c => `<div>– ${c.text}</div>`).join("");
+  function renderComments() {
+    list.innerHTML = todayEntry.comments.length
+      ? todayEntry.comments
+          .map(c => `<div>– ${c.text}</div>`)
+          .join("")
+      : `<div style="opacity:0.6;">No thoughts yet.</div>`;
   }
 
-  button.addEventListener("click", submitComment);
-  loadComments();
+  button.addEventListener("click", async () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    todayEntry.comments.push({
+      text,
+      createdAt: new Date().toISOString(),
+    });
+
+    input.value = "";
+    renderComments();
+    await saveDaily();
+  });
+
+  loadDaily();
 </script>
+
 
 
 </body>
