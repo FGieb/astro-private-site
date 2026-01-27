@@ -132,36 +132,55 @@ if (!cookie || cookie.value !== "1") {
 
   <!-- NOTES LOGIC (reuse what you already have) -->
   <script type="module" is:inline>
-    const input = document.getElementById("noteInput");
-    const list = document.getElementById("notesList");
-    const button = document.getElementById("addNote");
+  const input = document.getElementById("noteInput");
+  const list = document.getElementById("notesList");
+  const button = document.getElementById("addNote");
 
-    const key = "shared-notes";
+  let notes = [];
 
-    function render() {
-      const notes = JSON.parse(localStorage.getItem(key) || "[]");
-      list.innerHTML = notes.map(n => `
-        <div class="note">
-          <div>${n.text}</div>
-          <div class="meta">${new Date(n.createdAt).toLocaleString()}</div>
-        </div>
-      `).join("");
-    }
+  async function loadNotes() {
+    const res = await fetch("/.netlify/functions/notes-load");
+    notes = await res.json();
+    render();
+  }
 
-    button.addEventListener("click", () => {
-      if (!input.value.trim()) return;
-      const notes = JSON.parse(localStorage.getItem(key) || "[]");
-      notes.unshift({
-        text: input.value.trim(),
-        createdAt: new Date().toISOString()
-      });
-      localStorage.setItem(key, JSON.stringify(notes));
-      input.value = "";
-      render();
+  async function saveNotes() {
+    await fetch("/.netlify/functions/notes-save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(notes),
+    });
+  }
+
+  function render() {
+    list.innerHTML = notes.length
+      ? notes.map(n => `
+          <div class="note">
+            <div>${n.text}</div>
+            <div class="meta">
+              ${new Date(n.createdAt).toLocaleString()}
+            </div>
+          </div>
+        `).join("")
+      : `<div class="note">No notes yet.</div>`;
+  }
+
+  button.addEventListener("click", async () => {
+    if (!input.value.trim()) return;
+
+    notes.unshift({
+      text: input.value.trim(),
+      createdAt: new Date().toISOString()
     });
 
+    await saveNotes();
+    input.value = "";
     render();
-  </script>
+  });
+
+  loadNotes();
+</script>
+
 
 </body>
 </html>
