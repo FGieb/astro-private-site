@@ -5,11 +5,10 @@ export default async function handler() {
     const store = getStore("calendar");
     const raw = await store.get("events");
 
-    // 🔑 THIS IS THE FIX
-    const data =
-      typeof raw === "string"
-        ? JSON.parse(raw)
-        : raw ?? {};
+    // ✅ REAL FIX: decode Uint8Array
+    const data = raw
+      ? JSON.parse(new TextDecoder().decode(raw))
+      : {};
 
     return new Response(
       JSON.stringify(data),
