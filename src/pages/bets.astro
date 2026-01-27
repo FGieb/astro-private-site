@@ -1,6 +1,13 @@
 ---
+import { isValidSession } from "../lib/auth";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import bets from "../data/bets.json";
+
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
 ---
 
 <BaseLayout title="Bets">
