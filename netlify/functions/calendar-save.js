@@ -1,21 +1,17 @@
 import { getStore } from "@netlify/blobs";
 
-export default async (req) => {
-  if (req.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: "Method Not Allowed"
-    };
+export default async function handler(request) {
+  if (request.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
   const store = getStore("calendar");
-  const data = JSON.parse(req.body);
+  const data = await request.json();
 
   await store.set("events", data);
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ ok: true })
-  };
-};
-
+  return new Response(
+    JSON.stringify({ ok: true }),
+    { status: 200 }
+  );
+}
