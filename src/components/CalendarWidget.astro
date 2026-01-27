@@ -83,6 +83,7 @@ const getMonthLabel = (month: number, year: number) =>
     font-weight: 600;
     position: relative;
     cursor: pointer;
+    border: none;
   }
 
   .day-button.inactive {
@@ -92,6 +93,7 @@ const getMonthLabel = (month: number, year: number) =>
 
   .day-button.today {
     outline: 2px solid rgba(255,255,255,0.6);
+    outline-offset: -2px;
   }
 
   .day-button.selected {
@@ -117,6 +119,7 @@ const getMonthLabel = (month: number, year: number) =>
     border: 1px solid #242424;
     border-radius: 0.75rem;
     background: #141414;
+    margin-bottom: 0.5rem;
   }
 
   @media (max-width: 900px) {
@@ -174,12 +177,12 @@ const getMonthLabel = (month: number, year: number) =>
         .toLocaleDateString(undefined, { month: "long", day: "numeric" })}`;
 
     eventList.innerHTML = list.length
-      ? list.map(e =>
-        `<div class="event-item">
-          <strong>${typeIcon(e.type)} ${e.title}</strong>
-          ${e.note ? `<div>${e.note}</div>` : ""}
-        </div>`
-      ).join("")
+      ? list.map(e => `
+          <div class="event-item">
+            <strong>${typeIcon(e.type)} ${e.title}</strong>
+            ${e.note ? `<div>${e.note}</div>` : ""}
+          </div>
+        `).join("")
       : `<div class="event-item">No events yet.</div>`;
   };
 
@@ -189,6 +192,7 @@ const getMonthLabel = (month: number, year: number) =>
         .toLocaleString("default", { month: "long" });
 
     dayGrid.innerHTML = "";
+
     const firstDay = new Date(displayYear, displayMonth, 1);
     const start = (firstDay.getDay() + 6) % 7;
     const days = new Date(displayYear, displayMonth + 1, 0).getDate();
@@ -203,6 +207,16 @@ const getMonthLabel = (month: number, year: number) =>
       const btn = document.createElement("button");
       btn.className = "day-button";
       btn.textContent = d;
+
+      if (
+        d === today.getDate() &&
+        displayMonth === today.getMonth() &&
+        displayYear === today.getFullYear()
+      ) btn.classList.add("today");
+
+      if (d === selectedDate.day && displayMonth === selectedDate.month) {
+        btn.classList.add("selected");
+      }
 
       const key = keyForDate(displayMonth, d);
       if (cachedEvents[key]?.length) {
@@ -222,13 +236,15 @@ const getMonthLabel = (month: number, year: number) =>
 
   eventForm.onsubmit = async (e) => {
     e.preventDefault();
-    const key = keyForDate(selectedDate.month, selectedDate.day);
 
+    const key = keyForDate(selectedDate.month, selectedDate.day);
     cachedEvents[key] = cachedEvents[key] || [];
+
     cachedEvents[key].push({
       title: eventTitle.value,
       note: eventNote.value,
-      type: eventType.value
+      type: eventType.value,
+      createdAt: new Date().toISOString()
     });
 
     await saveEvents();
@@ -240,12 +256,14 @@ const getMonthLabel = (month: number, year: number) =>
   prevMonth.onclick = () => {
     displayMonth--;
     if (displayMonth < 0) { displayMonth = 11; displayYear--; }
+    selectedDate.day = 1;
     renderCalendar(); renderEvents();
   };
 
   nextMonth.onclick = () => {
     displayMonth++;
     if (displayMonth > 11) { displayMonth = 0; displayYear++; }
+    selectedDate.day = 1;
     renderCalendar(); renderEvents();
   };
 
