@@ -267,7 +267,13 @@ const getMonthLabel = (month: number, year: number) =>
     renderCalendar(); renderEvents();
   };
 
+  try {
   await loadEvents();
+  } catch (err) {
+    console.warn("Calendar events could not be loaded, continuing empty.", err);
+    cachedEvents = {};
+  }
+  
   renderCalendar();
   renderEvents();
 })();
