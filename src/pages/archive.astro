@@ -1,13 +1,8 @@
 ---
-import daily from "../data/daily.json";
-
 const cookie = Astro.cookies.get("auth");
 if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
-
-const entries = Object.entries(daily)
-  .sort(([a],[b]) => b.localeCompare(a));
 ---
 
 <!DOCTYPE html>
@@ -92,6 +87,12 @@ const entries = Object.entries(daily)
       opacity: 0.7;
     }
 
+    .comments {
+      margin-top: 0.8rem;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
     .empty {
       text-align: center;
       opacity: 0.7;
@@ -110,27 +111,62 @@ const entries = Object.entries(daily)
     </div>
   </div>
 
-<main class="wrapper">
-  <h1>Archive</h1>
+  <main class="wrapper">
+    <h1>Archive</h1>
+    <div id="archiveList"></div>
+  </main>
 
-  {entries.length === 0 ? (
-    <div class="empty">No entries yet.</div>
-  ) : (
-    entries.map(([date, entry]) => (
-      <div class="entry">
-        <div class="date">{date}</div>
-        <div class="reflection">{entry.reflective.text}</div>
-        <div class="fun">{entry.fun.text}</div>
+  <!-- ARCHIVE DATA -->
+  <script type="module" is:inline>
+    async function loadArchive() {
+      const container = document.getElementById("archiveList");
 
-        {entry.comments?.length > 0 && (
-          <div style="margin-top:0.8rem; font-size:0.85rem; opacity:0.8;">
-            {entry.comments.map(c => (
-              <div>– {c.text}</div>
-            ))}
+      try {
+        const res = await fetch("/.netlify/functions/daily-load");
+        const daily = await res.json();
+
+        const entries = Object.entries(daily)
+          .sort(([a], [b]) => b.localeCompare(a));
+
+        if (!entries.length) {
+          container.innerHTML = `<div class="empty">No entries yet.</div>`;
+          return;
+        }
+
+        container.innerHTML = entries.map(([date, entry]) => `
+          <div class="entry">
+            <div class="date">${date}</div>
+
+            ${
+              entry.reflective?.text
+                ? `<div class="reflection">${entry.reflective.text}</div>`
+                : ""
+            }
+
+            ${
+              entry.fun?.text
+                ? `<div class="fun">${entry.fun.text}</div>`
+                : ""
+            }
+
+            ${
+              entry.comments?.length
+                ? `<div class="comments">
+                    ${entry.comments.map(c => `<div>– ${c.text}</div>`).join("")}
+                  </div>`
+                : ""
+            }
           </div>
-        )}
-      </div>
-    ))
-  )}
-</main>
+        `).join("");
+      } catch (err) {
+        container.innerHTML =
+          `<div class="empty">Could not load archive.</div>`;
+        console.error(err);
+      }
+    }
 
+    loadArchive();
+  </script>
+
+</body>
+</html>
