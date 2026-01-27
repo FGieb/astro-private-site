@@ -7,7 +7,7 @@ if (!cookie || cookie.value !== "1") {
 }
 
 const entries = Object.entries(daily)
-  .sort(([a],[b]) => b.localeCompare(a));
+  .sort(([a], [b]) => b.localeCompare(a));
 ---
 
 <!DOCTYPE html>
@@ -87,27 +87,31 @@ const entries = Object.entries(daily)
       margin-bottom: 0.6rem;
     }
 
-    .fun {
-      font-size: 0.9rem;
-      opacity: 0.7;
-    }
-
     .comments {
-      margin-top: 0.8rem;
+      margin: 0.8rem 0 0.9rem;
+      padding: 0.75rem 0.9rem;
+      border-left: 3px solid #1677ff;
+      background: rgba(22, 119, 255, 0.06);
+      border-radius: 0.6rem;
       font-size: 0.85rem;
-      opacity: 0.85;
     }
 
     .comments-title {
-      font-size: 0.75rem;
-      letter-spacing: 0.04em;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      opacity: 0.6;
+      color: #1677ff;
       margin-bottom: 0.35rem;
     }
 
     .comment-line {
       margin-top: 0.25rem;
+    }
+
+    .fun {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      margin-top: 0.4rem;
     }
 
     .empty {
@@ -135,62 +139,28 @@ const entries = Object.entries(daily)
       <div class="empty">No entries yet.</div>
     ) : (
       entries.map(([date, entry]) => (
-        <div class="entry" data-date={date}>
+        <div class="entry">
           <div class="date">{date}</div>
 
-          {/* These are the important parts you said must not disappear */}
-          <div class="reflection">{entry.reflective?.text}</div>
-          <div class="fun">{entry.fun?.text}</div>
+          <div class="reflection">
+            {entry.reflective?.text}
+          </div>
 
-          {/* Comments block: rendered from daily.json if present, then upgraded by JS */}
-          <div class="comments" data-comments-for={date} style={entry.comments?.length ? "" : "display:none;"}>
-            <div class="comments-title">Thoughts</div>
-            {entry.comments?.map(c => (
-              <div class="comment-line">– {c.text}</div>
-            ))}
+          {entry.comments?.length > 0 && (
+            <div class="comments">
+              <div class="comments-title">Thoughts</div>
+              {entry.comments.map(c => (
+                <div class="comment-line">– {c.text}</div>
+              ))}
+            </div>
+          )}
+
+          <div class="fun">
+            {entry.fun?.text}
           </div>
         </div>
       ))
     )}
   </main>
-
-  <script type="module" is:inline>
-    function renderComments(container, comments) {
-      if (!container) return;
-
-      if (!comments || comments.length === 0) {
-        container.style.display = "none";
-        container.innerHTML = "";
-        return;
-      }
-
-      container.style.display = "";
-      container.innerHTML =
-        `<div class="comments-title">Thoughts</div>` +
-        comments.map(c => `<div class="comment-line">– ${c.text}</div>`).join("");
-    }
-
-    async function upgradeCommentsFromServer() {
-      let serverDaily = {};
-      try {
-        const res = await fetch("/.netlify/functions/daily-load");
-        serverDaily = await res.json();
-      } catch (err) {
-        console.warn("daily-load failed; keeping archive as-is.", err);
-        return;
-      }
-
-      // For each date we already rendered, replace comments if server has them
-      for (const [date, entry] of Object.entries(serverDaily || {})) {
-        const block = document.querySelector(`[data-comments-for="${date}"]`);
-        if (!block) continue;
-
-        const comments = entry?.comments || [];
-        renderComments(block, comments);
-      }
-    }
-
-    upgradeCommentsFromServer();
-  </script>
 </body>
 </html>
