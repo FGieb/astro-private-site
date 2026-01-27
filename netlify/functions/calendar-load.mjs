@@ -5,10 +5,13 @@ export default async function handler() {
     const store = getStore("calendar");
     const raw = await store.get("events");
 
-    // ✅ REAL FIX: decode Uint8Array
-    const data = raw
-      ? JSON.parse(new TextDecoder().decode(raw))
-      : {};
+    let data = {};
+
+    if (raw) {
+      // Netlify Blobs returns Uint8Array
+      const text = new TextDecoder("utf-8").decode(raw);
+      data = JSON.parse(text);
+    }
 
     return new Response(
       JSON.stringify(data),
