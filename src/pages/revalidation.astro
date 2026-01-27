@@ -1,4 +1,6 @@
 ---
+import { isValidSession } from "../lib/auth";
+
 import Layout from '../layouts/Layout.astro';
 import ContextAlert from '../components/ContextAlert.astro';
 import Markdown from '../components/Markdown.astro';
@@ -6,11 +8,17 @@ import { cacheHeaders, randomInt } from '../utils';
 
 export const prerender = false;
 
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+
 const tags = ['/revalidation', 'cats-related', 'all-pets-related'];
 const headers = cacheHeaders(365, tags);
 
 Object.entries(headers).map(([k, v]) => {
-    Astro.response.headers.set(k, v);
+  Astro.response.headers.set(k, v);
 });
 
 const explainer = `
@@ -33,6 +41,7 @@ Use the button below to invlidate a random tag out of this page's tags, then ref
 
 const exampleTag = tags[randomInt(0, tags.length - 1)];
 ---
+
 
 <Layout title="Revalidation">
     <h1 class="mb-10">Revalidating Server Content</h1>
