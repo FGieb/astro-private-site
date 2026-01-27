@@ -2,28 +2,41 @@
 import { createSession } from "../lib/auth";
 
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
+
 const isPost = Astro.request.method === "POST";
+const trustedDevice = Astro.cookies.get("trusted_device");
+const hasTrustedDevice = !!trustedDevice;
+
+let step = "password"; // "password" | "email"
+let error = "";
 
 if (isPost) {
   const formData = await Astro.request.formData();
   const pass = formData.get("passphrase");
 
-  if (pass === correctPassphrase) {
-    const token = await createSession();
+  if (pass !== correctPassphrase) {
+    error = "Incorrect passphrase.";
+  } else {
+    // Password correct
+    if (hasTrustedDevice) {
+      // Trusted device → login directly
+      const token = await createSession();
+      Astro.cookies.set("auth", token, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 60 * 24 * 7,
+      });
 
-    Astro.cookies.set("auth", token, {
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-
-    return Astro.redirect("/home"); // 👈 THIS LINE
+      return Astro.redirect("/home");
+    } else {
+      // New device → email step required
+      step = "email";
+    }
   }
 }
 ---
-
 
 <html lang="en">
   <head>
