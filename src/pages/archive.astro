@@ -1,8 +1,14 @@
 ---
+import daily from "../data/daily.json";
+
 const cookie = Astro.cookies.get("auth");
 if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
+
+// We'll embed the old daily.json into the page,
+// then merge it with what daily-load returns (comments, etc.)
+const staticDaily = daily;
 ---
 
 <!DOCTYPE html>
@@ -85,13 +91,12 @@ if (!cookie || cookie.value !== "1") {
     .fun {
       font-size: 0.9rem;
       opacity: 0.7;
-      margin-bottom: 0.6rem;
     }
 
     .comments {
       margin-top: 0.8rem;
       font-size: 0.85rem;
-      opacity: 0.85;
+      opacity: 0.8;
     }
 
     .comments div {
@@ -122,55 +127,70 @@ if (!cookie || cookie.value !== "1") {
   </main>
 
   <script type="module" is:inline>
-    async function loadArchive() {
-      const container = document.getElementById("archiveList");
+    // Embed the old prompts/fun-facts (your original archive source)
+    const STATIC_DAILY = JSON.parse(${JSON.stringify(JSON.stringify(staticDaily))});
 
+    function mergeEntries(staticDaily, dynamicDaily) {
+      const merged = {};
+      const keys = new Set([
+        ...Object.keys(staticDaily || {}),
+        ...Object.keys(dynamicDaily || {})
+      ]);
+
+      for (const date of keys) {
+        const s = staticDaily?.[date] || {};
+        const d = dynamicDaily?.[date] || {};
+
+        merged[date] = {
+          // keep reflective/fun from static unless dynamic explicitly has them
+          reflective: d.reflective ?? s.reflective ?? null,
+          fun:        d.fun        ?? s.fun        ?? null,
+          // comments: prefer dynamic (because that's what you're writing now)
+          comments:   d.comments   ?? s.comments   ?? []
+        };
+      }
+      return merged;
+    }
+
+    function renderArchive(daily) {
+      const container = document.getElementById("archiveList");
+      const entries = Object.entries(daily).sort(([a],[b]) => b.localeCompare(a));
+
+      if (!entries.length) {
+        container.innerHTML = `<div class="empty">No entries yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = entries.map(([date, entry]) => `
+        <div class="entry">
+          <div class="date">${date}</div>
+
+          ${entry.reflective?.text ? `<div class="reflection">${entry.reflective.text}</div>` : ""}
+          ${entry.fun?.text ? `<div class="fun">${entry.fun.text}</div>` : ""}
+
+          ${entry.comments?.length ? `
+            <div class="comments">
+              ${entry.comments.map(c => `<div>– ${c.text}</div>`).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `).join("");
+    }
+
+    async function loadArchive() {
+      let dynamicDaily = {};
       try {
         const res = await fetch("/.netlify/functions/daily-load");
-        const daily = await res.json();
-
-        const entries = Object.entries(daily)
-          .sort(([a], [b]) => b.localeCompare(a));
-
-        if (!entries.length) {
-          container.innerHTML = `<div class="empty">No entries yet.</div>`;
-          return;
-        }
-
-        container.innerHTML = entries.map(([date, entry]) => `
-          <div class="entry">
-            <div class="date">${date}</div>
-
-            ${
-              entry.reflective?.text
-                ? `<div class="reflection">${entry.reflective.text}</div>`
-                : ""
-            }
-
-            ${
-              entry.fun?.text
-                ? `<div class="fun">${entry.fun.text}</div>`
-                : ""
-            }
-
-            ${
-              entry.comments?.length
-                ? `<div class="comments">
-                    ${entry.comments.map(c => `<div>– ${c.text}</div>`).join("")}
-                  </div>`
-                : ""
-            }
-          </div>
-        `).join("");
+        dynamicDaily = await res.json();
       } catch (err) {
-        console.error(err);
-        container.innerHTML =
-          `<div class="empty">Could not load archive.</div>`;
+        console.warn("daily-load failed; showing static archive only.", err);
       }
+
+      const merged = mergeEntries(STATIC_DAILY, dynamicDaily);
+      renderArchive(merged);
     }
 
     loadArchive();
   </script>
-
 </body>
 </html>
