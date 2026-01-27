@@ -4,7 +4,6 @@ if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
 ---
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,7 +29,6 @@ if (!cookie || cookie.value !== "1") {
       background-attachment: fixed;
     }
 
-    /* NAV */
     .top-nav {
       display: flex;
       justify-content: center;
@@ -54,7 +52,6 @@ if (!cookie || cookie.value !== "1") {
 
     .nav-pill a:hover { opacity: 1; }
 
-    /* LAYOUT */
     .layout {
       max-width: 980px;
       margin: 3rem auto 0;
@@ -62,26 +59,13 @@ if (!cookie || cookie.value !== "1") {
       display: grid;
       grid-template-columns: 1fr 280px;
       gap: 2rem;
-      align-items: start;
     }
 
-    /* CENTER */
     .center {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-    }
-
-    .welcome h1 {
-      font-size: 2rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .welcome p {
-      font-size: 0.95rem;
-      opacity: 0.7;
-      margin-bottom: 2rem;
     }
 
     .reflection-card {
@@ -95,20 +79,6 @@ if (!cookie || cookie.value !== "1") {
       margin-bottom: 1.2rem;
     }
 
-    .reflection-card h2 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      opacity: 0.5;
-      margin-bottom: 0.75rem;
-    }
-
-    .reflection-text {
-      font-size: 1.1rem;
-      line-height: 1.55;
-    }
-
-    /* COMMENTS */
     .thoughts {
       background: rgba(0,0,0,0.45);
       border-radius: 1rem;
@@ -117,12 +87,6 @@ if (!cookie || cookie.value !== "1") {
       max-width: 420px;
       text-align: left;
       backdrop-filter: blur(6px);
-    }
-
-    .thoughts h3 {
-      font-size: 0.9rem;
-      opacity: 0.8;
-      margin-bottom: 0.6rem;
     }
 
     #commentList div {
@@ -147,57 +111,6 @@ if (!cookie || cookie.value !== "1") {
       background: rgba(255,255,255,0.9);
       cursor: pointer;
     }
-
-    /* RIGHT RAIL */
-    .side {
-      display: flex;
-      flex-direction: column;
-      gap: 1.2rem;
-    }
-
-    .side-card {
-      background: var(--side-bg);
-      border-radius: 1rem;
-      padding: 1rem 1.1rem;
-      backdrop-filter: blur(6px);
-      font-size: 0.9rem;
-    }
-
-    .side-card h4 {
-      font-size: 0.8rem;
-      opacity: 0.7;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .side-link {
-      margin-top: 0.6rem;
-      font-size: 0.8rem;
-      opacity: 0.75;
-    }
-
-    .side-link a {
-      color: white;
-      text-decoration: none;
-    }
-
-    .side-link a:hover { opacity: 1; }
-
-    /* MOBILE */
-    @media (max-width: 820px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .side {
-        order: 2;
-      }
-
-      .center {
-        order: 1;
-      }
-    }
   </style>
 </head>
 
@@ -213,19 +126,10 @@ if (!cookie || cookie.value !== "1") {
   </div>
 
   <main class="layout">
-
-    <!-- CENTER -->
     <section class="center">
-      <div class="welcome">
-        <h1>🐒 Goedemiddag, monkey</h1>
-        <p>Still becoming.</p>
-      </div>
-
       <section class="reflection-card">
         <h2>Today</h2>
-        <p id="dailyReflection" class="reflection-text">
-          Loading today’s reflection…
-        </p>
+        <p id="dailyReflection">Loading…</p>
       </section>
 
       <section class="thoughts">
@@ -235,129 +139,69 @@ if (!cookie || cookie.value !== "1") {
         <button id="saveComment">Add</button>
       </section>
     </section>
-
-    <!-- RIGHT RAIL -->
-    <aside class="side">
-
-      <div id="todayEvent" class="side-card" style="display:none;">
-        <h4>📍 Today</h4>
-        <div id="todayEventContent"></div>
-        <div class="side-link">
-          <a href="/calendar">↗ Open calendar</a>
-        </div>
-      </div>
-
-      <div class="side-card">
-        <h4>💡 Also today</h4>
-        <div id="funFact">Loading…</div>
-      </div>
-
-    </aside>
-
   </main>
-
-  <!-- CALENDAR -->
-  <script type="module" is:inline>
-    const container = document.getElementById("todayEvent");
-    const content = document.getElementById("todayEventContent");
-
-    const keyForToday = () => {
-      const d = new Date();
-      return `${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    };
-
-    const events = JSON.parse(localStorage.getItem("calendarEvents") || "{}");
-    const todayEvents = events[keyForToday()];
-
-    if (todayEvents?.length) {
-      container.style.display = "block";
-      content.innerHTML = todayEvents.map(evt => `
-        <div><strong>${evt.title}</strong></div>
-      `).join("");
-    }
-  </script>
 
   <!-- DAILY CONTENT -->
   <script type="module" is:inline>
-    async function loadDaily() {
-      try {
-        const res = await fetch("/.netlify/functions/generateDaily");
-        const data = await res.json();
-        document.getElementById("dailyReflection").textContent =
-          data.reflective.text;
-        document.getElementById("funFact").textContent =
-          data.fun.text;
-      } catch {
-        document.getElementById("dailyReflection").textContent =
-          "Today will reveal itself later.";
-      }
+    async function loadDailyContent() {
+      const res = await fetch("/.netlify/functions/generateDaily");
+      const data = await res.json();
+      document.getElementById("dailyReflection").textContent =
+        data.reflective.text;
     }
-    loadDaily();
+    loadDailyContent();
   </script>
 
   <!-- COMMENTS -->
-  <!-- COMMENTS -->
-<script type="module" is:inline>
-  const list = document.getElementById("commentList");
-  const input = document.getElementById("commentInput");
-  const button = document.getElementById("saveComment");
+  <script type="module" is:inline>
+    const list = document.getElementById("commentList");
+    const input = document.getElementById("commentInput");
+    const button = document.getElementById("saveComment");
 
-  const today = new Date().toISOString().slice(0, 10);
-  let dailyEntries = {};
-  let todayEntry = null;
+    const today = new Date().toISOString().slice(0, 10);
+    let dailyEntries = {};
+    let todayEntry = null;
 
-  async function loadDaily() {
-    const res = await fetch("/.netlify/functions/daily-load");
-    dailyEntries = await res.json();
+    async function loadDaily() {
+      const res = await fetch("/.netlify/functions/daily-load");
+      dailyEntries = await res.json();
 
-    todayEntry = dailyEntries[today] || {
-      reflective: null,
-      fun: null,
-      comments: [],
-    };
+      todayEntry = dailyEntries[today] || { comments: [] };
+      renderComments();
+    }
 
-    renderComments();
-  }
+    async function saveDaily() {
+      await fetch("/.netlify/functions/daily-save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: today,
+          update: { comments: todayEntry.comments },
+        }),
+      });
+    }
 
-  async function saveDaily() {
-    await fetch("/.netlify/functions/daily-save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: today,
-        update: {
-          comments: todayEntry.comments,
-        },
-      }),
-    });
-  }
+    function renderComments() {
+      list.innerHTML = todayEntry.comments.length
+        ? todayEntry.comments.map(c => `<div>– ${c.text}</div>`).join("")
+        : `<div style="opacity:0.6;">No thoughts yet.</div>`;
+    }
 
-  function renderComments() {
-    list.innerHTML = todayEntry.comments.length
-      ? todayEntry.comments
-          .map(c => `<div>– ${c.text}</div>`)
-          .join("")
-      : `<div style="opacity:0.6;">No thoughts yet.</div>`;
-  }
+    button.addEventListener("click", async () => {
+      const text = input.value.trim();
+      if (!text) return;
 
-  button.addEventListener("click", async () => {
-    const text = input.value.trim();
-    if (!text) return;
+      todayEntry.comments.push({
+        text,
+        createdAt: new Date().toISOString(),
+      });
 
-    todayEntry.comments.push({
-      text,
-      createdAt: new Date().toISOString(),
+      input.value = "";
+      renderComments();
+      await saveDaily();
     });
 
-    input.value = "";
-    renderComments();
-    await saveDaily();
-  });
-
-  loadDaily();
-</script>
-
-
-
+    loadDaily();
+  </script>
 </body>
 </html>
