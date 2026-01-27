@@ -1,15 +1,16 @@
 import { getStore } from "@netlify/blobs";
 
-export default async () => {
+export default async function handler() {
   const store = getStore("calendar");
   const events = await store.get("events", { type: "json" });
 
-  return {
-    statusCode: 200,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(events || {})
-  };
-};
-
+  return new Response(
+    JSON.stringify(events || {}),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
