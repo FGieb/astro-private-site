@@ -85,12 +85,17 @@ if (!cookie || cookie.value !== "1") {
     .fun {
       font-size: 0.9rem;
       opacity: 0.7;
+      margin-bottom: 0.6rem;
     }
 
     .comments {
       margin-top: 0.8rem;
       font-size: 0.85rem;
-      opacity: 0.8;
+      opacity: 0.85;
+    }
+
+    .comments div {
+      margin-top: 0.25rem;
     }
 
     .empty {
@@ -116,7 +121,6 @@ if (!cookie || cookie.value !== "1") {
     <div id="archiveList"></div>
   </main>
 
-  <!-- ARCHIVE DATA -->
   <script type="module" is:inline>
     async function loadArchive() {
       const container = document.getElementById("archiveList");
@@ -159,9 +163,9 @@ if (!cookie || cookie.value !== "1") {
           </div>
         `).join("");
       } catch (err) {
+        console.error(err);
         container.innerHTML =
           `<div class="empty">Could not load archive.</div>`;
-        console.error(err);
       }
     }
 
