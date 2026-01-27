@@ -9,19 +9,20 @@ export default async function handler(request) {
     const store = getStore("calendar");
     const body = await request.json();
 
-    await store.set("events", body);
+    // 🔑 THIS LINE MATTERS
+    await store.set("events", JSON.stringify(body));
 
     return new Response(
       JSON.stringify({ ok: true }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      }
+      { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: String(err) }),
-      { status: 400 }
+      JSON.stringify({
+        error: "Failed to save events",
+        details: String(err),
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
