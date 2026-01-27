@@ -1,7 +1,7 @@
 ---
 import { createSession } from "../lib/auth";
 
-const correctPassphrase = "alm.bumblebee";
+const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
 const isPost = Astro.request.method === "POST";
 
 if (isPost) {
