@@ -1,17 +1,25 @@
 import { getStore } from "@netlify/blobs";
 
-export default async function handler(request) {
-  if (request.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+export async function handler(event) {
+  try {
+    const store = getStore("calendar");
+    const data = JSON.parse(event.body || "{}");
+
+    await store.set("events", data);
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ok: true }),
+    };
+  } catch (err) {
+    console.error("calendar-save error:", err);
+
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Save failed" }),
+    };
   }
-
-  const store = getStore("calendar");
-  const data = await request.json();
-
-  await store.set("events", data);
-
-  return new Response(
-    JSON.stringify({ ok: true }),
-    { status: 200 }
-  );
 }
