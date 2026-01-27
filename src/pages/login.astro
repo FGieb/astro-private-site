@@ -26,7 +26,7 @@ if (isPost) {
         httpOnly: true,
         secure: true,
         sameSite: "Strict",
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: 60 * 60 * 24 * 7, // 7 days
       });
 
       return Astro.redirect("/home");
@@ -38,6 +38,7 @@ if (isPost) {
 }
 ---
 
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -70,7 +71,7 @@ if (isPost) {
         margin-bottom: 1rem;
       }
 
-      input[type="password"] {
+      input {
         padding: 0.5rem;
         width: 100%;
         margin-bottom: 1rem;
@@ -91,18 +92,44 @@ if (isPost) {
         color: red;
         margin-top: 0.5rem;
       }
+
+      .info {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-top: 1rem;
+      }
     </style>
   </head>
+
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
-      <form method="POST">
-        <input type="password" name="passphrase" placeholder="Enter passphrase" required />
-        <br />
-        <button type="submit">Enter</button>
-      </form>
 
-      {isPost && <p class="error">❌ Incorrect passphrase.</p>}
+      {step === "password" && (
+        <form method="POST">
+          <input
+            type="password"
+            name="passphrase"
+            placeholder="Enter passphrase"
+            required
+          />
+          <button type="submit">Continue</button>
+        </form>
+      )}
+
+      {step === "email" && (
+        <div>
+          <p><strong>New device detected.</strong></p>
+          <p class="info">
+            Email verification is required before access is granted.
+          </p>
+          <p class="info">
+            (Email step will be implemented next.)
+          </p>
+        </div>
+      )}
+
+      {error && <p class="error">❌ {error}</p>}
     </div>
   </body>
 </html>
