@@ -1,16 +1,27 @@
 import { getStore } from "@netlify/blobs";
 
-export default async function handler() {
-  const store = getStore("calendar");
-  const events = await store.get("events", { type: "json" });
+export async function handler() {
+  try {
+    const store = getStore("calendar");
+    const data = await store.get("events");
 
-  return new Response(
-    JSON.stringify(events || {}),
-    {
-      status: 200,
+    // IMPORTANT: always return valid JSON
+    return {
+      statusCode: 200,
       headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data || {}),
+    };
+  } catch (err) {
+    console.error("calendar-load error:", err);
+
+    return {
+      statusCode: 200, // still return 200 so frontend doesn't explode
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    };
+  }
 }
