@@ -6,9 +6,8 @@ if (!cookie || cookie.value !== "1") {
   return Astro.redirect("/login");
 }
 
-// We'll embed the old daily.json into the page,
-// then merge it with what daily-load returns (comments, etc.)
-const staticDaily = daily;
+const entries = Object.entries(daily)
+  .sort(([a],[b]) => b.localeCompare(a));
 ---
 
 <!DOCTYPE html>
@@ -96,10 +95,18 @@ const staticDaily = daily;
     .comments {
       margin-top: 0.8rem;
       font-size: 0.85rem;
-      opacity: 0.8;
+      opacity: 0.85;
     }
 
-    .comments div {
+    .comments-title {
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 0.35rem;
+    }
+
+    .comment-line {
       margin-top: 0.25rem;
     }
 
@@ -123,74 +130,67 @@ const staticDaily = daily;
 
   <main class="wrapper">
     <h1>Archive</h1>
-    <div id="archiveList"></div>
+
+    {entries.length === 0 ? (
+      <div class="empty">No entries yet.</div>
+    ) : (
+      entries.map(([date, entry]) => (
+        <div class="entry" data-date={date}>
+          <div class="date">{date}</div>
+
+          {/* These are the important parts you said must not disappear */}
+          <div class="reflection">{entry.reflective?.text}</div>
+          <div class="fun">{entry.fun?.text}</div>
+
+          {/* Comments block: rendered from daily.json if present, then upgraded by JS */}
+          <div class="comments" data-comments-for={date} style={entry.comments?.length ? "" : "display:none;"}>
+            <div class="comments-title">Thoughts</div>
+            {entry.comments?.map(c => (
+              <div class="comment-line">– {c.text}</div>
+            ))}
+          </div>
+        </div>
+      ))
+    )}
   </main>
 
   <script type="module" is:inline>
-    // Embed the old prompts/fun-facts (your original archive source)
-    const STATIC_DAILY = JSON.parse(${JSON.stringify(JSON.stringify(staticDaily))});
+    function renderComments(container, comments) {
+      if (!container) return;
 
-    function mergeEntries(staticDaily, dynamicDaily) {
-      const merged = {};
-      const keys = new Set([
-        ...Object.keys(staticDaily || {}),
-        ...Object.keys(dynamicDaily || {})
-      ]);
-
-      for (const date of keys) {
-        const s = staticDaily?.[date] || {};
-        const d = dynamicDaily?.[date] || {};
-
-        merged[date] = {
-          // keep reflective/fun from static unless dynamic explicitly has them
-          reflective: d.reflective ?? s.reflective ?? null,
-          fun:        d.fun        ?? s.fun        ?? null,
-          // comments: prefer dynamic (because that's what you're writing now)
-          comments:   d.comments   ?? s.comments   ?? []
-        };
-      }
-      return merged;
-    }
-
-    function renderArchive(daily) {
-      const container = document.getElementById("archiveList");
-      const entries = Object.entries(daily).sort(([a],[b]) => b.localeCompare(a));
-
-      if (!entries.length) {
-        container.innerHTML = `<div class="empty">No entries yet.</div>`;
+      if (!comments || comments.length === 0) {
+        container.style.display = "none";
+        container.innerHTML = "";
         return;
       }
 
-      container.innerHTML = entries.map(([date, entry]) => `
-        <div class="entry">
-          <div class="date">${date}</div>
-
-          ${entry.reflective?.text ? `<div class="reflection">${entry.reflective.text}</div>` : ""}
-          ${entry.fun?.text ? `<div class="fun">${entry.fun.text}</div>` : ""}
-
-          ${entry.comments?.length ? `
-            <div class="comments">
-              ${entry.comments.map(c => `<div>– ${c.text}</div>`).join("")}
-            </div>
-          ` : ""}
-        </div>
-      `).join("");
+      container.style.display = "";
+      container.innerHTML =
+        `<div class="comments-title">Thoughts</div>` +
+        comments.map(c => `<div class="comment-line">– ${c.text}</div>`).join("");
     }
 
-    async function loadArchive() {
-      let dynamicDaily = {};
+    async function upgradeCommentsFromServer() {
+      let serverDaily = {};
       try {
         const res = await fetch("/.netlify/functions/daily-load");
-        dynamicDaily = await res.json();
+        serverDaily = await res.json();
       } catch (err) {
-        console.warn("daily-load failed; showing static archive only.", err);
+        console.warn("daily-load failed; keeping archive as-is.", err);
+        return;
       }
 
-      const merged = mergeEntries(STATIC_DAILY, dynamicDaily);
-      renderArchive(merged);
+      // For each date we already rendered, replace comments if server has them
+      for (const [date, entry] of Object.entries(serverDaily || {})) {
+        const block = document.querySelector(`[data-comments-for="${date}"]`);
+        if (!block) continue;
+
+        const comments = entry?.comments || [];
+        renderComments(block, comments);
+      }
     }
 
-    loadArchive();
+    upgradeCommentsFromServer();
   </script>
 </body>
 </html>
