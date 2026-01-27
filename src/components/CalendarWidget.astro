@@ -24,20 +24,24 @@ const getMonthLabel = (month: number, year: number) =>
   </section>
 
   <aside class="event-card">
-    <h3 id="eventHeading">Events</h3>
+    <h3 id="eventHeading">Events for date</h3>
 
     <form class="event-form" id="eventForm">
       <input id="eventTitle" type="text" placeholder="Event title" required />
 
       <label class="event-type-label">🏷️ Entry type</label>
-      <select id="eventType" class="event-type">
+      <select id="eventType">
         <option value="note">📝 Note</option>
         <option value="plan">📍 Plan</option>
         <option value="memory">🧠 Memory</option>
         <option value="occasion">🌟 Occasion</option>
       </select>
 
-      <textarea id="eventNote" rows="3" placeholder="Add a note (optional)"></textarea>
+      <textarea
+        id="eventNote"
+        placeholder="Add a note (optional)"
+      ></textarea>
+
       <button type="submit" class="save-btn">Save Event</button>
     </form>
 
@@ -50,8 +54,9 @@ const getMonthLabel = (month: number, year: number) =>
 
   .calendar-shell {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 2rem;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: stretch;
   }
 
   .calendar-card,
@@ -62,9 +67,15 @@ const getMonthLabel = (month: number, year: number) =>
     padding: 1.5rem;
   }
 
+  .event-card {
+    display: flex;
+    flex-direction: column;
+  }
+
   .calendar-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 1rem;
   }
 
@@ -112,6 +123,41 @@ const getMonthLabel = (month: number, year: number) =>
     padding: 0 6px;
     font-size: 12px;
     font-weight: 800;
+  }
+
+  /* RIGHT PANEL — FORM */
+
+  .event-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .event-form input,
+  .event-form select,
+  .event-form textarea {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .event-type-label {
+    font-size: 0.85rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+  }
+
+  .event-form textarea {
+    min-height: 90px;
+    resize: vertical;
+  }
+
+  .save-btn {
+    margin-top: 0.75rem;
+    align-self: flex-start;
+  }
+
+  .event-list {
+    margin-top: 1.25rem;
   }
 
   .event-item {
@@ -253,27 +299,37 @@ const getMonthLabel = (month: number, year: number) =>
     renderEvents();
   };
 
+  /* ✅ FIXED MONTH NAVIGATION */
+
   prevMonth.onclick = () => {
     displayMonth--;
-    if (displayMonth < 0) { displayMonth = 11; displayYear--; }
-    selectedDate.day = 1;
-    renderCalendar(); renderEvents();
+    if (displayMonth < 0) {
+      displayMonth = 11;
+      displayYear--;
+    }
+    selectedDate = { month: displayMonth, day: 1 };
+    renderCalendar();
+    renderEvents();
   };
 
   nextMonth.onclick = () => {
     displayMonth++;
-    if (displayMonth > 11) { displayMonth = 0; displayYear++; }
-    selectedDate.day = 1;
-    renderCalendar(); renderEvents();
+    if (displayMonth > 11) {
+      displayMonth = 0;
+      displayYear++;
+    }
+    selectedDate = { month: displayMonth, day: 1 };
+    renderCalendar();
+    renderEvents();
   };
 
   try {
-  await loadEvents();
+    await loadEvents();
   } catch (err) {
     console.warn("Calendar events could not be loaded, continuing empty.", err);
     cachedEvents = {};
   }
-  
+
   renderCalendar();
   renderEvents();
 })();
