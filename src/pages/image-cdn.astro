@@ -1,4 +1,6 @@
 ---
+import { isValidSession } from "../lib/auth";
+
 import { Image } from 'astro:assets';
 import corgi from '../assets/corgi.jpg';
 import ContextAlert from '../components/ContextAlert.astro';
@@ -8,16 +10,23 @@ import Layout from '../layouts/Layout.astro';
 
 import { getNetlifyContext } from '../utils';
 
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+
 const sampleImage = '/images/corgi.jpg';
 
 const ctx = getNetlifyContext();
 const forceWebP = ctx === 'dev';
 const sampleImageSrcSet = [640, 1280, 2048]
-    .map((size) => {
-        return `/.netlify/images?url=${sampleImage}&w=${size}${forceWebP ? '&fm=webp' : ''} ${size}w`;
-    })
-    .join(', ');
+  .map((size) => {
+    return `/.netlify/images?url=${sampleImage}&w=${size}${forceWebP ? '&fm=webp' : ''} ${size}w`;
+  })
+  .join(', ');
 const sizes = '(max-width: 1024px) 100vw, 1024px';
+
 
 const astroImageSnippet = `
 ## Using the built-in Astro &lt;Image /&gt; component
