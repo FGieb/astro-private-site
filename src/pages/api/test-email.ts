@@ -9,7 +9,7 @@ async function sendTestEmail() {
 
   return await resend.emails.send({
     from: "alm <auth@11-9.eu>",
-    to: ["PUT_YOUR_EMAIL_HERE"],
+    to: ["francien_giebels@hotmail.com"],
     subject: "Test email from alm.11-9",
     text: "If you’re reading this, email works.",
   });
