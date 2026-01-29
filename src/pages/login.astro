@@ -2,13 +2,13 @@
 import { createSession } from "../lib/auth";
 
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
-const baseUrl = import.meta.env.PUBLIC_SITE_URL;
+const SITE_URL = import.meta.env.PUBLIC_SITE_URL;
 
 const isPost = Astro.request.method === "POST";
 const trustedDevice = Astro.cookies.get("trusted_device");
 const hasTrustedDevice = !!trustedDevice;
 
-let step = "password"; // "password" | "email" | "code"
+let step: "password" | "email" | "code" = "password";
 let error = "";
 let email = "";
 
@@ -19,14 +19,15 @@ if (isPost) {
   const submittedEmail = formData.get("email");
   const submittedCode = formData.get("code");
 
-  // Step 1 — passphrase check
+  // STEP 1 — Passphrase
   if (pass !== correctPassphrase) {
     error = "Incorrect passphrase.";
     step = "password";
   } else {
-    // Trusted device → skip email & code
+    // Trusted device → direct login
     if (hasTrustedDevice) {
       const token = await createSession();
+
       Astro.cookies.set("auth", token, {
         path: "/",
         httpOnly: true,
@@ -38,21 +39,21 @@ if (isPost) {
       return Astro.redirect("/home");
     }
 
-    // Step 2 — email submitted → send code
+    // STEP 2 — Email submitted → send code
     if (submittedEmail && !submittedCode) {
       email = String(submittedEmail);
       step = "code";
 
-      await fetch(`${baseUrl}/api/send-login-code`, {
+      await fetch(`${SITE_URL}/api/send-login-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
     }
 
-    // Step 3 — code submitted → verify
+    // STEP 3 — Code submitted → verify
     if (submittedEmail && submittedCode) {
-      const res = await fetch(`${baseUrl}/api/verify-login-code`, {
+      const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -71,7 +72,7 @@ if (isPost) {
           httpOnly: true,
           secure: true,
           sameSite: "Strict",
-          maxAge: 60 * 60 * 24 * 7, // 7 days
+          maxAge: 60 * 60 * 24 * 7,
         });
 
         Astro.cookies.set("trusted_device", "1", {
@@ -90,7 +91,7 @@ if (isPost) {
       }
     }
 
-    // Default after passphrase → ask for email
+    // Default after passphrase
     if (!submittedEmail) {
       step = "email";
     }
@@ -110,7 +111,6 @@ if (isPost) {
         background-image: url('/images/background1.jpg');
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
         min-height: 100vh;
         display: flex;
         justify-content: center;
@@ -118,34 +118,26 @@ if (isPost) {
       }
 
       .login-box {
-        background-color: rgba(255, 255, 255, 0.85);
+        background: rgba(255,255,255,0.85);
         padding: 2rem 3rem;
         border-radius: 1rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        text-align: center;
         max-width: 400px;
         width: 90%;
-      }
-
-      h1 {
-        margin-bottom: 1rem;
+        text-align: center;
       }
 
       input {
-        padding: 0.5rem;
         width: 100%;
+        padding: 0.5rem;
         margin-bottom: 1rem;
-        font-size: 1rem;
       }
 
       button {
-        padding: 0.5rem 1.2rem;
-        font-size: 1rem;
+        padding: 0.6rem 1.2rem;
+        background: #222;
+        color: white;
         border: none;
-        background-color: #222;
-        color: #fff;
         cursor: pointer;
-        border-radius: 4px;
       }
 
       .error {
@@ -156,7 +148,6 @@ if (isPost) {
       .info {
         font-size: 0.9rem;
         opacity: 0.8;
-        margin-top: 1rem;
       }
     </style>
   </head>
@@ -167,30 +158,17 @@ if (isPost) {
 
       {step === "password" && (
         <form method="POST">
-          <input
-            type="password"
-            name="passphrase"
-            placeholder="Enter passphrase"
-            required
-          />
-          <button type="submit">Continue</button>
+          <input type="password" name="passphrase" placeholder="Passphrase" required />
+          <button>Continue</button>
         </form>
       )}
 
       {step === "email" && (
         <form method="POST">
           <input type="hidden" name="passphrase" value={correctPassphrase} />
-          <p><strong>New device detected.</strong></p>
-          <p class="info">
-            Enter your email to receive a one-time login code.
-          </p>
-          <input
-            type="email"
-            name="email"
-            placeholder="Your email"
-            required
-          />
-          <button type="submit">Send code</button>
+          <p class="info">New device — verify via email</p>
+          <input type="email" name="email" placeholder="Your email" required />
+          <button>Send code</button>
         </form>
       )}
 
@@ -198,16 +176,8 @@ if (isPost) {
         <form method="POST">
           <input type="hidden" name="passphrase" value={correctPassphrase} />
           <input type="hidden" name="email" value={email} />
-          <p class="info">
-            Enter the 6-digit code sent to your email.
-          </p>
-          <input
-            type="text"
-            name="code"
-            placeholder="6-digit code"
-            required
-          />
-          <button type="submit">Verify</button>
+          <input type="text" name="code" placeholder="6-digit code" required />
+          <button>Verify</button>
         </form>
       )}
 
