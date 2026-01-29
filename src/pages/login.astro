@@ -7,19 +7,24 @@ const isPost = Astro.request.method === "POST";
 const trustedDevice = Astro.cookies.get("trusted_device");
 const hasTrustedDevice = !!trustedDevice;
 
-let step = "password"; // "password" | "email"
+let step = "password"; // "password" | "email" | "code"
 let error = "";
+let email = "";
 
 if (isPost) {
   const formData = await Astro.request.formData();
-  const pass = formData.get("passphrase");
 
+  const pass = formData.get("passphrase");
+  const submittedEmail = formData.get("email");
+  const submittedCode = formData.get("code");
+
+  // Step 1 — passphrase check
   if (pass !== correctPassphrase) {
     error = "Incorrect passphrase.";
+    step = "password";
   } else {
-    // Password correct
+    // Trusted device → skip email & code
     if (hasTrustedDevice) {
-      // Trusted device → login directly
       const token = await createSession();
       Astro.cookies.set("auth", token, {
         path: "/",
@@ -30,8 +35,62 @@ if (isPost) {
       });
 
       return Astro.redirect("/home");
-    } else {
-      // New device → email step required
+    }
+
+    // Step 2 — email submitted → send code
+    if (submittedEmail && !submittedCode) {
+      email = String(submittedEmail);
+      step = "code";
+
+      await fetch("/api/send-login-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+    }
+
+    // Step 3 — code submitted → verify
+    if (submittedEmail && submittedCode) {
+      const res = await fetch("/api/verify-login-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: submittedEmail,
+          code: submittedCode,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (result.ok) {
+        const token = await createSession();
+
+        Astro.cookies.set("auth", token, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "Strict",
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
+
+        Astro.cookies.set("trusted_device", "1", {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "Strict",
+          maxAge: 60 * 60 * 24 * 90, // 90 days
+        });
+
+        return Astro.redirect("/home");
+      } else {
+        error = "Invalid or expired code.";
+        step = "code";
+        email = String(submittedEmail);
+      }
+    }
+
+    // Default after passphrase → ask for email
+    if (!submittedEmail) {
       step = "email";
     }
   }
@@ -118,15 +177,45 @@ if (isPost) {
       )}
 
       {step === "email" && (
-        <div>
+        <form method="POST">
+          <input
+            type="hidden"
+            name="passphrase"
+            value={correctPassphrase}
+          />
           <p><strong>New device detected.</strong></p>
           <p class="info">
-            Email verification is required before access is granted.
+            Enter your email to receive a one-time login code.
           </p>
+          <input
+            type="email"
+            name="email"
+            placeholder="Your email"
+            required
+          />
+          <button type="submit">Send code</button>
+        </form>
+      )}
+
+      {step === "code" && (
+        <form method="POST">
+          <input
+            type="hidden"
+            name="passphrase"
+            value={correctPassphrase}
+          />
+          <input type="hidden" name="email" value={email} />
           <p class="info">
-          
+            Enter the 6-digit code sent to your email.
           </p>
-        </div>
+          <input
+            type="text"
+            name="code"
+            placeholder="6-digit code"
+            required
+          />
+          <button type="submit">Verify</button>
+        </form>
       )}
 
       {error && <p class="error">❌ {error}</p>}
