@@ -8,6 +8,31 @@ function normalize(email: string) {
   return email.trim().toLowerCase();
 }
 
+function decodeStoredValue(stored: unknown): any | null {
+  if (!stored) return null;
+
+  // Netlify Blobs often returns Uint8Array
+  if (stored instanceof Uint8Array) {
+    try {
+      const text = new TextDecoder("utf-8").decode(stored);
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof stored === "string") {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  }
+
+  // Sometimes it's already an object
+  return stored;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const { email, code } = await request.json();
@@ -20,13 +45,11 @@ export const POST: APIRoute = async ({ request }) => {
     const store = getStore("login_codes");
 
     const stored = await store.get(normalizedEmail);
+    const data = decodeStoredValue(stored);
 
-    if (!stored) {
+    if (!data) {
       return new Response(JSON.stringify({ ok: false }), { status: 200 });
     }
-
-    const data =
-      typeof stored === "string" ? JSON.parse(stored) : stored;
 
     const { code: storedCode, expiresAt } = data;
 
@@ -39,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ ok: false }), { status: 200 });
     }
 
-    if (storedCode !== code) {
+    if (storedCode !== String(code)) {
       return new Response(JSON.stringify({ ok: false }), { status: 200 });
     }
 
