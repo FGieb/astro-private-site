@@ -7,13 +7,19 @@ async function sendTestEmail() {
   const apiKey = import.meta.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Missing RESEND_API_KEY env var");
 
+  const from = import.meta.env.RESEND_FROM;
+  if (!from) throw new Error("Missing RESEND_FROM env var");
+
+  const to = import.meta.env.TEST_EMAIL_TO;
+  if (!to) throw new Error("Missing TEST_EMAIL_TO env var");
+
   const resend = new Resend(apiKey);
 
   return await resend.emails.send({
-    from: "alm <auth@11-9.eu>",
-    to: ["francien_giebels@hotmail.com"],
+    from,
+    to: [to],
     subject: "Test email from alm.11-9",
-    text: "If you’re reading this, email works.",
+    text: "If you’re reading this, email sending works.",
   });
 }
 
@@ -32,4 +38,5 @@ export const GET: APIRoute = async () => {
   }
 };
 
+// Allow POST as well (useful later)
 export const POST: APIRoute = GET;
