@@ -2,6 +2,7 @@
 import { createSession } from "../lib/auth";
 
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
+const baseUrl = import.meta.env.PUBLIC_SITE_URL;
 
 const isPost = Astro.request.method === "POST";
 const trustedDevice = Astro.cookies.get("trusted_device");
@@ -42,7 +43,7 @@ if (isPost) {
       email = String(submittedEmail);
       step = "code";
 
-      await fetch("/api/send-login-code", {
+      await fetch(`${baseUrl}/api/send-login-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -51,7 +52,7 @@ if (isPost) {
 
     // Step 3 — code submitted → verify
     if (submittedEmail && submittedCode) {
-      const res = await fetch("/api/verify-login-code", {
+      const res = await fetch(`${baseUrl}/api/verify-login-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -178,11 +179,7 @@ if (isPost) {
 
       {step === "email" && (
         <form method="POST">
-          <input
-            type="hidden"
-            name="passphrase"
-            value={correctPassphrase}
-          />
+          <input type="hidden" name="passphrase" value={correctPassphrase} />
           <p><strong>New device detected.</strong></p>
           <p class="info">
             Enter your email to receive a one-time login code.
@@ -199,11 +196,7 @@ if (isPost) {
 
       {step === "code" && (
         <form method="POST">
-          <input
-            type="hidden"
-            name="passphrase"
-            value={correctPassphrase}
-          />
+          <input type="hidden" name="passphrase" value={correctPassphrase} />
           <input type="hidden" name="email" value={email} />
           <p class="info">
             Enter the 6-digit code sent to your email.
