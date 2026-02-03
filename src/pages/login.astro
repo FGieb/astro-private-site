@@ -12,20 +12,31 @@ let step = "password"; // "password" | "email" | "code"
 let error = "";
 let info = "";
 
-function ensureLoginId() {
+function ensureLoginId(email) {
   let id = Astro.cookies.get("login_id")?.value;
   if (!id) {
     id = crypto.randomUUID();
-    Astro.cookies.set("login_id", id, {
-      path: "/",                // ← FIX
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 10, // 10 minutes
-    });
   }
+
+  Astro.cookies.set("login_id", id, {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    maxAge: 60 * 10,
+  });
+
+  Astro.cookies.set("login_email", email, {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    maxAge: 60 * 10,
+  });
+
   return id;
 }
+
 
 function clearLoginId() {
   Astro.cookies.delete("login_id", { path: "/" }); // ← FIX
@@ -76,7 +87,7 @@ if (isPost) {
       // Send code
       if (submittedEmail && !submittedCode && action !== "resend") {
         const email = String(submittedEmail).toLowerCase().trim();
-        const loginId = ensureLoginId();
+        const loginId = ensureLoginId(email);
 
         step = "code";
         info = "Code sent. Check your inbox.";
@@ -94,7 +105,7 @@ if (isPost) {
           step = "email";
           error = "Please enter your email to resend the code.";
         } else {
-          const loginId = ensureLoginId();
+          const loginId = ensureLoginId(email);
           step = "code";
           info = "Code re-sent. Check your inbox.";
 
@@ -107,10 +118,10 @@ if (isPost) {
       }
       // Verify code
       else if (submittedEmail && submittedCode) {
-        const email = String(submittedEmail).toLowerCase().trim();
+        const email = Astro.cookies.get("login_email")?.value;
         const loginId = Astro.cookies.get("login_id")?.value;
 
-        if (!loginId) {
+        if (!loginId || !email)  {
           step = "email";
           error = "Login session expired. Please restart.";
         } else {
