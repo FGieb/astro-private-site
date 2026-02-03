@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ ok: false }), { status: 200 });
     }
 
-    if (storedCode !== String(code)) {
+    if (storedCode !== String(code).trim()) {
       return new Response(JSON.stringify({ ok: false }), { status: 200 });
     }
 
