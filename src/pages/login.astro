@@ -6,6 +6,8 @@ import { createSession } from "../lib/auth";
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
 const isPost = Astro.request.method === "POST";
 
+const trustedDevice = Astro.cookies.get("trusted_device");
+
 let error = "";
 
 if (isPost) {
@@ -13,22 +15,29 @@ if (isPost) {
   const pass = formData.get("passphrase");
 
   if (pass === correctPassphrase) {
-    const token = await createSession();
+    // ✅ If device already trusted → normal login (UNCHANGED BEHAVIOUR)
+    if (trustedDevice) {
+      const token = await createSession();
 
-    Astro.cookies.set("auth", token, {
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+      Astro.cookies.set("auth", token, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
 
-    return Astro.redirect("/home");
+      return Astro.redirect("/home");
+    }
+
+    // 🔐 New device → go to verification step
+    return Astro.redirect("/verify");
   } else {
     error = "Incorrect passphrase.";
   }
 }
 ---
+
 
 <!DOCTYPE html>
 <html lang="en">
