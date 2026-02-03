@@ -1,153 +1,79 @@
 ---
-export const prerender = false;
-export const runtime = "nodejs";
-
-import crypto from "node:crypto";
-import { createSession, isValidSession } from "../lib/auth";
-
-const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
-const SITE_URL = import.meta.env.PUBLIC_SITE_URL;
-
-const isPost = Astro.request.method === "POST";
-const hasTrustedDevice = !!Astro.cookies.get("trusted_device");
-
-let step = "password"; // "password" | "email" | "code"
-let error = "";
-let info = "";
-
-function ensureLoginId() {
-  let id = Astro.cookies.get("login_id")?.value;
-  if (!id) {
-    id = crypto.randomUUID();
-    Astro.cookies.set("login_id", id, {
-      path: "/login",
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 10,
-    });
-  }
-  return id;
-}
-
-function clearLoginId() {
-  Astro.cookies.delete("login_id", { path: "/login" });
-}
-
-async function doLogin() {
-  const token = await createSession();
-
-  Astro.cookies.set("auth", token, {
-    path: "/",
-    httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-
-  Astro.cookies.set("trusted_device", "1", {
-    path: "/",
-    httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
-    maxAge: 60 * 60 * 24 * 90,
-  });
-
-  clearLoginId();
-  return Astro.redirect("/home");
-}
-
-// Redirect authenticated users away from login
-if (!isPost) {
-  const auth = Astro.cookies.get("auth");
-  try {
-    if (auth && await isValidSession(auth.value)) {
-      return Astro.redirect("/home");
-    }
-  } catch (e) {
-    // swallow error → show login instead of white screen
-    console.error("Session check failed", e);
-  }
-  step = "password";
-}
-
-
-if (isPost) {
-  const formData = await Astro.request.formData();
-  const action = String(formData.get("action") || "");
-  const pass = formData.get("passphrase");
-  const submittedEmail = formData.get("email");
-  const submittedCode = formData.get("code");
-
-  if (action === "restart") {
-    clearLoginId();
-    step = "password";
-  } else if (pass !== correctPassphrase) {
-    error = "Incorrect passphrase.";
-    step = "password";
-  } else {
-    if (hasTrustedDevice) return await doLogin();
-
-    if (submittedEmail && !submittedCode && action !== "resend") {
-      const email = String(submittedEmail).toLowerCase().trim();
-      const loginId = ensureLoginId();
-
-      step = "code";
-      info = "Code sent. Check your inbox.";
-
-      await fetch(`${SITE_URL}/api/send-login-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, loginId }),
-      });
-    } 
-    else if (action === "resend") {
-      const email = String(submittedEmail || "").toLowerCase().trim();
-      if (!email) {
-        step = "email";
-        error = "Please enter your email to resend the code.";
-      } else {
-        const loginId = ensureLoginId();
-        step = "code";
-        info = "Code re-sent. Check your inbox.";
-
-        await fetch(`${SITE_URL}/api/send-login-code`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, loginId }),
-        });
-      }
-    } 
-    else if (submittedEmail && submittedCode) {
-      const email = String(submittedEmail).toLowerCase().trim();
-      const loginId = Astro.cookies.get("login_id")?.value;
-
-      if (!loginId) {
-        step = "email";
-        error = "Login session expired. Please restart.";
-      } else {
-        const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            loginId,
-            email,
-            code: String(submittedCode).trim(),
-          }),
-        });
-
-        const result = await res.json();
-
-        if (result.ok) {
-          return await doLogin();
-        } else {
-          step = "code";
-          error = "Invalid or expired code.";
-        }
-      }
-    } else {
-      step = "email";
-    }
-  }
-}
+export const prerender = true; // static page that always renders
 ---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background-image: url('/images/background1.jpg');
+        background-size: cover;
+        background-position: center;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .login-box {
+        background: rgba(255,255,255,0.88);
+        padding: 2rem 3rem;
+        border-radius: 1rem;
+        max-width: 460px;
+        width: 92%;
+        text-align: center;
+      }
+      input {
+        width: 100%;
+        padding: 0.65rem;
+        margin-bottom: 0.9rem;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 0.65rem 1.2rem;
+        background: #222;
+        color: white;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+      }
+      .row {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+      }
+      .row button { width: 50%; }
+      .error { color: #c00; margin-top: 0.75rem; }
+      .info  { color: #222; opacity: 0.85; margin: 0.5rem 0 1rem; font-size: 0.95rem; }
+      .muted { font-size: 0.9rem; opacity: 0.75; margin-top: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <div class="login-box">
+      <h1>🔐 Private Access</h1>
+
+      <p class="muted">Enter passphrase. If this is a new device, you’ll verify via email.</p>
+
+      <!-- Single form that can either send or verify -->
+      <form method="POST" action="/api/login">
+        <input type="password" name="passphrase" placeholder="Passphrase" required />
+        <input type="email" name="email" placeholder="Your email (only needed for verification)" />
+        <input type="text" name="code" placeholder="6-digit code (only when verifying)"
+               inputmode="numeric" autocomplete="one-time-code" />
+
+        <button type="submit" name="action" value="send">Send code / Login</button>
+
+        <div class="row">
+          <button type="submit" name="action" value="verify" formnovalidate>Verify code</button>
+          <button type="submit" name="action" value="restart" formnovalidate>Restart</button>
+        </div>
+      </form>
+
+      <p class="muted">Tip: “Send code / Login” logs in immediately on trusted devices.</p>
+    </div>
+  </body>
+</html>
