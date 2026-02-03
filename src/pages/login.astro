@@ -223,6 +223,7 @@ if (isPost) {
 
       {step === "password" && (
         <form method="POST">
+          <input type="hidden" name="action" value="passphrase" />
           <input type="password" name="passphrase" placeholder="Passphrase" required />
           <button>Continue</button>
         </form>
