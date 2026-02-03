@@ -13,7 +13,7 @@ function normalize(email: string) {
 function getAllowedEmails(): string[] {
   const raw = import.meta.env.ALLOWED_EMAILS;
   if (!raw) return [];
-  return raw.split(",").map(e => normalize(e));
+  return raw.split(",").map((e) => normalize(e));
 }
 
 function generateCode(): string {
@@ -40,6 +40,7 @@ function decodeStoredValue(stored: unknown): any | null {
     }
   }
 
+  // If it ever returns an object already
   return stored as any;
 }
 
@@ -56,6 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
     // 1) Whitelist check
     const allowed = getAllowedEmails();
     if (!allowed.includes(email)) {
+      // Deliberately vague to avoid email probing
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -82,7 +84,12 @@ export const POST: APIRoute = async ({ request }) => {
     } else {
       code = generateCode();
       expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-      await store.set(email, { code, expiresAt });
+
+      // ✅ Store explicitly as JSON (avoid "[object Object]" issues)
+      await store.set(email, JSON.stringify({ code, expiresAt }), {
+        // contentType is optional; safe to include if supported
+        metadata: { contentType: "application/json" } as any,
+      } as any);
     }
 
     // 3) Send email
