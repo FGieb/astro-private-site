@@ -8,8 +8,16 @@ const isPost = Astro.request.method === "POST";
 const trustedDevice = Astro.cookies.get("trusted_device");
 const hasTrustedDevice = !!trustedDevice;
 
+const pendingEmail = Astro.cookies.get("pending_email")?.value;
+
 let step: "password" | "email" | "code" = "password";
 let error = "";
+
+// If user already started email verification and has a pending email cookie,
+// show the code step even on a fresh GET (prevents loops).
+if (!isPost && pendingEmail && !hasTrustedDevice) {
+  step = "code";
+}
 
 if (isPost) {
   const formData = await Astro.request.formData();
@@ -38,17 +46,11 @@ if (isPost) {
       return Astro.redirect("/home");
     }
 
-    // STEP 2 — Email submitted → send code
-    if (
-      submittedEmail &&
-      !submittedCode &&
-      !Astro.cookies.get("pending_email")
-    ) {
-
+    // STEP 2 — Email submitted → send (or re-send same) code
+    if (submittedEmail && !submittedCode) {
       const email = String(submittedEmail).toLowerCase().trim();
-      step = "code";
 
-      // 🔐 Persist email securely for verification step
+      // Persist email for verification step
       Astro.cookies.set("pending_email", email, {
         path: "/login",
         httpOnly: true,
@@ -57,6 +59,9 @@ if (isPost) {
         maxAge: 60 * 10, // 10 minutes
       });
 
+      step = "code";
+
+      // IMPORTANT: safe to call repeatedly because send-login-code will reuse existing valid code
       await fetch(`${SITE_URL}/api/send-login-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +91,7 @@ if (isPost) {
         if (result.ok) {
           const token = await createSession();
 
+          // Clean up pending cookie after success
           Astro.cookies.delete("pending_email", { path: "/login" });
 
           Astro.cookies.set("auth", token, {
@@ -112,9 +118,9 @@ if (isPost) {
       }
     }
 
-    // Default after passphrase
+    // Default: after correct passphrase, go to email OR code if we already have a pending email
     if (!submittedEmail && !submittedCode) {
-      step = "email";
+      step = pendingEmail ? "code" : "email";
     }
   }
 }
@@ -179,12 +185,7 @@ if (isPost) {
 
       {step === "password" && (
         <form method="POST">
-          <input
-            type="password"
-            name="passphrase"
-            placeholder="Passphrase"
-            required
-          />
+          <input type="password" name="passphrase" placeholder="Passphrase" required />
           <button>Continue</button>
         </form>
       )}
