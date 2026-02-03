@@ -115,12 +115,12 @@ if (isPost) {
           <button>Enter</button>
         </form>
       )}
-    
+
       {step === "code" && (
         <>
           <p>Passphrase accepted.</p>
           <p>Verification step (code) will go here.</p>
-    
+      
           <form method="POST">
             <input
               type="text"
@@ -130,6 +130,12 @@ if (isPost) {
             />
             <button>Verify</button>
           </form>
+      
+          {debugCode && (
+            <p style="margin-top: 1rem; font-family: monospace;">
+              DEBUG CODE: <strong>{debugCode}</strong>
+            </p>
+          )}
         </>
       )}
     
