@@ -57,14 +57,15 @@ async function doLogin() {
 }
 
 // On GET: redirect authenticated users away from login
+import { isValidSession } from "../lib/auth";
+
 if (!isPost) {
-  if (Astro.cookies.get("auth")) {
+  const auth = Astro.cookies.get("auth");
+  if (auth && await isValidSession(auth.value)) {
     return Astro.redirect("/home");
   }
   step = "password";
 }
-
-
 
 
 if (isPost) {
