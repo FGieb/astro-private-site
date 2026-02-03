@@ -122,14 +122,17 @@ if (isPost) {
           });
 
           const result = await res.json();
-
+          
           if (result.ok) {
             clearPendingEmail();
             return await doLogin();
           } else {
-            error = "Invalid or expired code.";
+            error = result.reason
+              ? `Verification failed: ${result.reason}`
+              : "Invalid or expired code.";
             step = "code";
           }
+
         }
       }
       // Default after correct passphrase (no email, no code)
