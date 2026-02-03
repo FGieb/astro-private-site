@@ -59,11 +59,17 @@ async function doLogin() {
 // Redirect authenticated users away from login
 if (!isPost) {
   const auth = Astro.cookies.get("auth");
-  if (auth && await isValidSession(auth.value)) {
-    return Astro.redirect("/home");
+  try {
+    if (auth && await isValidSession(auth.value)) {
+      return Astro.redirect("/home");
+    }
+  } catch (e) {
+    // swallow error → show login instead of white screen
+    console.error("Session check failed", e);
   }
   step = "password";
 }
+
 
 if (isPost) {
   const formData = await Astro.request.formData();
