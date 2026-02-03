@@ -1,10 +1,12 @@
-import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
 
-const store = getStore("auth");
-
-// 7 days
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/**
+ * Sessions are stateless and self-verifying.
+ * No Netlify Blobs. No storage. No race conditions.
+ *
+ * Cookie format:
+ *   <random-id>.<hmac-signature>
+ */
 
 function requireSecret() {
   const secret = import.meta.env.SESSION_SECRET;
@@ -14,69 +16,54 @@ function requireSecret() {
   return secret;
 }
 
-// Never store raw tokens as keys. Store a derived key instead.
-function sessionKey(token: string) {
-  const secret = requireSecret();
-  return crypto.createHmac("sha256", secret).update(token).digest("hex");
-}
-
+/**
+ * Create a signed session token
+ */
 export async function createSession() {
-  // UUID is fine, but we’ll add extra entropy too.
-  const token = `${crypto.randomUUID()}-${crypto.randomBytes(16).toString("hex")}`;
+  const secret = requireSecret();
 
-  const key = sessionKey(token);
+  const token = crypto.randomUUID();
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(token)
+    .digest("hex");
 
-  await store.set(key, {
-    createdAt: Date.now(),
-  });
-
-  return token; // this is what you put in the HttpOnly cookie
+  return `${token}.${signature}`;
 }
 
+/**
+ * Verify a signed session token
+ */
 export async function isValidSession(token?: string) {
   if (!token) return false;
 
-  const key = sessionKey(token);
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
 
-  // Netlify Blobs can be briefly eventually-consistent right after a write.
-  // Retry a couple times to avoid immediate bounce-back after login.
-  let data: any = null;
-  for (let i = 0; i < 3; i++) {
-    data = await store.get(key);
-    if (data) break;
-    // small delay: 120ms, then 240ms
-    await new Promise((r) => setTimeout(r, 120 * (i + 1)));
-  }
-  
-  if (!data) return false;
+  const [raw, signature] = parts;
+  if (!raw || !signature) return false;
 
-  // data may come back as object; handle both safely
-  let createdAt: number | undefined;
-  if (typeof data === "string") {
-    try {
-      createdAt = JSON.parse(data)?.createdAt;
-    } catch {
-      createdAt = undefined;
-    }
-  } else {
-    // @netlify/blobs typically returns the stored object
-    createdAt = (data as any)?.createdAt;
-  }
+  const secret = requireSecret();
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(raw)
+    .digest("hex");
 
-  if (!createdAt) return false;
-
-  const expired = Date.now() - createdAt > SESSION_TTL_MS;
-  if (expired) {
-    await store.delete(key);
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected)
+    );
+  } catch {
     return false;
   }
-
-  return true;
 }
 
-export async function destroySession(token?: string) {
-  if (!token) return;
-
-  const key = sessionKey(token);
-  await store.delete(key);
+/**
+ * Optional helper (not strictly needed for stateless sessions,
+ * but keeps your API symmetrical)
+ */
+export async function destroySession(_token?: string) {
+  // Nothing to do — session validity is purely cryptographic
+  return;
 }
