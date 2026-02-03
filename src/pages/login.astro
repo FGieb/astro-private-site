@@ -6,6 +6,15 @@ import { createSession } from "../lib/auth";
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
 const isPost = Astro.request.method === "POST";
 
+function isAllowedEmail(email: string) {
+  const raw = import.meta.env.ALLOWED_EMAILS || "";
+  const allowed = raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(email.trim().toLowerCase());
+}
+
 let error = "";
 let step: "passphrase" | "code" = "passphrase";
 let debugCode: string | null = null;
@@ -13,15 +22,21 @@ let debugCode: string | null = null;
 if (isPost) {
   const formData = await Astro.request.formData();
 
-  // STEP 1 — passphrase
+  // STEP 1 — passphrase + email whitelist + generate code + send email
   if (step === "passphrase") {
-    const pass = formData.get("passphrase");
+    const pass = (formData.get("passphrase") || "").toString();
+    const email = (formData.get("email") || "").toString().trim().toLowerCase();
 
-    if (pass === correctPassphrase) {
-      // 🔐 generate code
+    if (pass !== correctPassphrase) {
+      error = "Incorrect passphrase.";
+    } else if (!email) {
+      error = "Please enter your email.";
+    } else if (!isAllowedEmail(email)) {
+      error = "This email is not authorised.";
+    } else {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // store in cookie (10 min)
+      // store in cookie for 10 minutes
       Astro.cookies.set("login_code", code, {
         path: "/",
         httpOnly: true,
@@ -30,14 +45,42 @@ if (isPost) {
         maxAge: 60 * 10,
       });
 
-      debugCode = code; // 👈 TEMPORARY
-      step = "code";
-    } else {
-      error = "Incorrect passphrase.";
+      Astro.cookies.set("login_email", email, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 10,
+      });
+
+      // DEBUG: show the generated code on screen (remove later)
+      debugCode = code;
+
+      // Send email via your existing API route
+      // (Assumes /api/send-login-code accepts { email, code } JSON)
+      try {
+        const res = await fetch(new URL("/api/send-login-code", Astro.url), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          error = `Failed to send code. (${res.status}) ${text}`.trim();
+          // stay on passphrase step so user can retry
+          step = "passphrase";
+        } else {
+          step = "code";
+        }
+      } catch (e) {
+        error = `Failed to send code. ${String(e)}`;
+        step = "passphrase";
+      }
     }
   }
 
-  // STEP 2 — verify code
+  // STEP 2 — verify code -> trust device (60 days) -> create session -> redirect home
   else if (step === "code") {
     const input = (formData.get("code") || "").toString().trim();
     const stored = Astro.cookies.get("login_code")?.value;
@@ -47,15 +90,36 @@ if (isPost) {
       step = "passphrase";
     } else if (input !== stored) {
       error = "Incorrect verification code.";
+      step = "code";
     } else {
-      // ✅ SUCCESS — still no session yet
-      debugCode = "✔ Code accepted";
+      // mark device trusted for 60 days
+      Astro.cookies.set("trusted_device", "1", {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 60 * 24 * 60,
+      });
+
+      // cleanup short-lived cookies
+      Astro.cookies.delete("login_code", { path: "/" });
+      Astro.cookies.delete("login_email", { path: "/" });
+
+      // create signed session and go to home
+      const token = await createSession();
+      Astro.cookies.set("auth", token, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+
+      return Astro.redirect("/home");
     }
   }
 }
 ---
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -66,7 +130,7 @@ if (isPost) {
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
-        background-image: url('/images/background1.jpg');
+        background-image: url("/images/background1.jpg");
         background-size: cover;
         background-position: center;
         min-height: 100vh;
@@ -75,7 +139,7 @@ if (isPost) {
         align-items: center;
       }
       .login-box {
-        background: rgba(255,255,255,0.85);
+        background: rgba(255, 255, 255, 0.85);
         padding: 2rem 3rem;
         border-radius: 1rem;
         max-width: 420px;
@@ -98,49 +162,63 @@ if (isPost) {
         color: #c00;
         margin-top: 0.75rem;
       }
+      .hint {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+      }
+      .debug {
+        margin-top: 1rem;
+        font-family: monospace;
+      }
     </style>
   </head>
+
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
-    
+
       {step === "passphrase" && (
         <form method="POST">
+          <input type="email" name="email" placeholder="Email" required />
+
           <input
             type="password"
             name="passphrase"
             placeholder="Passphrase"
             required
           />
-          <button>Enter</button>
+
+          <button type="submit">Enter</button>
         </form>
       )}
 
       {step === "code" && (
         <>
           <p>Passphrase accepted.</p>
-          <p>Verification step (code) will go here.</p>
-      
+          <p class="hint">Enter the 6-digit code we sent to your email.</p>
+
           <form method="POST">
             <input
               type="text"
               name="code"
               placeholder="Verification code"
+              inputmode="numeric"
+              pattern="[0-9]{6}"
+              autocomplete="one-time-code"
               required
             />
-            <button>Verify</button>
+            <button type="submit">Verify</button>
           </form>
-      
+
           {debugCode && (
-            <p style="margin-top: 1rem; font-family: monospace;">
+            <p class="debug">
               DEBUG CODE: <strong>{debugCode}</strong>
             </p>
           )}
         </>
       )}
-    
+
       {error && <p class="error">❌ {error}</p>}
     </div>
-
   </body>
 </html>
