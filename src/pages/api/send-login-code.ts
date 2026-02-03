@@ -5,7 +5,6 @@ import { Resend } from "resend";
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
 
-// ---- helpers ----
 function normalize(email: string) {
   return email.trim().toLowerCase();
 }
@@ -20,61 +19,50 @@ function generateCode(): string {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-function decodeStoredValue(stored: unknown): any | null {
-  if (!stored) return null;
-
-  if (stored instanceof Uint8Array) {
-    try {
-      const text = new TextDecoder("utf-8").decode(stored);
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
-  }
-
-  if (typeof stored === "string") {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return null;
-    }
-  }
-
-  // If it ever returns an object already
-  return stored as any;
-}
-
-// ---- API route ----
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const body = await request.json();
-    const email = normalize(body?.email || "");
+    const { email, loginId } = await request.json();
 
-    if (!email) {
-      return new Response("Missing email", { status: 400 });
+    if (!email || !loginId) {
+      return new Response(JSON.stringify({ ok: false, error: "missing email or loginId" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // 1) Whitelist check
+    const normalizedEmail = normalize(String(email));
+    const lid = String(loginId);
+
+    // Whitelist check
     const allowed = getAllowedEmails();
-    if (!allowed.includes(email)) {
-      // Deliberately vague to avoid email probing
+    if (!allowed.includes(normalizedEmail)) {
+      // Return ok to prevent email probing
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const store = getStore("login_codes");
+    const store = getStore("pending_logins");
 
-    // 2) Reuse existing valid code if present (prevents overwriting)
-    const existingRaw = await store.get(email);
-    const existing = decodeStoredValue(existingRaw);
+    // Reuse an existing valid code for this loginId (prevents overwrite)
+    const existingRaw = await store.get(lid);
+    let existing: any = null;
+
+    if (existingRaw instanceof Uint8Array) {
+      try { existing = JSON.parse(new TextDecoder().decode(existingRaw)); } catch {}
+    } else if (typeof existingRaw === "string") {
+      try { existing = JSON.parse(existingRaw); } catch {}
+    } else if (existingRaw && typeof existingRaw === "object") {
+      existing = existingRaw;
+    }
 
     let code: string;
     let expiresAt: number;
 
     if (
       existing &&
+      existing.email === normalizedEmail &&
       typeof existing.code === "string" &&
       typeof existing.expiresAt === "number" &&
       Date.now() < existing.expiresAt
@@ -85,17 +73,20 @@ export const POST: APIRoute = async ({ request }) => {
       code = generateCode();
       expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-      // ✅ Store explicitly as JSON (avoid "[object Object]" issues)
-      await store.set(email, JSON.stringify({ code, expiresAt }), {
-        // contentType is optional; safe to include if supported
-        metadata: { contentType: "application/json" } as any,
-      } as any);
+      await store.set(
+        lid,
+        JSON.stringify({
+          email: normalizedEmail,
+          code,
+          expiresAt,
+          createdAt: Date.now(),
+        })
+      );
     }
 
-    // 3) Send email
+    // Send email
     const resendKey = import.meta.env.RESEND_API_KEY;
     const from = import.meta.env.RESEND_FROM;
-
     if (!resendKey) throw new Error("Missing RESEND_API_KEY");
     if (!from) throw new Error("Missing RESEND_FROM");
 
@@ -103,7 +94,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     await resend.emails.send({
       from,
-      to: [email],
+      to: [normalizedEmail],
       subject: "Your login code",
       text: `Your one-time login code is:
 
@@ -113,12 +104,12 @@ This code expires in 10 minutes.
 If this wasn’t you, you can safely ignore this email.`,
     });
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, expiresAt }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
