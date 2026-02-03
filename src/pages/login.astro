@@ -1,8 +1,8 @@
 ---
 export const prerender = false;
 
-import { createSession } from "../lib/auth";
 import crypto from "node:crypto";
+import { createSession, isValidSession } from "../lib/auth";
 
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
 const SITE_URL = import.meta.env.PUBLIC_SITE_URL;
@@ -10,7 +10,7 @@ const SITE_URL = import.meta.env.PUBLIC_SITE_URL;
 const isPost = Astro.request.method === "POST";
 const hasTrustedDevice = !!Astro.cookies.get("trusted_device");
 
-let step: "password" | "email" | "code" = "password";
+let step = "password"; // "password" | "email" | "code"
 let error = "";
 let info = "";
 
@@ -23,7 +23,7 @@ function ensureLoginId() {
       httpOnly: true,
       secure: true,
       sameSite: "Strict",
-      maxAge: 60 * 10, // 10 minutes
+      maxAge: 60 * 10,
     });
   }
   return id;
@@ -56,9 +56,7 @@ async function doLogin() {
   return Astro.redirect("/home");
 }
 
-// On GEdfgT: redirect authenticated users away from login
-import { isValidSession } from "../lib/auth";
-
+// Redirect authenticated users away from login
 if (!isPost) {
   const auth = Astro.cookies.get("auth");
   if (auth && await isValidSession(auth.value)) {
@@ -66,7 +64,6 @@ if (!isPost) {
   }
   step = "password";
 }
-
 
 if (isPost) {
   const formData = await Astro.request.formData();
@@ -78,20 +75,34 @@ if (isPost) {
   if (action === "restart") {
     clearLoginId();
     step = "password";
+  } else if (pass !== correctPassphrase) {
+    error = "Incorrect passphrase.";
+    step = "password";
   } else {
-    if (pass !== correctPassphrase) {
-      error = "Incorrect passphrase.";
-      step = "password";
-    } else {
-      if (hasTrustedDevice) return await doLogin();
+    if (hasTrustedDevice) return await doLogin();
 
-      // If they submit email -> send code
-      if (submittedEmail && !submittedCode && action !== "resend") {
-        const email = String(submittedEmail).toLowerCase().trim();
+    if (submittedEmail && !submittedCode && action !== "resend") {
+      const email = String(submittedEmail).toLowerCase().trim();
+      const loginId = ensureLoginId();
+
+      step = "code";
+      info = "Code sent. Check your inbox.";
+
+      await fetch(`${SITE_URL}/api/send-login-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, loginId }),
+      });
+    } 
+    else if (action === "resend") {
+      const email = String(submittedEmail || "").toLowerCase().trim();
+      if (!email) {
+        step = "email";
+        error = "Please enter your email to resend the code.";
+      } else {
         const loginId = ensureLoginId();
-
         step = "code";
-        info = "Code sent. Check your inbox.";
+        info = "Code re-sent. Check your inbox.";
 
         await fetch(`${SITE_URL}/api/send-login-code`, {
           method: "POST",
@@ -99,155 +110,37 @@ if (isPost) {
           body: JSON.stringify({ email, loginId }),
         });
       }
-      // Resend requires email input (explicit, no stale cookie email)
-      else if (action === "resend") {
-        const email = String(submittedEmail || "").toLowerCase().trim();
-        if (!email) {
-          step = "email";
-          error = "Please enter your email to resend the code.";
-        } else {
-          const loginId = ensureLoginId();
-          step = "code";
-          info = "Code re-sent. Check your inbox.";
+    } 
+    else if (submittedEmail && submittedCode) {
+      const email = String(submittedEmail).toLowerCase().trim();
+      const loginId = Astro.cookies.get("login_id")?.value;
 
-          await fetch(`${SITE_URL}/api/send-login-code`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, loginId }),
-          });
-        }
-      }
-      // Verify: requires email + code + loginId
-      else if (submittedEmail && submittedCode) {
-        const email = String(submittedEmail).toLowerCase().trim();
-        const loginId = Astro.cookies.get("login_id")?.value;
-
-        if (!loginId) {
-          step = "email";
-          error = "Login session expired. Please restart.";
-        } else {
-          const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              loginId,
-              email,
-              code: String(submittedCode).trim(),
-            }),
-          });
-
-          const result = await res.json();
-
-          if (result.ok) {
-            return await doLogin();
-          } else {
-            step = "code";
-            error = "Invalid or expired code.";
-          }
-        }
-      }
-      // Default after correct passphrase
-      else {
+      if (!loginId) {
         step = "email";
+        error = "Login session expired. Please restart.";
+      } else {
+        const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            loginId,
+            email,
+            code: String(submittedCode).trim(),
+          }),
+        });
+
+        const result = await res.json();
+
+        if (result.ok) {
+          return await doLogin();
+        } else {
+          step = "code";
+          error = "Invalid or expired code.";
+        }
       }
+    } else {
+      step = "email";
     }
   }
 }
 ---
-
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Login</title>
-    <style>
-      body {
-        margin: 0;
-        font-family: system-ui, sans-serif;
-        background-image: url('/images/background1.jpg');
-        background-size: cover;
-        background-position: center;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .login-box {
-        background: rgba(255,255,255,0.85);
-        padding: 2rem 3rem;
-        border-radius: 1rem;
-        max-width: 440px;
-        width: 92%;
-        text-align: center;
-      }
-      input {
-        width: 100%;
-        padding: 0.6rem;
-        margin-bottom: 1rem;
-      }
-      button {
-        padding: 0.6rem 1.2rem;
-        background: #222;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-      .row {
-        display: flex;
-        gap: 0.75rem;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin-top: 0.5rem;
-      }
-      .error { color: #c00; margin-top: 0.75rem; }
-      .info  { color: #222; opacity: 0.85; margin: 0.5rem 0 1rem; font-size: 0.95rem; }
-      .muted { font-size: 0.9rem; opacity: 0.75; margin-top: 0.5rem; }
-    </style>
-  </head>
-  <body>
-    <div class="login-box">
-      <h1>🔐 Private Access</h1>
-
-      {step === "password" && (
-        <form method="POST">
-          <input type="password" name="passphrase" placeholder="Passphrase" required />
-          <button>Continue</button>
-        </form>
-      )}
-
-      {step === "email" && (
-        <form method="POST">
-          <input type="hidden" name="passphrase" value={correctPassphrase} />
-          <p class="muted">New device — verify via email</p>
-          <input type="email" name="email" placeholder="Your email" required />
-          <button>Send code</button>
-          <div class="row">
-            <button type="submit" name="action" value="restart" formnovalidate>Restart</button>
-          </div>
-        </form>
-      )}
-
-      {step === "code" && (
-        <form method="POST">
-          <input type="hidden" name="passphrase" value={correctPassphrase} />
-
-          {info && <p class="info">{info}</p>}
-
-          <input type="email" name="email" placeholder="Your email" required />
-          <input type="text" name="code" placeholder="6-digit code" inputmode="numeric" autocomplete="one-time-code" required />
-
-          <button>Verify</button>
-
-          <div class="row">
-            <button type="submit" name="action" value="resend" formnovalidate>Resend code</button>
-            <button type="submit" name="action" value="restart" formnovalidate>Restart</button>
-          </div>
-
-          <p class="muted">Resend requires your email again (prevents stale-state bugs).</p>
-        </form>
-      )}
-
-      {error && <p class="error">❌ {error}</p>}
-    </div>
-  </body>
-</html>
