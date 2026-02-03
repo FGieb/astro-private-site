@@ -8,6 +8,7 @@ const isPost = Astro.request.method === "POST";
 
 let error = "";
 let step: "passphrase" | "code" = "passphrase";
+let debugCode: string | null = null;
 
 if (isPost) {
   const formData = await Astro.request.formData();
@@ -17,15 +18,43 @@ if (isPost) {
     const pass = formData.get("passphrase");
 
     if (pass === correctPassphrase) {
-      // 🔒 TEMPORARY: do NOT create session yet
-      // Just move to next step on the SAME page
+      // 🔐 generate code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // store in cookie (10 min)
+      Astro.cookies.set("login_code", code, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 10,
+      });
+
+      debugCode = code; // 👈 TEMPORARY
       step = "code";
     } else {
       error = "Incorrect passphrase.";
     }
   }
+
+  // STEP 2 — verify code
+  else if (step === "code") {
+    const input = (formData.get("code") || "").toString().trim();
+    const stored = Astro.cookies.get("login_code")?.value;
+
+    if (!stored) {
+      error = "Verification code expired. Reload and try again.";
+      step = "passphrase";
+    } else if (input !== stored) {
+      error = "Incorrect verification code.";
+    } else {
+      // ✅ SUCCESS — still no session yet
+      debugCode = "✔ Code accepted";
+    }
+  }
 }
 ---
+
 
 
 <!DOCTYPE html>
