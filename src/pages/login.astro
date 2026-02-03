@@ -54,7 +54,11 @@ async function doLogin() {
   return Astro.redirect("/home");
 }
 
-if (!isPost) step = "password";
+// On GET: start at password only if not already authenticated
+if (!isPost && !Astro.cookies.get("auth")) {
+  step = "password";
+}
+
 
 if (isPost) {
   const formData = await Astro.request.formData();
