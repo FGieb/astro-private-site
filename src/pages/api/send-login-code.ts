@@ -17,8 +17,30 @@ function getAllowedEmails(): string[] {
 }
 
 function generateCode(): string {
-  // 6-digit numeric code
   return crypto.randomInt(100000, 999999).toString();
+}
+
+function decodeStoredValue(stored: unknown): any | null {
+  if (!stored) return null;
+
+  if (stored instanceof Uint8Array) {
+    try {
+      const text = new TextDecoder("utf-8").decode(stored);
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof stored === "string") {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  }
+
+  return stored as any;
 }
 
 // ---- API route ----
@@ -34,22 +56,36 @@ export const POST: APIRoute = async ({ request }) => {
     // 1) Whitelist check
     const allowed = getAllowedEmails();
     if (!allowed.includes(email)) {
-      // Deliberately vague to avoid email probing
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // 2) Generate code + expiry
-    const code = generateCode();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    // 3) Store code in Netlify Blobs (keyed by email)
     const store = getStore("login_codes");
-    await store.set(email, { code, expiresAt });
 
-    // 4) Send email
+    // 2) Reuse existing valid code if present (prevents overwriting)
+    const existingRaw = await store.get(email);
+    const existing = decodeStoredValue(existingRaw);
+
+    let code: string;
+    let expiresAt: number;
+
+    if (
+      existing &&
+      typeof existing.code === "string" &&
+      typeof existing.expiresAt === "number" &&
+      Date.now() < existing.expiresAt
+    ) {
+      code = existing.code;
+      expiresAt = existing.expiresAt;
+    } else {
+      code = generateCode();
+      expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      await store.set(email, { code, expiresAt });
+    }
+
+    // 3) Send email
     const resendKey = import.meta.env.RESEND_API_KEY;
     const from = import.meta.env.RESEND_FROM;
 
@@ -62,8 +98,7 @@ export const POST: APIRoute = async ({ request }) => {
       from,
       to: [email],
       subject: "Your login code",
-      text:
-`Your one-time login code is:
+      text: `Your one-time login code is:
 
 ${code}
 
@@ -71,15 +106,14 @@ This code expires in 10 minutes.
 If this wasn’t you, you can safely ignore this email.`,
     });
 
-    // Always return ok (even for non-whitelisted) to prevent probing
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };
