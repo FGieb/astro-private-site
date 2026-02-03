@@ -39,7 +39,12 @@ if (isPost) {
     }
 
     // STEP 2 — Email submitted → send code
-    if (submittedEmail && !submittedCode) {
+    if (
+      submittedEmail &&
+      !submittedCode &&
+      !Astro.cookies.get("pending_email")
+    ) {
+
       const email = String(submittedEmail).toLowerCase().trim();
       step = "code";
 
