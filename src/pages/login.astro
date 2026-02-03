@@ -7,25 +7,22 @@ const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
 const isPost = Astro.request.method === "POST";
 
 let error = "";
+let step: "passphrase" | "code" = "passphrase";
 
 if (isPost) {
   const formData = await Astro.request.formData();
-  const pass = formData.get("passphrase");
 
-  if (pass === correctPassphrase) {
-    const token = await createSession();
+  // STEP 1 — passphrase
+  if (step === "passphrase") {
+    const pass = formData.get("passphrase");
 
-    Astro.cookies.set("auth", token, {
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-
-    return Astro.redirect("/home");
-  } else {
-    error = "Incorrect passphrase.";
+    if (pass === correctPassphrase) {
+      // 🔒 TEMPORARY: do NOT create session yet
+      // Just move to next step on the SAME page
+      step = "code";
+    } else {
+      error = "Incorrect passphrase.";
+    }
   }
 }
 ---
@@ -77,18 +74,38 @@ if (isPost) {
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
-
-      <form method="POST">
-        <input
-          type="password"
-          name="passphrase"
-          placeholder="Passphrase"
-          required
-        />
-        <button>Enter</button>
-      </form>
-
+    
+      {step === "passphrase" && (
+        <form method="POST">
+          <input
+            type="password"
+            name="passphrase"
+            placeholder="Passphrase"
+            required
+          />
+          <button>Enter</button>
+        </form>
+      )}
+    
+      {step === "code" && (
+        <>
+          <p>Passphrase accepted.</p>
+          <p>Verification step (code) will go here.</p>
+    
+          <form method="POST">
+            <input
+              type="text"
+              name="code"
+              placeholder="Verification code"
+              required
+            />
+            <button>Verify</button>
+          </form>
+        </>
+      )}
+    
       {error && <p class="error">❌ {error}</p>}
     </div>
+
   </body>
 </html>
