@@ -7,82 +7,80 @@ function normalize(email: string) {
   return email.trim().toLowerCase();
 }
 
-function decodeStoredValue(stored: unknown): any | null {
+function decode(stored: unknown): any | null {
   if (!stored) return null;
 
   if (stored instanceof Uint8Array) {
-    try {
-      const text = new TextDecoder("utf-8").decode(stored);
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(new TextDecoder().decode(stored)); } catch { return null; }
   }
-
   if (typeof stored === "string") {
-    // Handle accidental "[object Object]" case explicitly
     if (stored === "[object Object]") return null;
-
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(stored); } catch { return null; }
   }
-
-  return stored;
+  if (typeof stored === "object") return stored as any;
+  return null;
 }
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { email, code } = await request.json();
+    const { loginId, email, code } = await request.json();
 
-    if (!email || !code) {
-      return new Response(JSON.stringify({ ok: false }), { status: 400 });
+    if (!loginId || !email || !code) {
+      return new Response(JSON.stringify({ ok: false, reason: "missing_fields" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
+    const lid = String(loginId);
     const normalizedEmail = normalize(String(email));
     const submittedCode = String(code).trim();
 
-    const store = getStore("login_codes");
-    const stored = await store.get(normalizedEmail);
-    const data = decodeStoredValue(stored);
+    const store = getStore("pending_logins");
+    const stored = await store.get(lid);
+    const data = decode(stored);
 
-    // ✅ Optional safe debug mode (no secrets)
     const debug = import.meta.env.DEBUG_LOGIN === "1";
 
     if (!data) {
-      return new Response(
-        JSON.stringify({ ok: false, ...(debug ? { reason: "no_data" } : {}) }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "no_data" } : {}) }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    const { code: storedCode, expiresAt } = data;
-
-    if (!storedCode || !expiresAt) {
-      return new Response(
-        JSON.stringify({ ok: false, ...(debug ? { reason: "bad_shape", data } : {}) }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+    if (data.email !== normalizedEmail) {
+      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "email_mismatch" } : {}) }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    if (Date.now() > expiresAt) {
-      await store.delete(normalizedEmail);
-      return new Response(
-        JSON.stringify({ ok: false, ...(debug ? { reason: "expired" } : {}) }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+    if (typeof data.expiresAt !== "number" || typeof data.code !== "string") {
+      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "bad_shape", data } : {}) }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    if (String(storedCode).trim() !== submittedCode) {
-      return new Response(
-        JSON.stringify({ ok: false, ...(debug ? { reason: "mismatch" } : {}) }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+    if (Date.now() > data.expiresAt) {
+      await store.delete(lid);
+      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "expired" } : {}) }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    await store.delete(normalizedEmail);
+    if (data.code.trim() !== submittedCode) {
+      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "mismatch" } : {}) }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // one-time use
+    await store.delete(lid);
+
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
