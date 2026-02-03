@@ -56,10 +56,16 @@ async function doLogin() {
   return Astro.redirect("/home");
 }
 
-// On GET: start at password only if not already authenticated
-if (!isPost && !Astro.cookies.get("auth")) {
+// On GET: redirect authenticated users away from login
+if (!isPost && Astro.cookies.get("auth")) {
+  return Astro.redirect("/home");
+}
+
+// On GET: unauthenticated users start at password
+if (!isPost) {
   step = "password";
 }
+
 
 
 if (isPost) {
