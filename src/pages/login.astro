@@ -57,14 +57,13 @@ async function doLogin() {
 }
 
 // On GET: redirect authenticated users away from login
-if (!isPost && Astro.cookies.get("auth")) {
-  return Astro.redirect("/home");
-}
-
-// On GET: unauthenticated users start at password
 if (!isPost) {
+  if (Astro.cookies.get("auth")) {
+    return Astro.redirect("/home");
+  }
   step = "password";
 }
+
 
 
 
