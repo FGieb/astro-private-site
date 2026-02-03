@@ -88,16 +88,23 @@ if (isPost) {
       if (submittedEmail && !submittedCode && action !== "resend") {
         const email = String(submittedEmail).toLowerCase().trim();
         const loginId = ensureLoginId(email);
-
+      
         step = "code";
         info = "Code sent. Check your inbox.";
-
-        await fetch(`${SITE_URL}/api/send-login-code`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, loginId }),
-        });
+      
+        try {
+          await fetch(`${SITE_URL}/api/send-login-code`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, loginId }),
+          });
+        } catch (e) {
+          step = "email";
+          error = "Failed to send verification email. Please try again.";
+          return;
+        }
       }
+      
       // Resend code
       else if (action === "resend") {
         const email = String(submittedEmail || "").toLowerCase().trim();
@@ -108,14 +115,21 @@ if (isPost) {
           const loginId = ensureLoginId(email);
           step = "code";
           info = "Code re-sent. Check your inbox.";
-
-          await fetch(`${SITE_URL}/api/send-login-code`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, loginId }),
-          });
+      
+          try {
+            await fetch(`${SITE_URL}/api/send-login-code`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, loginId }),
+            });
+          } catch (e) {
+            step = "email";
+            error = "Failed to send verification email. Please try again.";
+            return;
+          }
         }
       }
+      
       // Verify code
       else if (submittedEmail && submittedCode) {
         const email = Astro.cookies.get("login_email")?.value;
