@@ -1,5 +1,6 @@
 ---
 import { createSession } from "../lib/auth";
+import crypto from "node:crypto";
 
 const correctPassphrase = import.meta.env.LOGIN_PASSPHRASE;
 const SITE_URL = import.meta.env.PUBLIC_SITE_URL;
@@ -11,18 +12,23 @@ let step: "password" | "email" | "code" = "password";
 let error = "";
 let info = "";
 
-function setPendingEmail(email: string) {
-  Astro.cookies.set("pending_email", email, {
-    path: "/login",
-    httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
-    maxAge: 60 * 10, // 10 minutes
-  });
+function ensureLoginId() {
+  let id = Astro.cookies.get("login_id")?.value;
+  if (!id) {
+    id = crypto.randomUUID();
+    Astro.cookies.set("login_id", id, {
+      path: "/login",
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 60 * 10, // 10 minutes
+    });
+  }
+  return id;
 }
 
-function clearPendingEmail() {
-  Astro.cookies.delete("pending_email", { path: "/login" });
+function clearLoginId() {
+  Astro.cookies.delete("login_id", { path: "/login" });
 }
 
 async function doLogin() {
@@ -33,7 +39,7 @@ async function doLogin() {
     httpOnly: true,
     secure: true,
     sameSite: "Strict",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 
   Astro.cookies.set("trusted_device", "1", {
@@ -41,103 +47,96 @@ async function doLogin() {
     httpOnly: true,
     secure: true,
     sameSite: "Strict",
-    maxAge: 60 * 60 * 24 * 90, // 90 days
+    maxAge: 60 * 60 * 24 * 90,
   });
 
+  clearLoginId();
   return Astro.redirect("/home");
 }
 
-// On GET: always start at password (stable baseline)
-if (!isPost) {
-  step = "password";
-}
+if (!isPost) step = "password";
 
 if (isPost) {
   const formData = await Astro.request.formData();
-
   const action = String(formData.get("action") || "");
   const pass = formData.get("passphrase");
   const submittedEmail = formData.get("email");
   const submittedCode = formData.get("code");
 
-  // Restart button: clears pending state and returns to email step (after passphrase)
   if (action === "restart") {
-    clearPendingEmail();
+    clearLoginId();
     step = "password";
   } else {
-    // STEP 1 — Passphrase
     if (pass !== correctPassphrase) {
       error = "Incorrect passphrase.";
       step = "password";
     } else {
-      // Trusted device → direct login
-      if (hasTrustedDevice) {
-        return await doLogin();
-      }
+      if (hasTrustedDevice) return await doLogin();
 
-      const pendingEmail = Astro.cookies.get("pending_email")?.value;
-
-      // STEP 2 — Email submitted → send code
-      if (submittedEmail && !submittedCode) {
+      // If they submit email -> send code
+      if (submittedEmail && !submittedCode && action !== "resend") {
         const email = String(submittedEmail).toLowerCase().trim();
-        setPendingEmail(email);
+        const loginId = ensureLoginId();
+
         step = "code";
         info = "Code sent. Check your inbox.";
 
         await fetch(`${SITE_URL}/api/send-login-code`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, loginId }),
         });
       }
-      // STEP 2b — Resend code (from code screen)
+      // Resend requires email input (explicit, no stale cookie email)
       else if (action === "resend") {
-        if (!pendingEmail) {
-          error = "Session expired. Please restart.";
+        const email = String(submittedEmail || "").toLowerCase().trim();
+        if (!email) {
           step = "email";
+          error = "Please enter your email to resend the code.";
         } else {
+          const loginId = ensureLoginId();
           step = "code";
           info = "Code re-sent. Check your inbox.";
 
           await fetch(`${SITE_URL}/api/send-login-code`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: pendingEmail }),
+            body: JSON.stringify({ email, loginId }),
           });
         }
       }
-      // STEP 3 — Code submitted → verify
-      else if (submittedCode) {
-        if (!pendingEmail) {
-          error = "Session expired. Please restart login.";
+      // Verify: requires email + code + loginId
+      else if (submittedEmail && submittedCode) {
+        const email = String(submittedEmail).toLowerCase().trim();
+        const loginId = Astro.cookies.get("login_id")?.value;
+
+        if (!loginId) {
           step = "email";
+          error = "Login session expired. Please restart.";
         } else {
           const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              email: pendingEmail,
+              loginId,
+              email,
               code: String(submittedCode).trim(),
             }),
           });
 
           const result = await res.json();
-          
+
           if (result.ok) {
-            clearPendingEmail();
             return await doLogin();
           } else {
-            error = result.reason
-              ? `Verification failed: ${result.reason}`
-              : "Invalid or expired code.";
             step = "code";
+            error = "Invalid or expired code.";
           }
-
         }
       }
-      // Default after correct passphrase (no email, no code)
+      // Default after correct passphrase
       else {
-        step = pendingEmail ? "code" : "email";
+        step = "email";
       }
     }
   }
@@ -161,7 +160,6 @@ if (isPost) {
         justify-content: center;
         align-items: center;
       }
-
       .login-box {
         background: rgba(255,255,255,0.85);
         padding: 2rem 3rem;
@@ -170,13 +168,11 @@ if (isPost) {
         width: 92%;
         text-align: center;
       }
-
       input {
         width: 100%;
         padding: 0.6rem;
         margin-bottom: 1rem;
       }
-
       button {
         padding: 0.6rem 1.2rem;
         background: #222;
@@ -184,7 +180,6 @@ if (isPost) {
         border: none;
         cursor: pointer;
       }
-
       .row {
         display: flex;
         gap: 0.75rem;
@@ -192,13 +187,11 @@ if (isPost) {
         flex-wrap: wrap;
         margin-top: 0.5rem;
       }
-
       .error { color: #c00; margin-top: 0.75rem; }
       .info  { color: #222; opacity: 0.85; margin: 0.5rem 0 1rem; font-size: 0.95rem; }
       .muted { font-size: 0.9rem; opacity: 0.75; margin-top: 0.5rem; }
     </style>
   </head>
-
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
@@ -216,9 +209,8 @@ if (isPost) {
           <p class="muted">New device — verify via email</p>
           <input type="email" name="email" placeholder="Your email" required />
           <button>Send code</button>
-
           <div class="row">
-            <button type="submit" name="action" value="restart">Restart</button>
+            <button type="submit" name="action" value="restart" formnovalidate>Restart</button>
           </div>
         </form>
       )}
@@ -229,15 +221,17 @@ if (isPost) {
 
           {info && <p class="info">{info}</p>}
 
+          <input type="email" name="email" placeholder="Your email" required />
           <input type="text" name="code" placeholder="6-digit code" inputmode="numeric" autocomplete="one-time-code" required />
+
           <button>Verify</button>
 
           <div class="row">
-            <button type="submit" name="action" value="resend">Resend code</button>
-            <button type="submit" name="action" value="restart">Restart</button>
+            <button type="submit" name="action" value="resend" formnovalidate>Resend code</button>
+            <button type="submit" name="action" value="restart" formnovalidate>Restart</button>
           </div>
 
-          <p class="muted">If you didn’t receive an email, press “Resend code”.</p>
+          <p class="muted">Resend requires your email again (prevents stale-state bugs).</p>
         </form>
       )}
 
