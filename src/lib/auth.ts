@@ -37,8 +37,17 @@ export async function isValidSession(token?: string) {
   if (!token) return false;
 
   const key = sessionKey(token);
-  const data = await store.get(key);
 
+  // Netlify Blobs can be briefly eventually-consistent right after a write.
+  // Retry a couple times to avoid immediate bounce-back after login.
+  let data: any = null;
+  for (let i = 0; i < 3; i++) {
+    data = await store.get(key);
+    if (data) break;
+    // small delay: 120ms, then 240ms
+    await new Promise((r) => setTimeout(r, 120 * (i + 1)));
+  }
+  
   if (!data) return false;
 
   // data may come back as object; handle both safely
