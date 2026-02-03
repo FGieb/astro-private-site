@@ -10,7 +10,6 @@ const hasTrustedDevice = !!trustedDevice;
 
 let step: "password" | "email" | "code" = "password";
 let error = "";
-let email = "";
 
 if (isPost) {
   const formData = await Astro.request.formData();
@@ -33,7 +32,7 @@ if (isPost) {
         httpOnly: true,
         secure: true,
         sameSite: "Strict",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       });
 
       return Astro.redirect("/home");
@@ -41,8 +40,17 @@ if (isPost) {
 
     // STEP 2 — Email submitted → send code
     if (submittedEmail && !submittedCode) {
-      email = String(submittedEmail);
+      const email = String(submittedEmail).toLowerCase().trim();
       step = "code";
+
+      // 🔐 Persist email securely for verification step
+      Astro.cookies.set("pending_email", email, {
+        path: "/login",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 10, // 10 minutes
+      });
 
       await fetch(`${SITE_URL}/api/send-login-code`, {
         method: "POST",
@@ -52,47 +60,55 @@ if (isPost) {
     }
 
     // STEP 3 — Code submitted → verify
-    if (submittedEmail && submittedCode) {
-      const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: submittedEmail,
-          code: submittedCode,
-        }),
-      });
+    if (submittedCode) {
+      const emailFromCookie = Astro.cookies.get("pending_email")?.value;
 
-      const result = await res.json();
-
-      if (result.ok) {
-        const token = await createSession();
-
-        Astro.cookies.set("auth", token, {
-          path: "/",
-          httpOnly: true,
-          secure: true,
-          sameSite: "Strict",
-          maxAge: 60 * 60 * 24 * 7,
-        });
-
-        Astro.cookies.set("trusted_device", "1", {
-          path: "/",
-          httpOnly: true,
-          secure: true,
-          sameSite: "Strict",
-          maxAge: 60 * 60 * 24 * 90, // 90 days
-        });
-
-        return Astro.redirect("/home");
+      if (!emailFromCookie) {
+        error = "Session expired. Please restart login.";
+        step = "email";
       } else {
-        error = "Invalid or expired code.";
-        step = "code";
-        email = String(submittedEmail);
+        const res = await fetch(`${SITE_URL}/api/verify-login-code`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailFromCookie,
+            code: String(submittedCode).trim(),
+          }),
+        });
+
+        const result = await res.json();
+
+        if (result.ok) {
+          const token = await createSession();
+
+          Astro.cookies.delete("pending_email", { path: "/login" });
+
+          Astro.cookies.set("auth", token, {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "Strict",
+            maxAge: 60 * 60 * 24 * 7,
+          });
+
+          Astro.cookies.set("trusted_device", "1", {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "Strict",
+            maxAge: 60 * 60 * 24 * 90,
+          });
+
+          return Astro.redirect("/home");
+        } else {
+          error = "Invalid or expired code.";
+          step = "code";
+        }
       }
     }
 
     // Default after passphrase
-    if (!submittedEmail) {
+    if (!submittedEmail && !submittedCode) {
       step = "email";
     }
   }
@@ -158,7 +174,12 @@ if (isPost) {
 
       {step === "password" && (
         <form method="POST">
-          <input type="password" name="passphrase" placeholder="Passphrase" required />
+          <input
+            type="password"
+            name="passphrase"
+            placeholder="Passphrase"
+            required
+          />
           <button>Continue</button>
         </form>
       )}
@@ -175,7 +196,6 @@ if (isPost) {
       {step === "code" && (
         <form method="POST">
           <input type="hidden" name="passphrase" value={correctPassphrase} />
-          <input type="hidden" name="email" value={email} />
           <input type="text" name="code" placeholder="6-digit code" required />
           <button>Verify</button>
         </form>
