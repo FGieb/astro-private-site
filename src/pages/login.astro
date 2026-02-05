@@ -58,7 +58,7 @@ if (isPost) {
         const res = await fetch(new URL("/api/send-login-code", Astro.url), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, code }),
+          body: JSON.stringify({ email, loginID: email, code }),
         });
 
         if (!res.ok) {
