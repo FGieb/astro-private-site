@@ -22,7 +22,7 @@ let debugCode: string | null = null;
 if (isPost) {
   const formData = await Astro.request.formData();
 
-  // STEP 1 — passphrase + email whitelist + generate code + send email
+  // STEP 1 — passphrase + email
   if (step === "passphrase") {
     const pass = (formData.get("passphrase") || "").toString();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
@@ -36,7 +36,6 @@ if (isPost) {
     } else {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // store in cookie for 10 minutes
       Astro.cookies.set("login_code", code, {
         path: "/",
         httpOnly: true,
@@ -53,25 +52,18 @@ if (isPost) {
         maxAge: 60 * 10,
       });
 
-      // DEBUG: show the generated code on screen (remove later)
       debugCode = code;
 
-      // Send email via your existing API route
-      // (Assumes /api/send-login-code accepts { email, code } JSON)
       try {
         const res = await fetch(new URL("/api/send-login-code", Astro.url), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            loginId: email,
-            code,
-          }),
+          body: JSON.stringify({ email, code }),
+        });
 
         if (!res.ok) {
           const text = await res.text().catch(() => "");
           error = `Failed to send code. (${res.status}) ${text}`.trim();
-          // stay on passphrase step so user can retry
           step = "passphrase";
         } else {
           step = "code";
@@ -83,7 +75,7 @@ if (isPost) {
     }
   }
 
-  // STEP 2 — verify code -> trust device (60 days) -> create session -> redirect home
+  // STEP 2 — verify code
   else if (step === "code") {
     const input = (formData.get("code") || "").toString().trim();
     const stored = Astro.cookies.get("login_code")?.value;
@@ -95,7 +87,6 @@ if (isPost) {
       error = "Incorrect verification code.";
       step = "code";
     } else {
-      // mark device trusted for 60 days
       Astro.cookies.set("trusted_device", "1", {
         path: "/",
         httpOnly: true,
@@ -104,18 +95,16 @@ if (isPost) {
         maxAge: 60 * 60 * 24 * 60,
       });
 
-      // cleanup short-lived cookies
       Astro.cookies.delete("login_code", { path: "/" });
       Astro.cookies.delete("login_email", { path: "/" });
 
-      // create signed session and go to home
       const token = await createSession();
       Astro.cookies.set("auth", token, {
         path: "/",
         httpOnly: true,
         secure: true,
         sameSite: "Strict",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       });
 
       return Astro.redirect("/home");
@@ -179,18 +168,11 @@ if (isPost) {
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
-  
+
       {step === "passphrase" ? (
         <form method="POST">
           <input type="email" name="email" placeholder="Email" required />
-  
-          <input
-            type="password"
-            name="passphrase"
-            placeholder="Passphrase"
-            required
-          />
-  
+          <input type="password" name="passphrase" placeholder="Passphrase" required />
           <button type="submit">Enter</button>
         </form>
       ) : null}
@@ -199,7 +181,7 @@ if (isPost) {
         <div>
           <p>Passphrase accepted.</p>
           <p class="hint">Enter the 6-digit code we sent to your email.</p>
-      
+
           <form method="POST">
             <input
               type="text"
@@ -212,7 +194,7 @@ if (isPost) {
             />
             <button type="submit">Verify</button>
           </form>
-      
+
           {debugCode ? (
             <p class="debug">
               DEBUG CODE: <strong>{debugCode}</strong>
@@ -220,9 +202,8 @@ if (isPost) {
           ) : null}
         </div>
       ) : null}
-  
+
       {error ? <p class="error">❌ {error}</p> : null}
     </div>
   </body>
-  </html>
-
+</html>
