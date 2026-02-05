@@ -1,3 +1,7 @@
+export const config = {
+  runtime: "nodejs18.x",
+};
+
 import { getStore } from "@netlify/blobs";
 
 export default async function handler(req: Request) {
