@@ -179,27 +179,27 @@ if (isPost) {
   <body>
     <div class="login-box">
       <h1>🔐 Private Access</h1>
-
-      {step === "passphrase" && (
+  
+      {step === "passphrase" ? (
         <form method="POST">
           <input type="email" name="email" placeholder="Email" required />
-
+  
           <input
             type="password"
             name="passphrase"
             placeholder="Passphrase"
             required
           />
-
+  
           <button type="submit">Enter</button>
         </form>
-      )}
-
-      {step === "code" && (
+      ) : null}
+  
+      {step === "code" ? (
         <>
           <p>Passphrase accepted.</p>
           <p class="hint">Enter the 6-digit code we sent to your email.</p>
-
+  
           <form method="POST">
             <input
               type="text"
@@ -212,16 +212,17 @@ if (isPost) {
             />
             <button type="submit">Verify</button>
           </form>
-
-          {debugCode && (
+  
+          {debugCode ? (
             <p class="debug">
               DEBUG CODE: <strong>{debugCode}</strong>
             </p>
-          )}
+          ) : null}
         </>
-      )}
-
-      {error && <p class="error">❌ {error}</p>}
+      ) : null}
+  
+      {error ? <p class="error">❌ {error}</p> : null}
     </div>
   </body>
-</html>
+  </html>
+
