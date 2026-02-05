@@ -19,7 +19,9 @@ let error = "";
 let step: "passphrase" | "code" = "passphrase";
 
 // Read cookies (may exist from earlier attempts)
-const trustedDevice = Astro.cookies.get("trusted_device")?.value === "1";
+const trustedDevice =
+  Astro.cookies.get("trusted_device")?.value === "1" &&
+  !!Astro.cookies.get("auth");
 const pendingEmailCookie = (Astro.cookies.get("login_email")?.value || "").trim().toLowerCase();
 
 // Allow a safe reset from URL: /login?reset=1
