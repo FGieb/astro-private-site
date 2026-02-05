@@ -194,12 +194,12 @@ if (isPost) {
           <button type="submit">Enter</button>
         </form>
       ) : null}
-  
+
       {step === "code" ? (
-        <>
+        <div>
           <p>Passphrase accepted.</p>
           <p class="hint">Enter the 6-digit code we sent to your email.</p>
-  
+      
           <form method="POST">
             <input
               type="text"
@@ -212,13 +212,13 @@ if (isPost) {
             />
             <button type="submit">Verify</button>
           </form>
-  
+      
           {debugCode ? (
             <p class="debug">
               DEBUG CODE: <strong>{debugCode}</strong>
             </p>
           ) : null}
-        </>
+        </div>
       ) : null}
   
       {error ? <p class="error">❌ {error}</p> : null}
