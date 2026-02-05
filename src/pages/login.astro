@@ -17,33 +17,41 @@ function isAllowedEmail(email: string) {
 
 let error = "";
 let step: "passphrase" | "code" = "passphrase";
-let debugCode: string | null = null;
+
+const trustedDevice = Astro.cookies.get("trusted_device")?.value === "1";
+const pendingEmail = (Astro.cookies.get("login_email")?.value || "").trim().toLowerCase();
+
+// If there's a pending email cookie (meaning a code was requested recently),
+// show the code screen on GET as well (useful if user refreshes).
+if (!isPost && pendingEmail) {
+  step = "code";
+}
 
 if (isPost) {
   const formData = await Astro.request.formData();
 
-  // Form A submitted: passphrase + email
-  if (formData.has("passphrase")) {
+  // Decide what kind of POST this is based on submitted fields
+  const isPassphrasePost = formData.has("passphrase");
+  const isCodePost = formData.has("code");
+
+  // ---------------------------
+  // PASS + EMAIL SUBMISSION
+  // ---------------------------
+  if (isPassphrasePost) {
     const pass = (formData.get("passphrase") || "").toString();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
 
     if (pass !== correctPassphrase) {
       error = "Incorrect passphrase.";
+      step = "passphrase";
     } else if (!email) {
       error = "Please enter your email.";
+      step = "passphrase";
     } else if (!isAllowedEmail(email)) {
       error = "This email is not authorised.";
+      step = "passphrase";
     } else {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-      Astro.cookies.set("login_code", code, {
-        path: "/",
-        httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
-        maxAge: 60 * 10,
-      });
-
+      // Always keep the email around for 10 minutes so the user can verify the code
       Astro.cookies.set("login_email", email, {
         path: "/",
         httpOnly: true,
@@ -52,13 +60,26 @@ if (isPost) {
         maxAge: 60 * 10,
       });
 
-      debugCode = code;
+      // If device is already trusted, skip the email step and log in directly.
+      if (trustedDevice) {
+        const token = await createSession();
+        Astro.cookies.set("auth", token, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "Strict",
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
 
+        return Astro.redirect("/home");
+      }
+
+      // Otherwise request the server to generate+store+email the code (single source of truth)
       try {
         const res = await fetch(new URL("/api/send-login-code", Astro.url), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, loginId: email, code }),
+          body: JSON.stringify({ email, loginId: email }),
         });
 
         if (!res.ok) {
@@ -75,43 +96,62 @@ if (isPost) {
     }
   }
 
-  // Form B submitted: verification code
-  else if (formData.has("code")) {
+  // ---------------------------
+  // CODE VERIFICATION
+  // ---------------------------
+  else if (isCodePost) {
     const input = (formData.get("code") || "").toString().trim();
-    const stored = Astro.cookies.get("login_code")?.value;
+    const email = (Astro.cookies.get("login_email")?.value || "").trim().toLowerCase();
 
-    if (!stored) {
-      error = "Verification code expired. Reload and try again.";
+    if (!email) {
+      error = "Verification session expired. Please start again.";
       step = "passphrase";
-    } else if (input !== stored) {
+    } else if (!/^\d{6}$/.test(input)) {
       error = "Incorrect verification code.";
       step = "code";
     } else {
-      Astro.cookies.set("trusted_device", "1", {
-        path: "/",
-        httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
-        maxAge: 60 * 60 * 24 * 60,
-      });
+      try {
+        const res = await fetch(new URL("/api/verify-login-code", Astro.url), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loginId: email, code: input }),
+        });
 
-      Astro.cookies.delete("login_code", { path: "/" });
-      Astro.cookies.delete("login_email", { path: "/" });
+        if (!res.ok) {
+          error = "Incorrect verification code.";
+          step = "code";
+        } else {
+          // Mark device trusted for 60 days
+          Astro.cookies.set("trusted_device", "1", {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "Strict",
+            maxAge: 60 * 60 * 24 * 60,
+          });
 
-      const token = await createSession();
-      Astro.cookies.set("auth", token, {
-        path: "/",
-        httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
-        maxAge: 60 * 60 * 24 * 7,
-      });
+          // Cleanup short-lived cookie
+          Astro.cookies.delete("login_email", { path: "/" });
 
-      return Astro.redirect("/home");
+          // Create session and redirect
+          const token = await createSession();
+          Astro.cookies.set("auth", token, {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "Strict",
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+          });
+
+          return Astro.redirect("/home");
+        }
+      } catch (e) {
+        error = `Verification failed. ${String(e)}`;
+        step = "code";
+      }
     }
   }
 }
-
 ---
 
 <!DOCTYPE html>
@@ -159,10 +199,6 @@ if (isPost) {
         margin-top: 0.75rem;
         font-size: 0.95rem;
       }
-      .debug {
-        margin-top: 1rem;
-        font-family: monospace;
-      }
     </style>
   </head>
 
@@ -195,12 +231,6 @@ if (isPost) {
             />
             <button type="submit">Verify</button>
           </form>
-
-          {debugCode ? (
-            <p class="debug">
-              DEBUG CODE: <strong>{debugCode}</strong>
-            </p>
-          ) : null}
         </div>
       ) : null}
 
