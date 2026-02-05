@@ -22,8 +22,8 @@ let debugCode: string | null = null;
 if (isPost) {
   const formData = await Astro.request.formData();
 
-  // STEP 1 — passphrase + email
-  if (step === "passphrase") {
+  // Form A submitted: passphrase + email
+  if (formData.has("passphrase")) {
     const pass = (formData.get("passphrase") || "").toString();
     const email = (formData.get("email") || "").toString().trim().toLowerCase();
 
@@ -75,8 +75,8 @@ if (isPost) {
     }
   }
 
-  // STEP 2 — verify code
-  else if (step === "code") {
+  // Form B submitted: verification code
+  else if (formData.has("code")) {
     const input = (formData.get("code") || "").toString().trim();
     const stored = Astro.cookies.get("login_code")?.value;
 
@@ -111,6 +111,7 @@ if (isPost) {
     }
   }
 }
+
 ---
 
 <!DOCTYPE html>
