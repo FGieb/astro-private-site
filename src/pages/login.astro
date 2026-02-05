@@ -18,19 +18,25 @@ function isAllowedEmail(email: string) {
 let error = "";
 let step: "passphrase" | "code" = "passphrase";
 
+// Read cookies (may exist from earlier attempts)
 const trustedDevice = Astro.cookies.get("trusted_device")?.value === "1";
-const pendingEmail = (Astro.cookies.get("login_email")?.value || "").trim().toLowerCase();
+const pendingEmailCookie = (Astro.cookies.get("login_email")?.value || "").trim().toLowerCase();
 
-// If there's a pending email cookie (meaning a code was requested recently),
-// show the code screen on GET as well (useful if user refreshes).
-if (!isPost && pendingEmail) {
-  step = "code";
+// Allow a safe reset from URL: /login?reset=1
+const reset = Astro.url.searchParams.get("reset") === "1";
+if (reset) {
+  Astro.cookies.delete("login_email", { path: "/" });
+  // We intentionally do NOT delete trusted_device here.
+  // If you want reset to also untrust device, uncomment next line:
+  // Astro.cookies.delete("trusted_device", { path: "/" });
 }
 
+// IMPORTANT: On GET we ALWAYS start at passphrase.
+// We do NOT auto-jump to code based on cookies (prevents "stuck on code screen").
+// Only a successful POST will set step="code".
 if (isPost) {
   const formData = await Astro.request.formData();
 
-  // Decide what kind of POST this is based on submitted fields
   const isPassphrasePost = formData.has("passphrase");
   const isCodePost = formData.has("code");
 
@@ -51,16 +57,7 @@ if (isPost) {
       error = "This email is not authorised.";
       step = "passphrase";
     } else {
-      // Always keep the email around for 10 minutes so the user can verify the code
-      Astro.cookies.set("login_email", email, {
-        path: "/",
-        httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
-        maxAge: 60 * 10,
-      });
-
-      // If device is already trusted, skip the email step and log in directly.
+      // If device is already trusted, skip email code and log in directly
       if (trustedDevice) {
         const token = await createSession();
         Astro.cookies.set("auth", token, {
@@ -74,7 +71,7 @@ if (isPost) {
         return Astro.redirect("/home");
       }
 
-      // Otherwise request the server to generate+store+email the code (single source of truth)
+      // Ask server to generate/store/email the code (single source of truth)
       try {
         const res = await fetch(new URL("/api/send-login-code", Astro.url), {
           method: "POST",
@@ -87,6 +84,15 @@ if (isPost) {
           error = `Failed to send code. (${res.status}) ${text}`.trim();
           step = "passphrase";
         } else {
+          // Only NOW, after successful send, set the pending email cookie
+          Astro.cookies.set("login_email", email, {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+            sameSite: "Strict",
+            maxAge: 60 * 10, // 10 minutes
+          });
+
           step = "code";
         }
       } catch (e) {
@@ -101,10 +107,12 @@ if (isPost) {
   // ---------------------------
   else if (isCodePost) {
     const input = (formData.get("code") || "").toString().trim();
+
+    // Use cookie set after successful send
     const email = (Astro.cookies.get("login_email")?.value || "").trim().toLowerCase();
 
     if (!email) {
-      error = "Verification session expired. Please start again.";
+      error = "No active login attempt. Please start again.";
       step = "passphrase";
     } else if (!/^\d{6}$/.test(input)) {
       error = "Incorrect verification code.";
@@ -121,7 +129,7 @@ if (isPost) {
           error = "Incorrect verification code.";
           step = "code";
         } else {
-          // Mark device trusted for 60 days
+          // Trust device for 60 days
           Astro.cookies.set("trusted_device", "1", {
             path: "/",
             httpOnly: true,
@@ -130,10 +138,10 @@ if (isPost) {
             maxAge: 60 * 60 * 24 * 60,
           });
 
-          // Cleanup short-lived cookie
+          // Clear pending email cookie
           Astro.cookies.delete("login_email", { path: "/" });
 
-          // Create session and redirect
+          // Create session
           const token = await createSession();
           Astro.cookies.set("auth", token, {
             path: "/",
@@ -199,6 +207,13 @@ if (isPost) {
         margin-top: 0.75rem;
         font-size: 0.95rem;
       }
+      .link {
+        display: inline-block;
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+        color: #222;
+        text-decoration: underline;
+      }
     </style>
   </head>
 
@@ -231,6 +246,8 @@ if (isPost) {
             />
             <button type="submit">Verify</button>
           </form>
+
+          <a class="link" href="/login?reset=1">Start over</a>
         </div>
       ) : null}
 
