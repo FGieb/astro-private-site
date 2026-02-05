@@ -3,82 +3,62 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { getStore } from "@netlify/blobs";
 
-function normalize(email: string) {
-  return email.trim().toLowerCase();
-}
-
-function decode(stored: unknown): any | null {
-  if (!stored) return null;
-
-  if (stored instanceof Uint8Array) {
-    try { return JSON.parse(new TextDecoder().decode(stored)); } catch { return null; }
-  }
-  if (typeof stored === "string") {
-    if (stored === "[object Object]") return null;
-    try { return JSON.parse(stored); } catch { return null; }
-  }
-  if (typeof stored === "object") return stored as any;
-  return null;
-}
-
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { loginId, email, code } = await request.json();
+    const { loginId, code } = await request.json();
 
-    if (!loginId || !email || !code) {
-      return new Response(JSON.stringify({ ok: false, reason: "missing_fields" }), {
+    if (!loginId || !code) {
+      return new Response(JSON.stringify({ ok: false, error: "missing loginId or code" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
     const lid = String(loginId);
-    const normalizedEmail = normalize(String(email));
-    const submittedCode = String(code).trim();
+    const input = String(code).trim();
 
     const store = getStore("pending_logins");
-    const stored = await store.get(lid);
-    const data = decode(stored);
+    const raw = await store.get(lid);
 
-    const debug = import.meta.env.DEBUG_LOGIN === "1";
-
-    if (!data) {
-      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "no_data" } : {}) }), {
-        status: 200,
+    if (!raw) {
+      return new Response(JSON.stringify({ ok: false, error: "no pending login" }), {
+        status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (data.email !== normalizedEmail) {
-      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "email_mismatch" } : {}) }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+    let data: any = null;
+    if (raw instanceof Uint8Array) {
+      data = JSON.parse(new TextDecoder("utf-8").decode(raw));
+    } else if (typeof raw === "string") {
+      data = JSON.parse(raw);
+    } else {
+      data = raw;
     }
 
-    if (typeof data.expiresAt !== "number" || typeof data.code !== "string") {
-      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "bad_shape", data } : {}) }), {
-        status: 200,
+    if (!data || typeof data.expiresAt !== "number" || typeof data.code !== "string") {
+      return new Response(JSON.stringify({ ok: false, error: "invalid stored record" }), {
+        status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
 
     if (Date.now() > data.expiresAt) {
       await store.delete(lid);
-      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "expired" } : {}) }), {
-        status: 200,
+      return new Response(JSON.stringify({ ok: false, error: "expired" }), {
+        status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (data.code.trim() !== submittedCode) {
-      return new Response(JSON.stringify({ ok: false, ...(debug ? { reason: "mismatch" } : {}) }), {
-        status: 200,
+    if (data.code !== input) {
+      return new Response(JSON.stringify({ ok: false, error: "wrong code" }), {
+        status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // one-time use
+    // Success -> delete the pending code so it can’t be reused
     await store.delete(lid);
 
     return new Response(JSON.stringify({ ok: true }), {
