@@ -5,6 +5,13 @@ export const config = {
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
 
+function blobToText(raw) {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (raw instanceof Uint8Array) return new TextDecoder().decode(raw);
+  return String(raw);
+}
+
 export default async function handler(req: Request) {
   try {
     if (req.method !== "POST") {
@@ -43,9 +50,16 @@ export default async function handler(req: Request) {
     const store = getStore("bets");
     const raw = await store.get("bets");
 
-    const bets = raw
-      ? JSON.parse(new TextDecoder().decode(raw))
-      : [];
+    let bets = [];
+    const text = blobToText(raw).trim();
+
+    if (text) {
+      bets = JSON.parse(text);
+    }
+
+    if (!Array.isArray(bets)) {
+      bets = [];
+    }
 
     bets.push(newBet);
 
