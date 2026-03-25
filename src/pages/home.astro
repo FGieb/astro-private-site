@@ -54,7 +54,7 @@ if (!(await isValidSession(cookie?.value))) {
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      background-attachment: fixed;
+      background-attachment: fixed
     }
   
     .page {
@@ -208,14 +208,16 @@ if (!(await isValidSession(cookie?.value))) {
       font-size: 0.95rem;
       line-height: 1.45;
     }
+
     #commentList {
       margin-bottom: 0.9rem;
     }
     
     .thought-row {
       position: relative;
-      padding: 0.35rem 2.2rem 0.35rem 0;
+      padding: 0.35rem 2.4rem 0.35rem 0;
       margin-bottom: 0.2rem;
+      cursor: pointer;
     }
     
     .thought-text {
@@ -225,12 +227,12 @@ if (!(await isValidSession(cookie?.value))) {
     }
     
     .thought-row > .delete-thought {
-      display: none !important;
+      display: none;
       position: absolute;
-      top: 0.15rem;
+      top: 0.1rem;
       right: 0;
       margin: 0 !important;
-      padding: 0.08rem 0.42rem !important;
+      padding: 0.1rem 0.45rem !important;
       min-width: auto !important;
       width: auto !important;
       height: auto !important;
@@ -243,8 +245,7 @@ if (!(await isValidSession(cookie?.value))) {
       box-shadow: none !important;
     }
     
-    .thought-row:hover > .delete-thought,
-    .thought-row:focus-within > .delete-thought {
+    .thought-row.reveal-delete > .delete-thought {
       display: inline-flex !important;
       align-items: center;
       justify-content: center;
@@ -254,6 +255,15 @@ if (!(await isValidSession(cookie?.value))) {
       background: rgba(255,255,255,0.22) !important;
     }
     
+    /* Only use hover behaviour on devices that actually support hover */
+    @media (hover: hover) and (pointer: fine) {
+      .thought-row:hover > .delete-thought {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+        
     textarea {
       width: 100%;
       min-height: 82px;
@@ -499,7 +509,7 @@ if (!(await isValidSession(cookie?.value))) {
       list.innerHTML = todayThoughts.length
         ? todayThoughts
             .map((item) => `
-              <div class="thought-row">
+              <div class="thought-row" data-id="${item.id}">
                 <div class="thought-text">– ${escapeHtml(item.text || "")}</div>
                 <button
                   type="button"
@@ -513,8 +523,30 @@ if (!(await isValidSession(cookie?.value))) {
             .join("")
         : `<div class="muted">No thoughts yet.</div>`;
     
-      document.querySelectorAll(".delete-thought").forEach((btn) => {
-        btn.addEventListener("click", async () => {
+      const rows = document.querySelectorAll(".thought-row");
+      const deleteButtons = document.querySelectorAll(".delete-thought");
+    
+      rows.forEach((row) => {
+        row.addEventListener("click", (event) => {
+          // Ignore clicks on the delete button itself
+          if (event.target.closest(".delete-thought")) return;
+    
+          const alreadyOpen = row.classList.contains("reveal-delete");
+    
+          document.querySelectorAll(".thought-row.reveal-delete").forEach((r) => {
+            r.classList.remove("reveal-delete");
+          });
+    
+          if (!alreadyOpen) {
+            row.classList.add("reveal-delete");
+          }
+        });
+      });
+    
+      deleteButtons.forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          event.stopPropagation();
+    
           const id = btn.getAttribute("data-id");
           if (!id) return;
     
@@ -530,6 +562,18 @@ if (!(await isValidSession(cookie?.value))) {
           }
         });
       });
+    
+      document.addEventListener(
+        "click",
+        (event) => {
+          if (!event.target.closest(".thought-row")) {
+            document.querySelectorAll(".thought-row.reveal-delete").forEach((row) => {
+              row.classList.remove("reveal-delete");
+            });
+          }
+        },
+        { once: true }
+      );
     }
     
     button.addEventListener("click", async () => {
