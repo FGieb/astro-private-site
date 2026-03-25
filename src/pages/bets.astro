@@ -12,9 +12,16 @@ if (!(await isValidSession(cookie?.value))) {
 const store = getStore("bets");
 const raw = await store.get("bets");
 
-const bets = raw
-  ? JSON.parse(new TextDecoder().decode(raw))
-  : [];
+let bets = raw ? JSON.parse(new TextDecoder().decode(raw)) : [];
+
+bets = Array.isArray(bets) ? bets : [];
+
+// newest first
+bets.sort((a, b) => {
+  const da = new Date(b?.betDate || b?.date || 0).getTime();
+  const db = new Date(a?.betDate || a?.date || 0).getTime();
+  return db - da;
+});
 ---
 
 <BaseLayout title="Bets">
@@ -24,246 +31,398 @@ const bets = raw
       <p class="subtitle">A small ledger of promises.</p>
     </header>
 
-    <section class="bets-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Title</th>
-            <th>Stakes</th>
-            <th>Owner</th>
-            <th>Status</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {bets.length === 0 ? (
-            <tr>
-              <td colSpan="6" class="empty">
-                No bets yet — the first one always feels ceremonial.
-              </td>
-            </tr>
-          ) : (
-            bets.map((bet) => (
-              <tr
-                class:list={{
-                  open: bet.status === "open",
-                  done: bet.status !== "open",
-                }}
-              >
-                <td>{bet.date}</td>
-                <td>{bet.title}</td>
-                <td>{bet.stakes}</td>
-                <td>{bet.owner || "—"}</td>
-                <td>
-                  <button
-                    type="button"
-                    class:list={{
-                      status: true,
-                      open: bet.status === "open",
-                      done: bet.status !== "open",
-                    }}
-                    data-id={bet.id}
-                    data-status={bet.status}
-                  >
-                    {bet.status}
-                  </button>
-                </td>
-                <td>{bet.notes || ""}</td>
+    <div class="bets-layout">
+      <section class="bets-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Bet date</th>
+                <th>Title</th>
+                <th>Stakes</th>
+                <th>Who owes it</th>
+                <th>Status</th>
+                <th>Done on</th>
+                <th>Notes</th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </section>
+            </thead>
 
-    <section class="bets-form">
-      <h2>Add a bet</h2>
+            <tbody>
+              {bets.length === 0 ? (
+                <tr>
+                  <td colSpan="7" class="empty">
+                    No bets yet — the first one always feels ceremonial.
+                  </td>
+                </tr>
+              ) : (
+                bets.map((bet) => (
+                  <tr
+                    class:list={{
+                      open: bet.status === "open",
+                      done: bet.status === "done",
+                    }}
+                  >
+                    <td>{bet.betDate || bet.date || "—"}</td>
+                    <td class="title-cell">{bet.title}</td>
+                    <td>{bet.stakes}</td>
 
-      <form method="POST" action="/.netlify/functions/add-bet">
-        <input
-          type="hidden"
-          name="date"
-          value={new Date().toISOString().slice(0, 10)}
-        />
+                    <td>
+                      <button
+                        type="button"
+                        class:list={{
+                          pill: true,
+                          ownerBtn: true,
+                          neutral: !bet.owner || bet.owner === "",
+                        }}
+                        data-action="toggle-owner"
+                        data-id={bet.id}
+                        data-owner={bet.owner || ""}
+                        title="Toggle who owes it"
+                      >
+                        {bet.owner || "—"}
+                      </button>
+                    </td>
 
-        <label>
-          Title
-          <input name="title" required />
-        </label>
+                    <td>
+                      <button
+                        type="button"
+                        class:list={{
+                          pill: true,
+                          statusBtn: true,
+                          open: bet.status === "open",
+                          done: bet.status === "done",
+                        }}
+                        data-action="toggle-status"
+                        data-id={bet.id}
+                        data-status={bet.status}
+                        title="Toggle status"
+                      >
+                        {bet.status || "open"}
+                      </button>
+                    </td>
 
-        <label>
-          Stakes
-          <input name="stakes" required />
-        </label>
+                    <td>{bet.executedDate || "—"}</td>
+                    <td>{bet.notes || ""}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        <label>
-          Notes
-          <textarea name="notes" rows="3"></textarea>
-        </label>
+      <section class="bet-form-card">
+        <h2>Add a bet</h2>
 
-        <button type="submit">Add bet</button>
-      </form>
-    </section>
+        <form id="betForm" method="POST" action="/.netlify/functions/add-bet" class="bet-form">
+          <label>
+            Bet date
+            <input
+              type="date"
+              name="betDate"
+              value={new Date().toISOString().slice(0, 10)}
+              required
+            />
+          </label>
+
+          <label>
+            Title
+            <input name="title" required />
+          </label>
+
+          <label>
+            Stakes
+            <input name="stakes" required />
+          </label>
+
+          <label>
+            Who owes it
+            <select name="owner">
+              <option value="">—</option>
+              <option value="Francien">Francien</option>
+              <option value="Him">Him</option>
+            </select>
+          </label>
+
+          <label>
+            Status
+            <select name="status">
+              <option value="open">open</option>
+              <option value="done">done</option>
+            </select>
+          </label>
+
+          <label>
+            Done on
+            <input type="date" name="executedDate" />
+          </label>
+
+          <label>
+            Notes
+            <textarea name="notes" rows="4"></textarea>
+          </label>
+
+          <button type="submit" class="save-btn">Save bet</button>
+        </form>
+      </section>
+    </div>
   </main>
 
   <script>
-    document.querySelectorAll(".status").forEach((btn) => {
+    const OWNER_OPTIONS = ["Francien", "Him"];
+
+    async function updateBet(payload) {
+      const res = await fetch("/.netlify/functions/update-bet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Update failed");
+      }
+    }
+
+    document.querySelectorAll("[data-action='toggle-status']").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
-        const current = btn.dataset.status;
+        const current = btn.dataset.status || "open";
         const next = current === "open" ? "done" : "open";
 
-        const res = await fetch("/.netlify/functions/update-bet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, status: next }),
-        });
+        const payload = {
+          id,
+          updates: {
+            status: next,
+            executedDate:
+              next === "done"
+                ? new Date().toISOString().slice(0, 10)
+                : "",
+          },
+        };
 
-        if (res.ok) {
+        try {
+          await updateBet(payload);
           location.reload();
-        } else {
-          alert("Could not update bet.");
+        } catch (err) {
+          alert("Could not update status.");
+          console.error(err);
         }
       });
     });
+
+    document.querySelectorAll("[data-action='toggle-owner']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const current = btn.dataset.owner || "";
+        let next = "";
+
+        if (current === "") next = OWNER_OPTIONS[0];
+        else if (current === OWNER_OPTIONS[0]) next = OWNER_OPTIONS[1];
+        else next = "";
+
+        try {
+          await updateBet({
+            id,
+            updates: {
+              owner: next,
+            },
+          });
+          location.reload();
+        } catch (err) {
+          alert("Could not update owner.");
+          console.error(err);
+        }
+      });
+    });
+
+    const statusSelect = document.querySelector("select[name='status']");
+    const executedDateInput = document.querySelector("input[name='executedDate']");
+
+    if (statusSelect && executedDateInput) {
+      statusSelect.addEventListener("change", () => {
+        if (statusSelect.value === "done" && !executedDateInput.value) {
+          executedDateInput.value = new Date().toISOString().slice(0, 10);
+        }
+        if (statusSelect.value === "open") {
+          executedDateInput.value = "";
+        }
+      });
+    }
   </script>
 </BaseLayout>
 
-<style>
-:root {
-  --accent-blue: #0a74c9;
-}
+<style is:global>
+  :root {
+    color-scheme: dark;
+  }
 
-.bets-shell {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2.5rem 1.25rem 4rem;
-}
+  .bets-shell {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
 
-.bets-header {
-  text-align: center;
-  margin-bottom: 2.25rem;
-}
+  .bets-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
 
-.bets-header h1::after {
-  content: "";
-  display: block;
-  width: 48px;
-  height: 3px;
-  margin: 0.5rem auto 0;
-  border-radius: 999px;
-  background: var(--accent-blue);
-}
+  .bets-header h1 {
+    margin-bottom: 0.35rem;
+  }
 
-.subtitle {
-  font-size: 0.9rem;
-  opacity: 0.6;
-}
+  .bets-header h1::after {
+    content: "";
+    display: block;
+    width: 48px;
+    height: 3px;
+    margin: 0.5rem auto 0;
+    border-radius: 999px;
+    background: #0a74c9;
+  }
 
-.bets-table {
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 1rem;
-  padding: 1rem 1.25rem;
-  backdrop-filter: blur(6px);
-  overflow-x: auto;
-}
+  .subtitle {
+    font-size: 0.95rem;
+    opacity: 0.7;
+  }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+  .bets-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(360px, 0.9fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
 
-th,
-td {
-  padding: 0.65rem 0.6rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 0.9rem;
-  vertical-align: top;
-}
+  .bets-card,
+  .bet-form-card {
+    background: #0f0f0f;
+    border: 1px solid #1f1f1f;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+  }
 
-th {
-  text-align: left;
-  font-weight: 600;
-  opacity: 0.75;
-}
+  .table-wrap {
+    overflow-x: auto;
+  }
 
-td.empty {
-  text-align: center;
-  padding: 1.5rem;
-  opacity: 0.6;
-  font-style: italic;
-}
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
 
-tr.open {
-  background: rgba(10, 116, 201, 0.12);
-}
+  th,
+  td {
+    padding: 0.9rem 0.8rem;
+    border-bottom: 1px solid #242424;
+    font-size: 0.95rem;
+    vertical-align: top;
+    text-align: left;
+  }
 
-tr.done {
-  opacity: 0.6;
-}
+  th {
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+  }
 
-.status {
-  cursor: pointer;
-  border: none;
-  border-radius: 999px;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
-  text-transform: lowercase;
-  background: transparent;
-}
+  .title-cell {
+    font-weight: 600;
+  }
 
-.status.open {
-  background: rgba(10, 116, 201, 0.25);
-  color: white;
-}
+  td.empty {
+    text-align: center;
+    padding: 1.4rem;
+    opacity: 0.65;
+    font-style: italic;
+  }
 
-.status.done {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-}
+  tr.open {
+    background: transparent;
+  }
 
-.bets-form {
-  margin-top: 3rem;
-  max-width: 420px;
-  margin-inline: auto;
-  background: rgba(255, 255, 255, 0.92);
-  color: #111;
-  padding: 1.4rem 1.5rem;
-  border-radius: 1.1rem;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
-}
+  tr.done {
+    opacity: 0.72;
+  }
 
-.bets-form h2 {
-  margin-bottom: 0.75rem;
-  font-size: 1rem;
-}
+  .pill {
+    border: none;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: white;
+  }
 
-.bets-form label {
-  display: block;
-  font-size: 0.8rem;
-  margin-bottom: 0.75rem;
-}
+  .statusBtn.open {
+    background: #0a74c9;
+  }
 
-.bets-form input,
-.bets-form textarea {
-  width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  font-family: inherit;
-  box-sizing: border-box;
-}
+  .statusBtn.done {
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
 
-.bets-form button[type="submit"] {
-  margin-top: 0.8rem;
-  padding: 0.45rem 1rem;
-  border-radius: 999px;
-  border: none;
-  background: #111;
-  color: white;
-  cursor: pointer;
-}
+  .ownerBtn {
+    background: #143252;
+  }
+
+  .ownerBtn.neutral {
+    background: #1a1a1a;
+    border: 1px solid #303030;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .bet-form-card h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  .bet-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .bet-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+  }
+
+  .bet-form input,
+  .bet-form select,
+  .bet-form textarea {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.95rem;
+    border-radius: 0.75rem;
+    border: 1px solid #343434;
+    background: #141414;
+    color: white;
+    font-family: inherit;
+  }
+
+  .bet-form textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .save-btn {
+    margin-top: 0.5rem;
+    align-self: flex-start;
+    background: #0a74c9;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+
+  @media (max-width: 980px) {
+    .bets-layout {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
