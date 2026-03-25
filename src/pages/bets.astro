@@ -94,7 +94,7 @@ bets.sort((a, b) => {
                         }}
                         data-action="toggle-status"
                         data-id={bet.id}
-                        data-status={bet.status}
+                        data-status={bet.status || "open"}
                         title="Toggle status"
                       >
                         {bet.status || "open"}
@@ -114,7 +114,7 @@ bets.sort((a, b) => {
       <section class="bet-form-card">
         <h2>Add a bet</h2>
 
-        <form id="betForm" method="POST" action="/.netlify/functions/add-bet" class="bet-form">
+        <form id="betForm" class="bet-form">
           <label>
             Bet date
             <input
@@ -190,19 +190,17 @@ bets.sort((a, b) => {
         const current = btn.dataset.status || "open";
         const next = current === "open" ? "done" : "open";
 
-        const payload = {
-          id,
-          updates: {
-            status: next,
-            executedDate:
-              next === "done"
-                ? new Date().toISOString().slice(0, 10)
-                : "",
-          },
-        };
-
         try {
-          await updateBet(payload);
+          await updateBet({
+            id,
+            updates: {
+              status: next,
+              executedDate:
+                next === "done"
+                  ? new Date().toISOString().slice(0, 10)
+                  : "",
+            },
+          });
           location.reload();
         } catch (err) {
           alert("Could not update status.");
@@ -238,6 +236,7 @@ bets.sort((a, b) => {
 
     const statusSelect = document.querySelector("select[name='status']");
     const executedDateInput = document.querySelector("input[name='executedDate']");
+    const betForm = document.getElementById("betForm");
 
     if (statusSelect && executedDateInput) {
       statusSelect.addEventListener("change", () => {
@@ -246,6 +245,32 @@ bets.sort((a, b) => {
         }
         if (statusSelect.value === "open") {
           executedDateInput.value = "";
+        }
+      });
+    }
+
+    if (betForm) {
+      betForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(betForm);
+
+        try {
+          const res = await fetch("/.netlify/functions/add-bet", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (!res.ok || !data.ok) {
+            throw new Error(data?.error || "Failed to save bet");
+          }
+
+          location.reload();
+        } catch (err) {
+          alert("Could not save bet.");
+          console.error(err);
         }
       });
     }
