@@ -1,3 +1,7 @@
+function getEnv(name) {
+  return process.env[name];
+}
+
 export async function sendMentionNotification({
   mentioned,
   source,
@@ -5,11 +9,11 @@ export async function sendMentionNotification({
   link = "",
 }) {
   const userKeyMap = {
-    LM: process.env.PUSHOVER_USER_KEY_LM,
-    BM: process.env.PUSHOVER_USER_KEY_BM,
+    LM: getEnv("PUSHOVER_USER_KEY_LM"),
+    BM: getEnv("PUSHOVER_USER_KEY_BM"),
   };
 
-  const appToken = process.env.PUSHOVER_APP_TOKEN;
+  const appToken = getEnv("PUSHOVER_APP_TOKEN");
   const userKey = userKeyMap[mentioned];
 
   if (!userKey || !appToken) {
