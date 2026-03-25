@@ -26,22 +26,43 @@ function json(statusCode: number, body: unknown) {
   };
 }
 
+function toErrorMessage(err: unknown) {
+  if (err instanceof Error) return `${err.name}: ${err.message}`;
+  return String(err);
+}
+
 async function loadEntries(storeName: string) {
   const store = getStore(storeName);
   const raw = await store.get("entries");
 
   if (!raw) return [];
 
-  const text = new TextDecoder("utf-8").decode(raw);
+  let text = "";
+
+  if (typeof raw === "string") {
+    text = raw;
+  } else if (raw instanceof Uint8Array) {
+    text = new TextDecoder("utf-8").decode(raw);
+  } else if (typeof (raw as any).text === "function") {
+    text = await (raw as any).text();
+  } else {
+    throw new Error(`Unsupported store.get() return type for "${storeName}"`);
+  }
+
+  if (!text.trim()) return [];
+
   const parsed = JSON.parse(text);
 
-  return Array.isArray(parsed) ? parsed : [];
+  if (!Array.isArray(parsed)) {
+    throw new Error(`Stored data in "${storeName}" is not an array`);
+  }
+
+  return parsed;
 }
 
 async function saveEntries(storeName: string, entries: unknown[]) {
   const store = getStore(storeName);
-  const text = JSON.stringify(entries);
-  await store.set("entries", text);
+  await store.set("entries", JSON.stringify(entries));
 }
 
 export const handler: Handler = async (event) => {
@@ -50,7 +71,13 @@ export const handler: Handler = async (event) => {
       return json(405, { error: "Method not allowed" });
     }
 
-    const body = JSON.parse(event.body || "{}");
+    let body: any = {};
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return json(400, { error: "Invalid JSON body" });
+    }
+
     const type = String(body.type || "");
     const action = String(body.action || "") as Action;
 
@@ -72,8 +99,8 @@ export const handler: Handler = async (event) => {
     if (action === "add") {
       const data = body.data;
 
-      if (!data || typeof data !== "object") {
-        return json(400, { error: "Missing data" });
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return json(400, { error: "Missing or invalid data" });
       }
 
       const newEntry = {
@@ -108,10 +135,11 @@ export const handler: Handler = async (event) => {
 
     return json(400, { error: "Unhandled action" });
   } catch (err) {
+    const details = toErrorMessage(err);
     console.error("content function failed:", err);
     return json(500, {
       error: "Content function failed",
-      details: String(err),
+      details,
     });
   }
 };
