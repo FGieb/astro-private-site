@@ -17,7 +17,7 @@ export default async function handler(request) {
     let notification = { ok: false, skipped: true };
 
     if (Array.isArray(notes) && notes.length > 0) {
-      const latestNote = notes[notes.length - 1];
+      const latestNote = notes[0];
       const text = latestNote?.text || latestNote?.content || "";
 
       mention = extractMention(text);
