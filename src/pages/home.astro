@@ -215,8 +215,8 @@ if (!(await isValidSession(cookie?.value))) {
     
     .thought-row {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: flex-start;
       gap: 0.75rem;
       padding: 0.35rem 0;
     }
@@ -229,26 +229,32 @@ if (!(await isValidSession(cookie?.value))) {
     }
     
     .delete-thought {
-      margin-top: 0;
-      padding: 0.15rem 0.5rem;
-      font-size: 0.78rem;
+      margin-top: 0 !important;
+      padding: 0.08rem 0.45rem !important;
+      font-size: 0.95rem !important;
+      line-height: 1 !important;
       border-radius: 999px;
-      background: rgba(255,255,255,0.14);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.12) !important;
+      color: white !important;
+      border: 1px solid rgba(255,255,255,0.18) !important;
+      cursor: pointer;
+    
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.16s ease;
+    
+      transition: opacity 0.15s ease;
     }
     
     .thought-row:hover .delete-thought,
     .thought-row:focus-within .delete-thought {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
     }
     
     .delete-thought:hover {
-      background: rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.22) !important;
     }
     
     textarea {
