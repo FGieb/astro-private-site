@@ -1,4 +1,6 @@
 import { getStore } from "@netlify/blobs";
+import { extractMention } from "../../src/lib/mentions";
+import { sendMentionNotification } from "./_shared/pushover.mjs";
 
 export default async function handler(request) {
   if (request.method !== "POST") {
@@ -12,21 +14,22 @@ export default async function handler(request) {
     if (!date || !update) {
       return new Response(
         JSON.stringify({ error: "Missing date or update payload" }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Load existing entries
     const entries = (await store.get("entries", { type: "json" })) || {};
 
-    // Ensure day exists
     entries[date] = entries[date] || {
       reflective: null,
       fun: null,
       comments: [],
+      generatedAt: null,
     };
 
-    // Merge update into that day
     entries[date] = {
       ...entries[date],
       ...update,
@@ -34,9 +37,43 @@ export default async function handler(request) {
 
     await store.setJSON("entries", entries);
 
+    let mention = null;
+    let notification = { ok: false, skipped: true };
+
+    if (Array.isArray(update.comments) && update.comments.length > 0) {
+      const latestComment = update.comments[update.comments.length - 1];
+      const text = latestComment?.text || "";
+
+      mention = extractMention(text);
+
+      if (mention) {
+        try {
+          notification = await sendMentionNotification({
+            mentioned: mention,
+            source: "New thought on home page",
+            text,
+            link: `${process.env.PUBLIC_SITE_URL || ""}/home`,
+          });
+        } catch (err) {
+          console.error("Mention notification failed:", err);
+          notification = {
+            ok: false,
+            skipped: false,
+            error: String(err),
+          };
+        }
+      }
+    }
+
     return new Response(
-      JSON.stringify({ ok: true }),
-      { headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        ok: true,
+        mention,
+        notification,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
     );
   } catch (err) {
     return new Response(
@@ -44,7 +81,10 @@ export default async function handler(request) {
         error: "Failed to save daily entry",
         details: String(err),
       }),
-      { status: 500 }
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }
