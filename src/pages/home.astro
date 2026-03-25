@@ -19,155 +19,307 @@ if (!(await isValidSession(cookie?.value))) {
 
   <style>
     :root {
-      --card-bg: rgba(255,255,255,0.88);
-      --side-bg: rgba(0,0,0,0.45);
+      --glass-dark: rgba(16, 16, 16, 0.52);
+      --glass-mid: rgba(25, 25, 25, 0.46);
+      --glass-light: rgba(255, 255, 255, 0.90);
+      --text-dark: #121212;
+      --text-light: #ffffff;
+      --muted-light: rgba(255,255,255,0.72);
+      --shadow: 0 18px 40px rgba(0,0,0,0.20);
+      --radius-xl: 1.6rem;
+      --radius-lg: 1.15rem;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
     }
 
     body {
-      margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-light);
       min-height: 100vh;
-      color: white;
-      background:
-        linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.65)),
+      background-color: #6d6d6d;
+      background-image:
+        linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.48)),
         url("/images/homebackground.jpg");
       background-size: cover;
       background-position: center;
-      background-attachment: fixed;
       background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 1.25rem 1.25rem 3rem;
     }
 
     .top-nav {
       display: flex;
       justify-content: center;
-      margin-top: 1.25rem;
+      margin-top: 0.25rem;
+      margin-bottom: 2rem;
     }
 
     .nav-pill {
       display: flex;
       gap: 1.2rem;
-      background: rgba(0,0,0,0.55);
-      padding: 0.6rem 1.4rem;
+      background: rgba(22, 22, 22, 0.72);
+      padding: 0.78rem 1.5rem;
       border-radius: 999px;
-      backdrop-filter: blur(6px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.14);
       flex-wrap: wrap;
     }
 
     .nav-pill a {
       color: white;
       text-decoration: none;
-      opacity: 0.85;
+      opacity: 0.92;
+      font-size: 1.02rem;
     }
 
-    .nav-pill a:hover { opacity: 1; }
+    .nav-pill a:hover {
+      opacity: 1;
+    }
 
-    .layout {
-      max-width: 980px;
-      margin: 3rem auto 0;
-      padding: 0 1.25rem 4rem;
+    .hero-grid {
       display: grid;
-      grid-template-columns: 1fr 280px;
-      gap: 2rem;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
+      gap: 1.4rem;
+      align-items: start;
+      margin-bottom: 1.4rem;
+    }
+
+    .quote-card {
+      background: var(--glass-light);
+      color: var(--text-dark);
+      min-height: 330px;
+      border-radius: var(--radius-xl);
+      padding: 2.15rem 2.2rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .quote-card .eyebrow {
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      opacity: 0.62;
+      margin-bottom: 0.55rem;
+      text-transform: uppercase;
+    }
+
+    .quote-card h1 {
+      margin: 0 0 1rem 0;
+      font-size: 2.4rem;
+      line-height: 1.05;
+    }
+
+    .quote-text {
+      font-size: 1.28rem;
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    .side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .small-card,
+    .thoughts-card {
+      background: var(--glass-mid);
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.15rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+    }
+
+    .small-card h3,
+    .thoughts-card h3 {
+      margin: 0 0 0.7rem 0;
+      font-size: 1.2rem;
+    }
+
+    .small-card p {
+      margin: 0;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.94);
+    }
+
+    .calendar-link {
+      display: inline-block;
+      margin-top: 0.85rem;
+      color: white;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      opacity: 0.92;
+    }
+
+    .calendar-link:hover {
+      opacity: 1;
+    }
+
+    .event-item {
+      margin-bottom: 0.7rem;
+      padding-bottom: 0.7rem;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .event-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .event-title {
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+
+    .event-note {
+      color: var(--muted-light);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .bottom-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
+      gap: 1.4rem;
       align-items: start;
     }
 
-    .center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 1.2rem;
+    .placeholder-panel {
+      min-height: 10px;
     }
 
-    .reflection-card,
-    .fun-card {
-      background: var(--card-bg);
-      color: #111;
-      padding: 1.6rem 1.8rem;
-      border-radius: 1.25rem;
-      width: 100%;
-      max-width: 560px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-    }
-
-    .thoughts {
-      background: rgba(0,0,0,0.45);
-      border-radius: 1rem;
-      padding: 1rem 1.2rem;
-      width: 100%;
-      max-width: 420px;
-      text-align: left;
-      backdrop-filter: blur(6px);
+    #commentList {
+      margin-bottom: 0.9rem;
     }
 
     #commentList div {
-      font-size: 0.9rem;
-      margin-bottom: 0.35rem;
+      font-size: 0.95rem;
+      margin-bottom: 0.45rem;
+      line-height: 1.45;
     }
 
     textarea {
       width: 100%;
-      margin-top: 0.5rem;
-      padding: 0.6rem;
-      border-radius: 0.6rem;
+      min-height: 82px;
+      margin-top: 0.35rem;
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.85rem;
       border: none;
       font-family: inherit;
+      font-size: 0.96rem;
+      resize: vertical;
     }
 
     button {
-      margin-top: 0.5rem;
-      padding: 0.35rem 0.9rem;
+      margin-top: 0.7rem;
+      padding: 0.5rem 1rem;
       border-radius: 999px;
       border: none;
-      background: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.96);
+      color: #111;
       cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      opacity: 0.96;
     }
 
     .muted {
-      opacity: 0.65;
+      opacity: 0.70;
     }
 
-    @media (max-width: 800px) {
-      .layout {
+    @media (max-width: 900px) {
+      .hero-grid,
+      .bottom-row {
         grid-template-columns: 1fr;
+      }
+
+      .quote-card {
+        min-height: 250px;
+        padding: 1.7rem 1.4rem;
+      }
+
+      .quote-card h1 {
+        font-size: 2rem;
+      }
+
+      .quote-text {
+        font-size: 1.13rem;
+      }
+
+      .placeholder-panel {
+        display: none;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="top-nav">
-    <div class="nav-pill">
-      <a href="/calendar">📅 Calendar</a>
-      <a href="/home">🏠 Home</a>
-      <a href="/bets">🎲 Bets</a>
-      <a href="/notes">📝 Notes</a>
-      <a href="/archive">🗂 Archive</a>
+  <div class="page">
+    <div class="top-nav">
+      <div class="nav-pill">
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/home">🏠 Home</a>
+        <a href="/bets">🎲 Bets</a>
+        <a href="/notes">📝 Notes</a>
+        <a href="/archive">🗂 Archive</a>
+      </div>
     </div>
+
+    <main>
+      <section class="hero-grid">
+        <section class="quote-card">
+          <div class="eyebrow">Today</div>
+          <h1>Daily reflection</h1>
+          <p id="dailyReflection" class="quote-text">Loading...</p>
+        </section>
+
+        <aside class="side-stack">
+          <section class="small-card">
+            <h3>Fun fact</h3>
+            <p id="dailyFun">Loading...</p>
+          </section>
+
+          <section class="small-card">
+            <h3>Today on the calendar</h3>
+            <div id="todayCalendar">
+              <div class="muted">Loading today's events...</div>
+            </div>
+            <a class="calendar-link" href="/calendar">Open calendar</a>
+          </section>
+        </aside>
+      </section>
+
+      <section class="bottom-row">
+        <div class="placeholder-panel"></div>
+
+        <section class="thoughts-card">
+          <h3>💬 Thoughts</h3>
+          <div id="commentList"><div class="muted">Loading thoughts...</div></div>
+          <textarea id="commentInput" placeholder="Leave a thought..."></textarea>
+          <button id="saveComment" type="button">Add</button>
+        </section>
+      </section>
+    </main>
   </div>
 
-  <main class="layout">
-    <section class="center">
-      <section class="reflection-card">
-        <h2>Today</h2>
-        <p id="dailyReflection">Loading...</p>
-      </section>
-
-      <section class="fun-card">
-        <h3>Fun fact</h3>
-        <p id="dailyFun">Loading...</p>
-      </section>
-
-      <section class="thoughts">
-        <h3>💬 Thoughts</h3>
-        <div id="commentList"><div class="muted">Loading thoughts...</div></div>
-        <textarea id="commentInput" placeholder="Leave a thought..."></textarea>
-        <button id="saveComment" type="button">Add</button>
-      </section>
-    </section>
-  </main>
-
-  <!-- DAILY CONTENT -->
   <script type="module" is:inline>
     async function loadDailyContent() {
       const reflectionEl = document.getElementById("dailyReflection");
@@ -178,7 +330,7 @@ if (!(await isValidSession(cookie?.value))) {
           cache: "no-store",
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
           throw new Error(data?.error || `generateDaily failed with ${res.status}`);
@@ -193,11 +345,61 @@ if (!(await isValidSession(cookie?.value))) {
       }
     }
 
-    loadDailyContent();
-  </script>
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
-  <!-- COMMENTS -->
-  <script type="module" is:inline>
+    function iconForType(type) {
+      return {
+        note: "📝",
+        plan: "📍",
+        memory: "🧠",
+        occasion: "🌟"
+      }[type] || "📝";
+    }
+
+    async function loadTodayCalendar() {
+      const box = document.getElementById("todayCalendar");
+
+      try {
+        const res = await fetch("/.netlify/functions/calendar-load", {
+          cache: "no-store",
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data?.error || `calendar-load failed with ${res.status}`);
+        }
+
+        const now = new Date();
+        const key =
+          `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+        const events = Array.isArray(data?.[key]) ? data[key] : [];
+
+        if (!events.length) {
+          box.innerHTML = `<div class="muted">Nothing saved for today.</div>`;
+          return;
+        }
+
+        box.innerHTML = events.map((e) => `
+          <div class="event-item">
+            <div class="event-title">${iconForType(e.type)} ${escapeHtml(e.title || "Untitled")}</div>
+            ${e.note ? `<div class="event-note">${escapeHtml(e.note)}</div>` : ""}
+          </div>
+        `).join("");
+      } catch (err) {
+        console.error("Failed to load today's calendar:", err);
+        box.innerHTML = `<div class="muted">Could not load today's events.</div>`;
+      }
+    }
+
     const list = document.getElementById("commentList");
     const input = document.getElementById("commentInput");
     const button = document.getElementById("saveComment");
@@ -206,13 +408,13 @@ if (!(await isValidSession(cookie?.value))) {
     let dailyEntries = {};
     let todayEntry = { comments: [] };
 
-    async function loadDaily() {
+    async function loadDailyComments() {
       try {
         const res = await fetch("/.netlify/functions/daily-load", {
           cache: "no-store",
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
           throw new Error(data?.error || `daily-load failed with ${res.status}`);
@@ -232,7 +434,7 @@ if (!(await isValidSession(cookie?.value))) {
       }
     }
 
-    async function saveDaily() {
+    async function saveDailyComments() {
       const res = await fetch("/.netlify/functions/daily-save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -243,27 +445,16 @@ if (!(await isValidSession(cookie?.value))) {
       });
 
       if (!res.ok) {
-        let message = `daily-save failed with ${res.status}`;
-        try {
-          const data = await res.json();
-          message = data?.error || message;
-        } catch {}
-        throw new Error(message);
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `daily-save failed with ${res.status}`);
       }
-    }
-
-    function escapeHtml(str) {
-      return str
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
     }
 
     function renderComments() {
       list.innerHTML = todayEntry.comments.length
-        ? todayEntry.comments.map(c => `<div>– ${escapeHtml(c.text)}</div>`).join("")
+        ? todayEntry.comments
+            .map((c) => `<div>– ${escapeHtml(c.text)}</div>`)
+            .join("")
         : `<div class="muted">No thoughts yet.</div>`;
     }
 
@@ -280,14 +471,16 @@ if (!(await isValidSession(cookie?.value))) {
       renderComments();
 
       try {
-        await saveDaily();
+        await saveDailyComments();
       } catch (err) {
         console.error("Failed to save comment:", err);
         alert("Could not save the thought.");
       }
     });
 
-    loadDaily();
+    loadDailyContent();
+    loadTodayCalendar();
+    loadDailyComments();
   </script>
 </body>
 </html>
