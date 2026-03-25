@@ -31,7 +31,6 @@ try {
 
 bets = Array.isArray(bets) ? bets : [];
 
-// newest first
 bets.sort((a, b) => {
   const da = new Date(b?.betDate || b?.date || 0).getTime();
   const db = new Date(a?.betDate || a?.date || 0).getTime();
@@ -59,66 +58,145 @@ bets.sort((a, b) => {
                 <th>Status</th>
                 <th>Done on</th>
                 <th>Notes</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {bets.length === 0 ? (
                 <tr>
-                  <td colSpan="7" class="empty">
+                  <td colSpan="8" class="empty">
                     No bets yet — the first one always feels ceremonial.
                   </td>
                 </tr>
               ) : (
                 bets.map((bet) => (
-                  <tr
-                    class:list={{
-                      open: bet.status === "open",
-                      done: bet.status === "done",
-                    }}
-                  >
-                    <td>{bet.betDate || bet.date || "—"}</td>
-                    <td class="title-cell">{bet.title}</td>
-                    <td>{bet.stakes}</td>
+                  <>
+                    <tr
+                      class:list={{
+                        "bet-row": true,
+                        open: (bet.status || "open") === "open",
+                        done: bet.status === "done",
+                      }}
+                    >
+                      <td>{bet.betDate || bet.date || "—"}</td>
+                      <td class="title-cell">{bet.title}</td>
+                      <td>{bet.stakes}</td>
+                      <td>{bet.owner || "—"}</td>
+                      <td>
+                        <span
+                          class:list={{
+                            pill: true,
+                            statusPill: true,
+                            open: (bet.status || "open") === "open",
+                            done: bet.status === "done",
+                          }}
+                        >
+                          {bet.status || "open"}
+                        </span>
+                      </td>
+                      <td>{bet.executedDate || "—"}</td>
+                      <td>{bet.notes || ""}</td>
+                      <td class="actions-cell">
+                        <button
+                          type="button"
+                          class="action-btn edit-toggle-btn"
+                          data-action="toggle-edit"
+                          data-id={bet.id}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="action-btn delete-btn"
+                          data-action="delete-bet"
+                          data-id={bet.id}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
 
-                    <td>
-                      <button
-                        type="button"
-                        class:list={{
-                          pill: true,
-                          ownerBtn: true,
-                          neutral: !bet.owner || bet.owner === "",
-                        }}
-                        data-action="toggle-owner"
-                        data-id={bet.id}
-                        data-owner={bet.owner || ""}
-                        title="Toggle who owes it"
-                      >
-                        {bet.owner || "—"}
-                      </button>
-                    </td>
+                    <tr class="edit-row hidden" data-edit-row={bet.id}>
+                      <td colSpan="8">
+                        <form class="edit-form" data-edit-form={bet.id}>
+                          <input type="hidden" name="id" value={bet.id} />
 
-                    <td>
-                      <button
-                        type="button"
-                        class:list={{
-                          pill: true,
-                          statusBtn: true,
-                          open: bet.status === "open",
-                          done: bet.status === "done",
-                        }}
-                        data-action="toggle-status"
-                        data-id={bet.id}
-                        data-status={bet.status || "open"}
-                        title="Toggle status"
-                      >
-                        {bet.status || "open"}
-                      </button>
-                    </td>
+                          <label>
+                            Bet date
+                            <input
+                              type="date"
+                              name="betDate"
+                              value={bet.betDate || bet.date || ""}
+                            />
+                          </label>
 
-                    <td>{bet.executedDate || "—"}</td>
-                    <td>{bet.notes || ""}</td>
-                  </tr>
+                          <label>
+                            Title
+                            <input
+                              type="text"
+                              name="title"
+                              value={bet.title || ""}
+                              required
+                            />
+                          </label>
+
+                          <label>
+                            Stakes
+                            <input
+                              type="text"
+                              name="stakes"
+                              value={bet.stakes || ""}
+                              required
+                            />
+                          </label>
+
+                          <label>
+                            Who owes it
+                            <select name="owner">
+                              <option value="" selected={!bet.owner}>—</option>
+                              <option value="LM" selected={bet.owner === "LM"}>LM</option>
+                              <option value="BM" selected={bet.owner === "BM"}>BM</option>
+                            </select>
+                          </label>
+
+                          <label>
+                            Status
+                            <select name="status">
+                              <option value="open" selected={(bet.status || "open") === "open"}>open</option>
+                              <option value="done" selected={bet.status === "done"}>done</option>
+                            </select>
+                          </label>
+
+                          <label>
+                            Done on
+                            <input
+                              type="date"
+                              name="executedDate"
+                              value={bet.executedDate || ""}
+                            />
+                          </label>
+
+                          <label class="notes-field">
+                            Notes
+                            <textarea name="notes" rows="3">{bet.notes || ""}</textarea>
+                          </label>
+
+                          <div class="edit-actions">
+                            <button type="submit" class="save-small-btn">Save changes</button>
+                            <button
+                              type="button"
+                              class="cancel-btn"
+                              data-action="toggle-edit"
+                              data-id={bet.id}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </td>
+                    </tr>
+                  </>
                 ))
               )}
             </tbody>
@@ -184,73 +262,27 @@ bets.sort((a, b) => {
   </main>
 
   <script>
-    const OWNER_OPTIONS = ["LM", "BM"];
-
-    async function updateBet(payload) {
-      const res = await fetch("/.netlify/functions/update-bet", {
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || "Update failed");
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {}
+
+      if (!res.ok || data.ok === false) {
+        throw new Error(data?.error || "Request failed");
       }
+
+      return data;
     }
 
-    document.querySelectorAll("[data-action='toggle-status']").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.id;
-        const current = btn.dataset.status || "open";
-        const next = current === "open" ? "done" : "open";
-
-        try {
-          await updateBet({
-            id,
-            updates: {
-              status: next,
-              executedDate:
-                next === "done"
-                  ? new Date().toISOString().slice(0, 10)
-                  : "",
-            },
-          });
-          location.reload();
-        } catch (err) {
-          alert("Could not update status.");
-          console.error(err);
-        }
-      });
-    });
-
-    document.querySelectorAll("[data-action='toggle-owner']").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.id;
-        const current = btn.dataset.owner || "";
-        let next = "";
-
-        if (current === "") next = OWNER_OPTIONS[0];
-        else if (current === OWNER_OPTIONS[0]) next = OWNER_OPTIONS[1];
-        else next = "";
-
-        try {
-          await updateBet({
-            id,
-            updates: {
-              owner: next,
-            },
-          });
-          location.reload();
-        } catch (err) {
-          alert("Could not update owner.");
-          console.error(err);
-        }
-      });
-    });
-
-    const statusSelect = document.querySelector("select[name='status']");
-    const executedDateInput = document.querySelector("input[name='executedDate']");
+    const statusSelect = document.querySelector("#betForm select[name='status']");
+    const executedDateInput = document.querySelector("#betForm input[name='executedDate']");
     const betForm = document.getElementById("betForm");
 
     if (statusSelect && executedDateInput) {
@@ -289,6 +321,68 @@ bets.sort((a, b) => {
         }
       });
     }
+
+    document.querySelectorAll("[data-action='toggle-edit']").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const row = document.querySelector(`[data-edit-row="${id}"]`);
+        if (row) row.classList.toggle("hidden");
+      });
+    });
+
+    document.querySelectorAll("[data-edit-form]").forEach((form) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const id = formData.get("id");
+
+        const updates = {
+          betDate: String(formData.get("betDate") || ""),
+          title: String(formData.get("title") || ""),
+          stakes: String(formData.get("stakes") || ""),
+          owner: String(formData.get("owner") || ""),
+          status: String(formData.get("status") || "open"),
+          executedDate: String(formData.get("executedDate") || ""),
+          notes: String(formData.get("notes") || ""),
+        };
+
+        if (updates.status === "done" && !updates.executedDate) {
+          updates.executedDate = new Date().toISOString().slice(0, 10);
+        }
+
+        if (updates.status === "open") {
+          updates.executedDate = "";
+        }
+
+        try {
+          await postJson("/.netlify/functions/update-bet", {
+            id,
+            updates,
+          });
+          location.reload();
+        } catch (err) {
+          alert("Could not update bet.");
+          console.error(err);
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-action='delete-bet']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+
+        if (!confirm("Delete this bet?")) return;
+
+        try {
+          await postJson("/.netlify/functions/delete-bet", { id });
+          location.reload();
+        } catch (err) {
+          alert("Could not delete bet.");
+          console.error(err);
+        }
+      });
+    });
   </script>
 </BaseLayout>
 
@@ -298,7 +392,7 @@ bets.sort((a, b) => {
   }
 
   .bets-shell {
-    max-width: 1400px;
+    max-width: 1450px;
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
   }
@@ -329,17 +423,18 @@ bets.sort((a, b) => {
 
   .bets-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(360px, 0.9fr);
+    grid-template-columns: minmax(0, 1.7fr) minmax(360px, 0.9fr);
     gap: 2.5rem;
     align-items: start;
   }
 
   .bets-card,
   .bet-form-card {
-    background: #0f0f0f;
-    border: 1px solid #1f1f1f;
+    background: linear-gradient(180deg, #101214 0%, #0d0f11 100%);
+    border: 1px solid #20242a;
     border-radius: 1.25rem;
     padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
   }
 
   .table-wrap {
@@ -354,7 +449,7 @@ bets.sort((a, b) => {
   th,
   td {
     padding: 0.9rem 0.8rem;
-    border-bottom: 1px solid #242424;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     font-size: 0.95rem;
     vertical-align: top;
     text-align: left;
@@ -362,7 +457,16 @@ bets.sort((a, b) => {
 
   th {
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .bet-row.open {
+    background: rgba(10, 116, 201, 0.06);
+  }
+
+  .bet-row.done {
+    background: rgba(255, 255, 255, 0.025);
+    opacity: 0.9;
   }
 
   .title-cell {
@@ -376,41 +480,92 @@ bets.sort((a, b) => {
     font-style: italic;
   }
 
-  tr.open {
-    background: transparent;
-  }
-
-  tr.done {
-    opacity: 0.72;
-  }
-
   .pill {
-    border: none;
+    display: inline-block;
     border-radius: 999px;
     padding: 0.35rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 700;
-    cursor: pointer;
     color: white;
   }
 
-  .statusBtn.open {
+  .statusPill.open {
     background: #0a74c9;
   }
 
-  .statusBtn.done {
-    background: #111;
-    border: 1px solid rgba(255, 255, 255, 0.7);
+  .statusPill.done {
+    background: #1f2a35;
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  .ownerBtn {
+  .actions-cell {
+    min-width: 150px;
+  }
+
+  .action-btn,
+  .save-small-btn,
+  .cancel-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-right: 0.4rem;
+  }
+
+  .edit-toggle-btn {
     background: #143252;
+    color: white;
   }
 
-  .ownerBtn.neutral {
-    background: #1a1a1a;
-    border: 1px solid #303030;
-    color: rgba(255, 255, 255, 0.8);
+  .delete-btn {
+    background: #3a1717;
+    color: #ffd2d2;
+  }
+
+  .save-small-btn {
+    background: #0a74c9;
+    color: white;
+  }
+
+  .cancel-btn {
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .edit-row.hidden {
+    display: none;
+  }
+
+  .edit-row td {
+    background: rgba(255, 255, 255, 0.025);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .edit-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 0.9rem 1rem;
+    align-items: start;
+  }
+
+  .edit-form label,
+  .bet-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+  }
+
+  .notes-field {
+    grid-column: 1 / -1;
+  }
+
+  .edit-actions {
+    grid-column: 1 / -1;
+    margin-top: 0.35rem;
   }
 
   .bet-form-card h2 {
@@ -424,25 +579,22 @@ bets.sort((a, b) => {
     gap: 0.9rem;
   }
 
-  .bet-form label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    font-size: 0.9rem;
-  }
-
+  .edit-form input,
+  .edit-form select,
+  .edit-form textarea,
   .bet-form input,
   .bet-form select,
   .bet-form textarea {
     padding: 0.65rem 0.75rem;
     font-size: 0.95rem;
     border-radius: 0.75rem;
-    border: 1px solid #343434;
-    background: #141414;
+    border: 1px solid #343a42;
+    background: #15181c;
     color: white;
     font-family: inherit;
   }
 
+  .edit-form textarea,
   .bet-form textarea {
     min-height: 110px;
     resize: vertical;
@@ -460,8 +612,12 @@ bets.sort((a, b) => {
     font-weight: 700;
   }
 
-  @media (max-width: 980px) {
+  @media (max-width: 1080px) {
     .bets-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .edit-form {
       grid-template-columns: 1fr;
     }
   }
