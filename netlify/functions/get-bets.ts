@@ -4,16 +4,36 @@ export const config = {
 
 import { getStore } from "@netlify/blobs";
 
+function blobToText(raw) {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (raw instanceof Uint8Array) return new TextDecoder().decode(raw);
+  return String(raw);
+}
+
 export default async function handler() {
-  const store = getStore("bets");
-  const raw = await store.get("bets");
+  try {
+    const store = getStore("bets");
+    const raw = await store.get("bets");
 
-  const bets = raw
-    ? JSON.parse(new TextDecoder().decode(raw))
-    : [];
+    const text = blobToText(raw).trim();
+    const bets = text ? JSON.parse(text) : [];
 
-  return new Response(JSON.stringify(bets), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+    return new Response(JSON.stringify(bets), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Failed to load bets",
+        details: String(err),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 }
