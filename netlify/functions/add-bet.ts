@@ -12,14 +12,18 @@ export default async function handler(req: Request) {
 
   const formData = await req.formData();
 
+  const status = String(formData.get("status") || "open");
+  const executedDateRaw = String(formData.get("executedDate") || "");
+
   const newBet = {
     id: crypto.randomUUID(),
-    date: formData.get("date"),
-    title: formData.get("title"),
-    stakes: formData.get("stakes"),
-    owner: "",
-    notes: formData.get("notes") || "",
-    status: "open",
+    betDate: String(formData.get("betDate") || new Date().toISOString().slice(0, 10)),
+    title: String(formData.get("title") || ""),
+    stakes: String(formData.get("stakes") || ""),
+    owner: String(formData.get("owner") || ""),
+    notes: String(formData.get("notes") || ""),
+    status,
+    executedDate: status === "done" ? (executedDateRaw || new Date().toISOString().slice(0, 10)) : "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
