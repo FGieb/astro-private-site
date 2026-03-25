@@ -34,6 +34,7 @@ if (!(await isValidSession(cookie?.value))) {
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
+      background-repeat: no-repeat;
     }
 
     .top-nav {
@@ -49,6 +50,7 @@ if (!(await isValidSession(cookie?.value))) {
       padding: 0.6rem 1.4rem;
       border-radius: 999px;
       backdrop-filter: blur(6px);
+      flex-wrap: wrap;
     }
 
     .nav-pill a {
@@ -66,6 +68,7 @@ if (!(await isValidSession(cookie?.value))) {
       display: grid;
       grid-template-columns: 1fr 280px;
       gap: 2rem;
+      align-items: start;
     }
 
     .center {
@@ -73,9 +76,11 @@ if (!(await isValidSession(cookie?.value))) {
       flex-direction: column;
       align-items: center;
       text-align: center;
+      gap: 1.2rem;
     }
 
-    .reflection-card {
+    .reflection-card,
+    .fun-card {
       background: var(--card-bg);
       color: #111;
       padding: 1.6rem 1.8rem;
@@ -83,7 +88,6 @@ if (!(await isValidSession(cookie?.value))) {
       width: 100%;
       max-width: 560px;
       box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-      margin-bottom: 1.2rem;
     }
 
     .thoughts {
@@ -118,6 +122,16 @@ if (!(await isValidSession(cookie?.value))) {
       background: rgba(255,255,255,0.9);
       cursor: pointer;
     }
+
+    .muted {
+      opacity: 0.65;
+    }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -136,14 +150,19 @@ if (!(await isValidSession(cookie?.value))) {
     <section class="center">
       <section class="reflection-card">
         <h2>Today</h2>
-        <p id="dailyReflection">Loading…</p>
+        <p id="dailyReflection">Loading...</p>
+      </section>
+
+      <section class="fun-card">
+        <h3>Fun fact</h3>
+        <p id="dailyFun">Loading...</p>
       </section>
 
       <section class="thoughts">
         <h3>💬 Thoughts</h3>
-        <div id="commentList"></div>
-        <textarea id="commentInput" placeholder="Leave a thought…"></textarea>
-        <button id="saveComment">Add</button>
+        <div id="commentList"><div class="muted">Loading thoughts...</div></div>
+        <textarea id="commentInput" placeholder="Leave a thought..."></textarea>
+        <button id="saveComment" type="button">Add</button>
       </section>
     </section>
   </main>
@@ -151,11 +170,29 @@ if (!(await isValidSession(cookie?.value))) {
   <!-- DAILY CONTENT -->
   <script type="module" is:inline>
     async function loadDailyContent() {
-      const res = await fetch("/.netlify/functions/generateDaily");
-      const data = await res.json();
-      document.getElementById("dailyReflection").textContent =
-        data.reflective.text;
+      const reflectionEl = document.getElementById("dailyReflection");
+      const funEl = document.getElementById("dailyFun");
+
+      try {
+        const res = await fetch("/.netlify/functions/generateDaily", {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || `generateDaily failed with ${res.status}`);
+        }
+
+        reflectionEl.textContent = data?.reflective?.text || "No reflection available.";
+        funEl.textContent = data?.fun?.text || "No fun fact available.";
+      } catch (err) {
+        console.error("Failed to load daily content:", err);
+        reflectionEl.textContent = "Could not load today's reflection.";
+        funEl.textContent = "Could not load today's fun fact.";
+      }
     }
+
     loadDailyContent();
   </script>
 
@@ -167,18 +204,36 @@ if (!(await isValidSession(cookie?.value))) {
 
     const today = new Date().toISOString().slice(0, 10);
     let dailyEntries = {};
-    let todayEntry = null;
+    let todayEntry = { comments: [] };
 
     async function loadDaily() {
-      const res = await fetch("/.netlify/functions/daily-load");
-      dailyEntries = await res.json();
+      try {
+        const res = await fetch("/.netlify/functions/daily-load", {
+          cache: "no-store",
+        });
 
-      todayEntry = dailyEntries[today] || { comments: [] };
-      renderComments();
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || `daily-load failed with ${res.status}`);
+        }
+
+        dailyEntries = data || {};
+        todayEntry = dailyEntries[today] || { comments: [] };
+
+        if (!Array.isArray(todayEntry.comments)) {
+          todayEntry.comments = [];
+        }
+
+        renderComments();
+      } catch (err) {
+        console.error("Failed to load comments:", err);
+        list.innerHTML = `<div class="muted">Could not load thoughts.</div>`;
+      }
     }
 
     async function saveDaily() {
-      await fetch("/.netlify/functions/daily-save", {
+      const res = await fetch("/.netlify/functions/daily-save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,12 +241,30 @@ if (!(await isValidSession(cookie?.value))) {
           update: { comments: todayEntry.comments },
         }),
       });
+
+      if (!res.ok) {
+        let message = `daily-save failed with ${res.status}`;
+        try {
+          const data = await res.json();
+          message = data?.error || message;
+        } catch {}
+        throw new Error(message);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     function renderComments() {
       list.innerHTML = todayEntry.comments.length
-        ? todayEntry.comments.map(c => `<div>– ${c.text}</div>`).join("")
-        : `<div style="opacity:0.6;">No thoughts yet.</div>`;
+        ? todayEntry.comments.map(c => `<div>– ${escapeHtml(c.text)}</div>`).join("")
+        : `<div class="muted">No thoughts yet.</div>`;
     }
 
     button.addEventListener("click", async () => {
@@ -205,7 +278,13 @@ if (!(await isValidSession(cookie?.value))) {
 
       input.value = "";
       renderComments();
-      await saveDaily();
+
+      try {
+        await saveDaily();
+      } catch (err) {
+        console.error("Failed to save comment:", err);
+        alert("Could not save the thought.");
+      }
     });
 
     loadDaily();
