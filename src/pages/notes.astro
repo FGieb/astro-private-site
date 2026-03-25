@@ -148,14 +148,21 @@ if (!(await isValidSession(cookie?.value))) {
     render();
   }
 
-  async function saveNotes() {
-    await fetch("/.netlify/functions/notes-save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(notes),
-    });
+async function saveNotes() {
+  const res = await fetch("/.netlify/functions/notes-save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(notes),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.error || `notes-save failed with ${res.status}`);
   }
 
+  console.log("notes-save result:", data);
+}  
   function render() {
     list.innerHTML = notes.length
       ? notes.map(n => `
