@@ -1,5 +1,46 @@
 import { getStore } from "@netlify/blobs";
 
+const FALLBACK_REFLECTION =
+  "What people call sincerity is often just consistency observed over time.";
+
+const FALLBACK_FUN =
+  "Institutions often keep old rules not because they still make sense, but because removing them requires someone to take responsibility for change.";
+
+async function callOpenAI(prompt) {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY");
+  }
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `OpenAI request failed with ${res.status}`);
+  }
+
+  const text = data?.choices?.[0]?.message?.content?.trim();
+
+  if (!text) {
+    throw new Error("OpenAI returned no content");
+  }
+
+  return text;
+}
+
 export async function handler() {
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -7,7 +48,6 @@ export async function handler() {
     const store = getStore("daily");
     const entries = (await store.get("entries", { type: "json" })) || {};
 
-    // Ensure day exists (and DON'T wipe comments)
     entries[today] = entries[today] || {
       reflective: null,
       fun: null,
@@ -15,12 +55,13 @@ export async function handler() {
       generatedAt: null,
     };
 
-    // If already complete, return it
-    if (entries[today].reflective?.text && entries[today].fun?.text) {
+    const existing = entries[today];
+
+    if (existing.reflective?.text && existing.fun?.text) {
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entries[today]),
+        body: JSON.stringify(existing),
       };
     }
 
@@ -33,7 +74,7 @@ It can be ONE of the following:
 - a short attributed quote by a philosopher, writer, scientist, or thinker
 - an observation about time, memory, habits, games, or relationships
 
-Themes to draw from, but not limited to, you can be creative in other themes as well:
+Themes to draw from, but not limited to:
 - incentives vs intentions
 - how systems shape behavior
 - memory, trauma, and forgetting
@@ -82,51 +123,48 @@ Constraints:
 Return only the text.
 `.trim();
 
-    const callOpenAI = async (prompt) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-        }),
-      });
-
-      const data = await res.json();
-      const text = data?.choices?.[0]?.message?.content?.trim();
-      if (!text) throw new Error("OpenAI returned no content");
-      return text;
-    };
-
-    // Fill only what’s missing (don’t overwrite existing)
-    if (!entries[today].reflective?.text) {
-      const reflective = await callOpenAI(reflectivePrompt);
-      entries[today].reflective = { text: reflective };
+    if (!existing.reflective?.text) {
+      try {
+        const reflective = await callOpenAI(reflectivePrompt);
+        existing.reflective = { text: reflective };
+      } catch (err) {
+        console.error("Failed to generate reflective item:", err);
+        existing.reflective = { text: FALLBACK_REFLECTION };
+      }
     }
 
-    if (!entries[today].fun?.text) {
-      const fun = await callOpenAI(funPrompt);
-      entries[today].fun = { text: fun };
+    if (!existing.fun?.text) {
+      try {
+        const fun = await callOpenAI(funPrompt);
+        existing.fun = { text: fun };
+      } catch (err) {
+        console.error("Failed to generate fun item:", err);
+        existing.fun = { text: FALLBACK_FUN };
+      }
     }
 
-    entries[today].generatedAt = new Date().toISOString();
+    existing.generatedAt = new Date().toISOString();
 
     await store.setJSON("entries", entries);
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(entries[today]),
+      body: JSON.stringify(existing),
     };
   } catch (err) {
-    console.error(err);
+    console.error("generateDaily fatal error:", err);
+
     return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err?.message || String(err) }),
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reflective: { text: FALLBACK_REFLECTION },
+        fun: { text: FALLBACK_FUN },
+        comments: [],
+        generatedAt: new Date().toISOString(),
+        warning: err?.message || String(err),
+      }),
     };
   }
 }
