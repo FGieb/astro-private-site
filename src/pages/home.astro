@@ -505,8 +505,7 @@ if (!(await isValidSession(cookie?.value))) {
                     type="button"
                     class="thought-menu"
                     data-id="${item.id}"
-                    data-text="${escapeHtml(item.text || "")}"
-                    aria-label="Thought options"
+                    aria-label="Delete thought"
                     title="Delete thought"
                   >⋯</button>
                 </div>
@@ -518,10 +517,9 @@ if (!(await isValidSession(cookie?.value))) {
       document.querySelectorAll(".thought-menu").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const id = btn.getAttribute("data-id");
-          const text = btn.getAttribute("data-text") || "this thought";
           if (!id) return;
     
-          const confirmed = window.confirm(`Delete "${text}"?`);
+          const confirmed = window.confirm("Delete this thought?");
           if (!confirmed) return;
     
           try {
