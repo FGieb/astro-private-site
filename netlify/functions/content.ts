@@ -1,27 +1,53 @@
 import type { Handler } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
-import { CONTENT_STORES, isValidContentType } from "../../src/lib/contentConfig";
 
-type Action = "list" | "add" | "update" | "delete";
+type ContentType = "notes" | "calendar" | "thoughts" | "bets";
+type Action = "list" | "add" | "delete";
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+const CONTENT_STORES: Record<ContentType, string> = {
+  notes: "notes",
+  calendar: "calendar",
+  thoughts: "thoughts",
+  bets: "bets",
+};
+
+function isValidContentType(value: string): value is ContentType {
+  return value in CONTENT_STORES;
 }
 
-function ensureArray(data: unknown) {
-  return Array.isArray(data) ? data : [];
+function json(statusCode: number, body: unknown) {
+  return {
+    statusCode,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  };
+}
+
+async function loadEntries(storeName: string) {
+  const store = getStore(storeName);
+  const raw = await store.get("entries");
+
+  if (!raw) return [];
+
+  const text = new TextDecoder("utf-8").decode(raw);
+  const parsed = JSON.parse(text);
+
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+async function saveEntries(storeName: string, entries: unknown[]) {
+  const store = getStore(storeName);
+  const text = JSON.stringify(entries);
+  await store.set("entries", text);
 }
 
 export const handler: Handler = async (event) => {
   try {
-    const method = event.httpMethod;
-
-    if (method !== "POST") {
-      return json({ error: "Method not allowed" }, 405);
+    if (event.httpMethod !== "POST") {
+      return json(405, { error: "Method not allowed" });
     }
 
     const body = JSON.parse(event.body || "{}");
@@ -29,101 +55,63 @@ export const handler: Handler = async (event) => {
     const action = String(body.action || "") as Action;
 
     if (!isValidContentType(type)) {
-      return json({ error: "Invalid content type" }, 400);
+      return json(400, { error: `Invalid content type: ${type}` });
     }
 
-    if (!["list", "add", "update", "delete"].includes(action)) {
-      return json({ error: "Invalid action" }, 400);
+    if (!["list", "add", "delete"].includes(action)) {
+      return json(400, { error: `Invalid action: ${action}` });
     }
 
     const storeName = CONTENT_STORES[type];
-    const store = getStore(storeName);
-    const raw = await store.get("entries", { type: "json" });
-    const entries = ensureArray(raw);
+    const entries = await loadEntries(storeName);
 
     if (action === "list") {
-      return json({ ok: true, entries });
+      return json(200, { ok: true, entries });
     }
 
     if (action === "add") {
       const data = body.data;
 
       if (!data || typeof data !== "object") {
-        return json({ error: "Missing data" }, 400);
+        return json(400, { error: "Missing data" });
       }
 
       const newEntry = {
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
-        updatedAt: null,
         ...data,
       };
 
       const updated = [newEntry, ...entries];
-      await store.setJSON("entries", updated);
+      await saveEntries(storeName, updated);
 
-      return json({ ok: true, entry: newEntry, entries: updated });
-    }
-
-    if (action === "update") {
-      const id = String(body.id || "");
-      const updates = body.updates;
-
-      if (!id) {
-        return json({ error: "Missing id" }, 400);
-      }
-
-      if (!updates || typeof updates !== "object") {
-        return json({ error: "Missing updates" }, 400);
-      }
-
-      let found = false;
-
-      const updated = entries.map((item: any) => {
-        if (item.id !== id) return item;
-        found = true;
-        return {
-          ...item,
-          ...updates,
-          id: item.id,
-          createdAt: item.createdAt,
-          updatedAt: new Date().toISOString(),
-        };
-      });
-
-      if (!found) {
-        return json({ error: "Entry not found" }, 404);
-      }
-
-      await store.setJSON("entries", updated);
-      return json({ ok: true, entries: updated });
+      return json(200, { ok: true, entry: newEntry, entries: updated });
     }
 
     if (action === "delete") {
       const id = String(body.id || "");
 
       if (!id) {
-        return json({ error: "Missing id" }, 400);
+        return json(400, { error: "Missing id" });
       }
 
       const updated = entries.filter((item: any) => item.id !== id);
 
       if (updated.length === entries.length) {
-        return json({ error: "Entry not found" }, 404);
+        return json(404, { error: "Entry not found" });
       }
 
-      await store.setJSON("entries", updated);
-      return json({ ok: true, entries: updated });
+      await saveEntries(storeName, updated);
+
+      return json(200, { ok: true, entries: updated });
     }
 
-    return json({ error: "Unhandled action" }, 400);
+    return json(400, { error: "Unhandled action" });
   } catch (err) {
-    return json(
-      {
-        error: "Content function failed",
-        details: String(err),
-      },
-      500
-    );
+    console.error("content function failed:", err);
+    return json(500, {
+      error: "Content function failed",
+      details: String(err),
+    });
   }
 };
