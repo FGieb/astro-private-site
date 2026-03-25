@@ -3,6 +3,8 @@ export const config = {
 };
 
 import { getStore } from "@netlify/blobs";
+import { extractMention } from "../../src/lib/mentions";
+import { sendMentionNotification } from "./_shared/pushover.mjs";
 
 function blobToText(raw) {
   if (!raw) return "";
@@ -56,7 +58,32 @@ export default async function handler(req: Request) {
 
     await store.set("bets", JSON.stringify(bets));
 
-    return new Response(JSON.stringify({ ok: true }), {
+    let mention = null;
+    let notification = { ok: false, skipped: true };
+
+    const updatedNotes = typeof updates.notes === "string" ? updates.notes : "";
+
+    mention = extractMention(updatedNotes);
+
+    if (mention) {
+      try {
+        notification = await sendMentionNotification({
+          mentioned: mention,
+          source: "Updated bet note",
+          text: updatedNotes,
+          link: `${process.env.PUBLIC_SITE_URL || ""}/bets`,
+        });
+      } catch (err) {
+        console.error("Bet update mention notification failed:", err);
+        notification = {
+          ok: false,
+          skipped: false,
+          error: String(err),
+        };
+      }
+    }
+
+    return new Response(JSON.stringify({ ok: true, mention, notification }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
