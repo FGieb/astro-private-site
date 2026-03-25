@@ -214,56 +214,45 @@ if (!(await isValidSession(cookie?.value))) {
     }
     
     .thought-row {
-      position: relative;
-      padding: 0.35rem 2.4rem 0.35rem 0;
-      margin-bottom: 0.2rem;
-      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.25rem 0;
     }
     
     .thought-text {
       font-size: 0.95rem;
       line-height: 1.45;
       color: rgba(255,255,255,0.96);
+      flex: 1;
     }
     
-    .thought-row > .delete-thought {
-      display: none;
-      position: absolute;
-      top: 0.1rem;
-      right: 0;
+    .thought-actions {
+      flex-shrink: 0;
+    }
+    
+    .thought-menu {
       margin: 0 !important;
-      padding: 0.1rem 0.45rem !important;
+      padding: 0.1rem 0.35rem !important;
       min-width: auto !important;
       width: auto !important;
       height: auto !important;
-      border-radius: 999px !important;
-      border: 1px solid rgba(255,255,255,0.16) !important;
-      background: rgba(255,255,255,0.12) !important;
-      color: white !important;
-      font-size: 0.92rem !important;
-      line-height: 1 !important;
+      background: transparent !important;
+      border: none !important;
       box-shadow: none !important;
+      color: rgba(255,255,255,0.46) !important;
+      font-size: 1.15rem !important;
+      line-height: 1 !important;
+      cursor: pointer;
     }
     
-    .thought-row.reveal-delete > .delete-thought {
-      display: inline-flex !important;
-      align-items: center;
-      justify-content: center;
+    .thought-menu:hover,
+    .thought-menu:focus {
+      color: rgba(255,255,255,0.82) !important;
+      background: transparent !important;
     }
-    
-    .thought-row > .delete-thought:hover {
-      background: rgba(255,255,255,0.22) !important;
-    }
-    
-    /* Only use hover behaviour on devices that actually support hover */
-    @media (hover: hover) and (pointer: fine) {
-      .thought-row:hover > .delete-thought {
-        display: inline-flex !important;
-        align-items: center;
-        justify-content: center;
-      }
-    }
-        
+            
     textarea {
       width: 100%;
       min-height: 82px;
@@ -509,39 +498,42 @@ if (!(await isValidSession(cookie?.value))) {
       list.innerHTML = todayThoughts.length
         ? todayThoughts
             .map((item) => `
-              <div class="thought-row" data-id="${item.id}">
+              <div class="thought-row">
                 <div class="thought-text">– ${escapeHtml(item.text || "")}</div>
-                <button
-                  type="button"
-                  class="delete-thought"
-                  data-id="${item.id}"
-                  aria-label="Delete thought"
-                  title="Delete thought"
-                >×</button>
+                <div class="thought-actions">
+                  <button
+                    type="button"
+                    class="thought-menu"
+                    data-id="${item.id}"
+                    data-text="${escapeHtml(item.text || "")}"
+                    aria-label="Thought options"
+                    title="Delete thought"
+                  >⋯</button>
+                </div>
               </div>
             `)
             .join("")
         : `<div class="muted">No thoughts yet.</div>`;
     
-      const rows = document.querySelectorAll(".thought-row");
-      const deleteButtons = document.querySelectorAll(".delete-thought");
+      document.querySelectorAll(".thought-menu").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-id");
+          const text = btn.getAttribute("data-text") || "this thought";
+          if (!id) return;
     
-      rows.forEach((row) => {
-        row.addEventListener("click", (event) => {
-          // Ignore clicks on the delete button itself
-          if (event.target.closest(".delete-thought")) return;
+          const confirmed = window.confirm(`Delete "${text}"?`);
+          if (!confirmed) return;
     
-          const alreadyOpen = row.classList.contains("reveal-delete");
-    
-          document.querySelectorAll(".thought-row.reveal-delete").forEach((r) => {
-            r.classList.remove("reveal-delete");
-          });
-    
-          if (!alreadyOpen) {
-            row.classList.add("reveal-delete");
+          try {
+            await deleteThought(id);
+            await loadThoughts();
+          } catch (err) {
+            console.error("Failed to delete thought:", err);
+            alert("Could not delete the thought.");
           }
         });
       });
+    }
     
       deleteButtons.forEach((btn) => {
         btn.addEventListener("click", async (event) => {
