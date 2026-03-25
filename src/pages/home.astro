@@ -19,13 +19,14 @@ if (!(await isValidSession(cookie?.value))) {
 
   <style>
     :root {
-      --glass-dark: rgba(16, 16, 16, 0.52);
-      --glass-mid: rgba(25, 25, 25, 0.46);
-      --glass-light: rgba(255, 255, 255, 0.90);
+      --glass-dark: rgba(10, 16, 28, 0.52);
+      --glass-mid: rgba(12, 20, 36, 0.44);
+      --glass-light: rgba(255, 255, 255, 0.87);
       --text-dark: #121212;
       --text-light: #ffffff;
       --muted-light: rgba(255,255,255,0.72);
-      --shadow: 0 18px 40px rgba(0,0,0,0.20);
+      --accent-blue: #8eb8ff;
+      --shadow: 0 18px 40px rgba(0,0,0,0.18);
       --radius-xl: 1.6rem;
       --radius-lg: 1.15rem;
     }
@@ -43,9 +44,10 @@ if (!(await isValidSession(cookie?.value))) {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       color: var(--text-light);
       min-height: 100vh;
-      background-color: #6d6d6d;
+      background-color: #2a2f38;
       background-image:
-        linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.48)),
+        linear-gradient(rgba(18, 24, 36, 0.52), rgba(18, 24, 36, 0.60)),
+        linear-gradient(rgba(125, 165, 235, 0.12), rgba(125, 165, 235, 0.10)),
         url("/images/homebackground.jpg");
       background-size: cover;
       background-position: center;
@@ -69,12 +71,13 @@ if (!(await isValidSession(cookie?.value))) {
     .nav-pill {
       display: flex;
       gap: 1.2rem;
-      background: rgba(22, 22, 22, 0.72);
+      background: rgba(14, 18, 26, 0.68);
       padding: 0.78rem 1.5rem;
       border-radius: 999px;
       backdrop-filter: blur(10px);
       box-shadow: 0 10px 24px rgba(0,0,0,0.14);
       flex-wrap: wrap;
+      border: 1px solid rgba(142, 184, 255, 0.08);
     }
 
     .nav-pill a {
@@ -86,53 +89,57 @@ if (!(await isValidSession(cookie?.value))) {
 
     .nav-pill a:hover {
       opacity: 1;
+      color: var(--accent-blue);
     }
 
-    .hero-grid {
+    .main-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
       gap: 1.4rem;
       align-items: start;
-      margin-bottom: 1.4rem;
+    }
+
+    .left-column,
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
     }
 
     .quote-card {
-      background: var(--glass-light);
+      background: rgba(255, 255, 255, 0.83);
       color: var(--text-dark);
-      min-height: 330px;
+      min-height: 315px;
       border-radius: var(--radius-xl);
-      padding: 2.15rem 2.2rem;
+      padding: 2.05rem 2.2rem;
       box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
       justify-content: center;
       text-align: center;
+      backdrop-filter: blur(3px);
     }
 
     .quote-card .eyebrow {
-      font-size: 0.95rem;
-      letter-spacing: 0.02em;
-      opacity: 0.62;
-      margin-bottom: 0.55rem;
+      font-size: 0.92rem;
+      letter-spacing: 0.04em;
+      opacity: 0.55;
+      margin-bottom: 0.7rem;
       text-transform: uppercase;
     }
 
     .quote-card h1 {
       margin: 0 0 1rem 0;
-      font-size: 2.4rem;
-      line-height: 1.05;
+      font-size: 1.95rem;
+      line-height: 1.08;
+      font-weight: 700;
     }
 
     .quote-text {
-      font-size: 1.28rem;
-      line-height: 1.65;
+      font-size: 1.55rem;
+      line-height: 1.62;
       margin: 0;
-    }
-
-    .side-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+      font-weight: 450;
     }
 
     .small-card,
@@ -141,8 +148,9 @@ if (!(await isValidSession(cookie?.value))) {
       color: white;
       border-radius: var(--radius-lg);
       padding: 1.1rem 1.15rem;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
       box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+      border: 1px solid rgba(142, 184, 255, 0.08);
     }
 
     .small-card h3,
@@ -160,14 +168,14 @@ if (!(await isValidSession(cookie?.value))) {
     .calendar-link {
       display: inline-block;
       margin-top: 0.85rem;
-      color: white;
+      color: var(--accent-blue);
       text-decoration: underline;
       text-underline-offset: 2px;
-      opacity: 0.92;
+      opacity: 0.98;
     }
 
     .calendar-link:hover {
-      opacity: 1;
+      color: #bfd6ff;
     }
 
     .event-item {
@@ -191,17 +199,6 @@ if (!(await isValidSession(cookie?.value))) {
       color: var(--muted-light);
       font-size: 0.95rem;
       line-height: 1.45;
-    }
-
-    .bottom-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
-      gap: 1.4rem;
-      align-items: start;
-    }
-
-    .placeholder-panel {
-      min-height: 10px;
     }
 
     #commentList {
@@ -238,7 +235,7 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     button:hover {
-      opacity: 0.96;
+      background: #dbe8ff;
     }
 
     .muted {
@@ -246,8 +243,7 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     @media (max-width: 900px) {
-      .hero-grid,
-      .bottom-row {
+      .main-grid {
         grid-template-columns: 1fr;
       }
 
@@ -257,15 +253,11 @@ if (!(await isValidSession(cookie?.value))) {
       }
 
       .quote-card h1 {
-        font-size: 2rem;
+        font-size: 1.7rem;
       }
 
       .quote-text {
-        font-size: 1.13rem;
-      }
-
-      .placeholder-panel {
-        display: none;
+        font-size: 1.28rem;
       }
     }
   </style>
@@ -283,32 +275,13 @@ if (!(await isValidSession(cookie?.value))) {
       </div>
     </div>
 
-    <main>
-      <section class="hero-grid">
+    <main class="main-grid">
+      <section class="left-column">
         <section class="quote-card">
           <div class="eyebrow">Today</div>
           <h1>Daily reflection</h1>
           <p id="dailyReflection" class="quote-text">Loading...</p>
         </section>
-
-        <aside class="side-stack">
-          <section class="small-card">
-            <h3>Fun fact</h3>
-            <p id="dailyFun">Loading...</p>
-          </section>
-
-          <section class="small-card">
-            <h3>Today on the calendar</h3>
-            <div id="todayCalendar">
-              <div class="muted">Loading today's events...</div>
-            </div>
-            <a class="calendar-link" href="/calendar">Open calendar</a>
-          </section>
-        </aside>
-      </section>
-
-      <section class="bottom-row">
-        <div class="placeholder-panel"></div>
 
         <section class="thoughts-card">
           <h3>💬 Thoughts</h3>
@@ -317,6 +290,21 @@ if (!(await isValidSession(cookie?.value))) {
           <button id="saveComment" type="button">Add</button>
         </section>
       </section>
+
+      <aside class="right-column">
+        <section class="small-card">
+          <h3>Fun fact</h3>
+          <p id="dailyFun">Loading...</p>
+        </section>
+
+        <section class="small-card">
+          <h3>Today on the calendar</h3>
+          <div id="todayCalendar">
+            <div class="muted">Loading today's events...</div>
+          </div>
+          <a class="calendar-link" href="/calendar">Open calendar</a>
+        </section>
+      </aside>
     </main>
   </div>
 
