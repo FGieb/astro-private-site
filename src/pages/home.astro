@@ -208,52 +208,49 @@ if (!(await isValidSession(cookie?.value))) {
       font-size: 0.95rem;
       line-height: 1.45;
     }
-
     #commentList {
       margin-bottom: 0.9rem;
     }
     
     .thought-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.35rem 0;
+      position: relative;
+      padding: 0.35rem 2.2rem 0.35rem 0;
+      margin-bottom: 0.2rem;
     }
     
     .thought-text {
       font-size: 0.95rem;
       line-height: 1.45;
-      flex: 1;
       color: rgba(255,255,255,0.96);
     }
     
-    .delete-thought {
-      margin-top: 0 !important;
-      padding: 0.08rem 0.45rem !important;
-      font-size: 0.95rem !important;
-      line-height: 1 !important;
-      border-radius: 999px;
+    .thought-row > .delete-thought {
+      display: none !important;
+      position: absolute;
+      top: 0.15rem;
+      right: 0;
+      margin: 0 !important;
+      padding: 0.08rem 0.42rem !important;
+      min-width: auto !important;
+      width: auto !important;
+      height: auto !important;
+      border-radius: 999px !important;
+      border: 1px solid rgba(255,255,255,0.16) !important;
       background: rgba(255,255,255,0.12) !important;
       color: white !important;
-      border: 1px solid rgba(255,255,255,0.18) !important;
-      cursor: pointer;
-    
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    
-      transition: opacity 0.15s ease;
+      font-size: 0.92rem !important;
+      line-height: 1 !important;
+      box-shadow: none !important;
     }
     
-    .thought-row:hover .delete-thought,
-    .thought-row:focus-within .delete-thought {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
+    .thought-row:hover > .delete-thought,
+    .thought-row:focus-within > .delete-thought {
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
     }
     
-    .delete-thought:hover {
+    .thought-row > .delete-thought:hover {
       background: rgba(255,255,255,0.22) !important;
     }
     
@@ -510,9 +507,7 @@ if (!(await isValidSession(cookie?.value))) {
                   data-id="${item.id}"
                   aria-label="Delete thought"
                   title="Delete thought"
-                >
-                  ×
-                </button>
+                >×</button>
               </div>
             `)
             .join("")
@@ -526,16 +521,12 @@ if (!(await isValidSession(cookie?.value))) {
           const confirmed = window.confirm("Delete this thought?");
           if (!confirmed) return;
     
-          btn.disabled = true;
-    
           try {
             await deleteThought(id);
             await loadThoughts();
           } catch (err) {
             console.error("Failed to delete thought:", err);
             alert("Could not delete the thought.");
-          } finally {
-            btn.disabled = false;
           }
         });
       });
