@@ -506,6 +506,7 @@ if (!(await isValidSession(cookie?.value))) {
   
       return data;
     }
+  
     function renderThoughts() {
       list.innerHTML = todayThoughts.length
         ? todayThoughts
@@ -520,7 +521,7 @@ if (!(await isValidSession(cookie?.value))) {
                 >
                   – ${escapeHtml(item.text || "")}
                 </div>
-    
+  
                 <div class="thought-actions">
                   <button
                     type="button"
@@ -540,34 +541,34 @@ if (!(await isValidSession(cookie?.value))) {
               </div>
             `)
             .join("")
-          : `<div class="muted">No thoughts yet.</div>`;
-    
+        : `<div class="muted">No thoughts yet.</div>`;
+  
       const items = [...document.querySelectorAll(".thought-item")];
       const textEls = [...document.querySelectorAll(".thought-text")];
       const deleteBtns = [...document.querySelectorAll(".thought-action-btn.delete")];
       const cancelBtns = [...document.querySelectorAll(".thought-action-btn.cancel")];
-    
+  
       function closeAllThoughtMenus() {
         items.forEach((item) => item.classList.remove("is-open"));
       }
-    
+  
       textEls.forEach((el) => {
         const openMenu = (event) => {
           event.stopPropagation();
-    
+  
           const parent = el.closest(".thought-item");
           if (!parent) return;
-    
+  
           const alreadyOpen = parent.classList.contains("is-open");
           closeAllThoughtMenus();
-    
+  
           if (!alreadyOpen) {
             parent.classList.add("is-open");
           }
         };
-    
+  
         el.addEventListener("click", openMenu);
-    
+  
         el.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
@@ -575,7 +576,7 @@ if (!(await isValidSession(cookie?.value))) {
           }
         });
       });
-    
+  
       cancelBtns.forEach((btn) => {
         btn.addEventListener("click", (event) => {
           event.stopPropagation();
@@ -583,17 +584,17 @@ if (!(await isValidSession(cookie?.value))) {
           if (parent) parent.classList.remove("is-open");
         });
       });
-    
+  
       deleteBtns.forEach((btn) => {
         btn.addEventListener("click", async (event) => {
           event.stopPropagation();
-    
+  
           const id = btn.getAttribute("data-id");
           if (!id) return;
-    
+  
           const confirmed = window.confirm("Delete this thought?");
           if (!confirmed) return;
-    
+  
           try {
             await deleteThought(id);
             await loadThoughts();
@@ -603,37 +604,8 @@ if (!(await isValidSession(cookie?.value))) {
           }
         });
       });
-    
+  
       document.addEventListener("click", closeAllThoughtMenus, { once: true });
-    }
-    
-      cancelBtns.forEach((btn) => {
-        btn.addEventListener("click", (event) => {
-          event.stopPropagation();
-          const parent = btn.closest(".thought-item");
-          if (parent) parent.classList.remove("is-open");
-        });
-      });
-    
-      deleteBtns.forEach((btn) => {
-        btn.addEventListener("click", async (event) => {
-          event.stopPropagation();
-    
-          const id = btn.getAttribute("data-id");
-          if (!id) return;
-    
-          const confirmed = window.confirm("Delete this thought?");
-          if (!confirmed) return;
-    
-          try {
-            await deleteThought(id);
-            await loadThoughts();
-          } catch (err) {
-            console.error("Failed to delete thought:", err);
-            alert("Could not delete the thought.");
-          }
-        });
-      });
     }
   
     button.addEventListener("click", async () => {
