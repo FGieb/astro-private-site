@@ -1,17 +1,18 @@
-const USER_KEY_MAP = {
-  LM: process.env.PUSHOVER_USER_KEY_LM,
-  BM: process.env.PUSHOVER_USER_KEY_BM,
-};
-
 export async function sendMentionNotification({
   mentioned,
   source,
   text,
   link = "",
 }) {
-  const userKey = USER_KEY_MAP[mentioned];
+  const userKeyMap = {
+    LM: process.env.PUSHOVER_USER_KEY_LM,
+    BM: process.env.PUSHOVER_USER_KEY_BM,
+  };
 
-  if (!userKey || !process.env.PUSHOVER_APP_TOKEN) {
+  const appToken = process.env.PUSHOVER_APP_TOKEN;
+  const userKey = userKeyMap[mentioned];
+
+  if (!userKey || !appToken) {
     console.warn("Pushover not configured for mention:", mentioned);
     return { ok: false, skipped: true, reason: "missing pushover config" };
   }
@@ -19,7 +20,7 @@ export async function sendMentionNotification({
   const cleanText = String(text || "").trim();
 
   const body = new URLSearchParams({
-    token: process.env.PUSHOVER_APP_TOKEN,
+    token: appToken,
     user: userKey,
     title: "You were tagged",
     message: `${source}: ${cleanText}`,
