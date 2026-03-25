@@ -213,10 +213,25 @@ if (!(await isValidSession(cookie?.value))) {
       margin-bottom: 0.9rem;
     }
   
-    #commentList div {
+    .thought-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-bottom: 0.55rem;
+    }
+
+    .thought-text {
       font-size: 0.95rem;
-      margin-bottom: 0.45rem;
       line-height: 1.45;
+      flex: 1;
+    }
+
+    .delete-thought {
+      margin-top: 0;
+      padding: 0.3rem 0.75rem;
+      font-size: 0.84rem;
+      flex-shrink: 0;
     }
   
     textarea {
@@ -408,85 +423,129 @@ if (!(await isValidSession(cookie?.value))) {
     const button = document.getElementById("saveComment");
 
     const today = new Date().toISOString().slice(0, 10);
-    let dailyEntries = {};
-    let todayEntry = { comments: [] };
+    let todayThoughts = [];
 
-    async function loadDailyComments() {
+    async function loadThoughts() {
       try {
-        const res = await fetch("/.netlify/functions/daily-load", {
-          cache: "no-store",
+        const res = await fetch("/.netlify/functions/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "thoughts",
+            action: "list",
+          }),
         });
 
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          throw new Error(data?.error || `daily-load failed with ${res.status}`);
+          throw new Error(data?.error || `content list failed with ${res.status}`);
         }
 
-        dailyEntries = data || {};
-        todayEntry = dailyEntries[today] || { comments: [] };
+        const entries = Array.isArray(data?.entries) ? data.entries : [];
 
-        if (!Array.isArray(todayEntry.comments)) {
-          todayEntry.comments = [];
-        }
+        todayThoughts = entries
+          .filter((item) => item.date === today)
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-        renderComments();
+        renderThoughts();
       } catch (err) {
-        console.error("Failed to load comments:", err);
+        console.error("Failed to load thoughts:", err);
         list.innerHTML = `<div class="muted">Could not load thoughts.</div>`;
       }
     }
 
-    async function saveDailyComments() {
-      const res = await fetch("/.netlify/functions/daily-save", {
+    async function deleteThought(id) {
+      const res = await fetch("/.netlify/functions/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: today,
-          update: { comments: todayEntry.comments },
+          type: "thoughts",
+          action: "delete",
+          id,
         }),
       });
-    
+
       const data = await res.json().catch(() => ({}));
-    
+
       if (!res.ok) {
-        throw new Error(data?.error || `daily-save failed with ${res.status}`);
+        throw new Error(data?.error || `content delete failed with ${res.status}`);
       }
-    
-      console.log("daily-save result:", data);
     }
 
-    function renderComments() {
-      list.innerHTML = todayEntry.comments.length
-        ? todayEntry.comments
-            .map((c) => `<div>– ${escapeHtml(c.text)}</div>`)
+    function renderThoughts() {
+      list.innerHTML = todayThoughts.length
+        ? todayThoughts
+            .map((item) => `
+              <div class="thought-row">
+                <div class="thought-text">– ${escapeHtml(item.text || "")}</div>
+                <button
+                  type="button"
+                  class="delete-thought"
+                  data-id="${item.id}"
+                >
+                  Delete
+                </button>
+              </div>
+            `)
             .join("")
         : `<div class="muted">No thoughts yet.</div>`;
+
+      document.querySelectorAll(".delete-thought").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-id");
+          if (!id) return;
+
+          try {
+            await deleteThought(id);
+            await loadThoughts();
+          } catch (err) {
+            console.error("Failed to delete thought:", err);
+            alert("Could not delete the thought.");
+          }
+        });
+      });
     }
 
     button.addEventListener("click", async () => {
       const text = input.value.trim();
       if (!text) return;
 
-      todayEntry.comments.push({
-        text,
-        createdAt: new Date().toISOString(),
-      });
-
-      input.value = "";
-      renderComments();
+      button.disabled = true;
 
       try {
-        await saveDailyComments();
+        const res = await fetch("/.netlify/functions/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "thoughts",
+            action: "add",
+            data: {
+              date: today,
+              text,
+            },
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data?.error || `content add failed with ${res.status}`);
+        }
+
+        input.value = "";
+        await loadThoughts();
       } catch (err) {
-        console.error("Failed to save comment:", err);
+        console.error("Failed to save thought:", err);
         alert("Could not save the thought.");
+      } finally {
+        button.disabled = false;
       }
     });
 
     loadDailyContent();
     loadTodayCalendar();
-    loadDailyComments();
+    loadThoughts();
   </script>
 </body>
 </html>
