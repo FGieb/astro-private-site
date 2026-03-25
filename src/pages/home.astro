@@ -446,11 +446,14 @@ if (!(await isValidSession(cookie?.value))) {
           update: { comments: todayEntry.comments },
         }),
       });
-
+    
+      const data = await res.json().catch(() => ({}));
+    
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `daily-save failed with ${res.status}`);
       }
+    
+      console.log("daily-save result:", data);
     }
 
     function renderComments() {
