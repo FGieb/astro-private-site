@@ -208,32 +208,49 @@ if (!(await isValidSession(cookie?.value))) {
       font-size: 0.95rem;
       line-height: 1.45;
     }
-  
+
     #commentList {
       margin-bottom: 0.9rem;
     }
-  
+    
     .thought-row {
       display: flex;
       justify-content: space-between;
-      gap: 0.75rem;
       align-items: flex-start;
-      margin-bottom: 0.55rem;
+      gap: 0.75rem;
+      padding: 0.35rem 0;
     }
-
+    
     .thought-text {
       font-size: 0.95rem;
       line-height: 1.45;
       flex: 1;
+      color: rgba(255,255,255,0.96);
     }
-
+    
     .delete-thought {
       margin-top: 0;
-      padding: 0.3rem 0.75rem;
-      font-size: 0.84rem;
-      flex-shrink: 0;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.78rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.16);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.16s ease;
     }
-  
+    
+    .thought-row:hover .delete-thought,
+    .thought-row:focus-within .delete-thought {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .delete-thought:hover {
+      background: rgba(255,255,255,0.24);
+    }
+    
     textarea {
       width: 100%;
       min-height: 82px;
@@ -465,12 +482,14 @@ if (!(await isValidSession(cookie?.value))) {
           id,
         }),
       });
-
+    
       const data = await res.json().catch(() => ({}));
-
+    
       if (!res.ok) {
-        throw new Error(data?.error || `content delete failed with ${res.status}`);
+        throw new Error(data?.error || "Delete failed");
       }
+    
+      return data;
     }
 
     function renderThoughts() {
@@ -483,30 +502,39 @@ if (!(await isValidSession(cookie?.value))) {
                   type="button"
                   class="delete-thought"
                   data-id="${item.id}"
+                  aria-label="Delete thought"
+                  title="Delete thought"
                 >
-                  Delete
+                  ×
                 </button>
               </div>
             `)
             .join("")
         : `<div class="muted">No thoughts yet.</div>`;
-
+    
       document.querySelectorAll(".delete-thought").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const id = btn.getAttribute("data-id");
           if (!id) return;
-
+    
+          const confirmed = window.confirm("Delete this thought?");
+          if (!confirmed) return;
+    
+          btn.disabled = true;
+    
           try {
             await deleteThought(id);
             await loadThoughts();
           } catch (err) {
             console.error("Failed to delete thought:", err);
             alert("Could not delete the thought.");
+          } finally {
+            btn.disabled = false;
           }
         });
       });
     }
-
+    
     button.addEventListener("click", async () => {
       const text = input.value.trim();
       if (!text) return;
