@@ -207,11 +207,19 @@ const getMonthLabel = (month: number, year: number) =>
   };
 
   const saveEvents = async () => {
-    await fetch("/.netlify/functions/calendar-save", {
+    const res = await fetch("/.netlify/functions/calendar-save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cachedEvents)
     });
+  
+    const data = await res.json().catch(() => ({}));
+  
+    if (!res.ok) {
+      throw new Error(data?.error || `calendar-save failed with ${res.status}`);
+    }
+  
+    console.log("calendar-save result:", data);
   };
 
   const renderEvents = () => {
