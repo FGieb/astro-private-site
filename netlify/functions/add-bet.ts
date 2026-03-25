@@ -4,8 +4,10 @@ export const config = {
 
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
+import { extractMention } from "../../src/lib/mentions";
+import { sendMentionNotification } from "./_shared/pushover.mjs";
 
-function blobToText(raw) {
+function blobToText(raw: unknown) {
   if (!raw) return "";
   if (typeof raw === "string") return raw;
   if (raw instanceof Uint8Array) return new TextDecoder().decode(raw);
@@ -28,6 +30,7 @@ export default async function handler(req: Request) {
 
     const status = String(formData.get("status") || "open");
     const executedDateRaw = String(formData.get("executedDate") || "");
+    const notes = String(formData.get("notes") || "");
 
     const newBet = {
       id: crypto.randomUUID(),
@@ -37,7 +40,7 @@ export default async function handler(req: Request) {
       title: String(formData.get("title") || ""),
       stakes: String(formData.get("stakes") || ""),
       owner: String(formData.get("owner") || ""),
-      notes: String(formData.get("notes") || ""),
+      notes,
       status,
       executedDate:
         status === "done"
@@ -65,8 +68,36 @@ export default async function handler(req: Request) {
 
     await store.set("bets", JSON.stringify(bets));
 
+    let mention = null;
+    let notification = { ok: false, skipped: true };
+
+    mention = extractMention(notes);
+
+    if (mention) {
+      try {
+        notification = await sendMentionNotification({
+          mentioned: mention,
+          source: "New bet note",
+          text: notes,
+          link: `${process.env.PUBLIC_SITE_URL || ""}/bets`,
+        });
+      } catch (err) {
+        console.error("Bet mention notification failed:", err);
+        notification = {
+          ok: false,
+          skipped: false,
+          error: String(err),
+        };
+      }
+    }
+
     return new Response(
-      JSON.stringify({ ok: true, redirectTo: "/bets" }),
+      JSON.stringify({
+        ok: true,
+        redirectTo: "/bets",
+        mention,
+        notification,
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
