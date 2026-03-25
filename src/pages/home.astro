@@ -358,30 +358,16 @@ if (!(await isValidSession(cookie?.value))) {
   </div>
 
   <script type="module" is:inline>
-    async function loadDailyContent() {
-      const reflectionEl = document.getElementById("dailyReflection");
-      const funEl = document.getElementById("dailyFun");
-
-      try {
-        const res = await fetch("/.netlify/functions/generateDaily", {
-          cache: "no-store",
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          throw new Error(data?.error || `generateDaily failed with ${res.status}`);
-        }
-
-        reflectionEl.textContent = data?.reflective?.text || "No reflection available.";
-        funEl.textContent = data?.fun?.text || "No fun fact available.";
-      } catch (err) {
-        console.error("Failed to load daily content:", err);
-        reflectionEl.textContent = "Could not load today's reflection.";
-        funEl.textContent = "Could not load today's fun fact.";
-      }
-    }
-
+    const reflectionEl = document.getElementById("dailyReflection");
+    const funEl = document.getElementById("dailyFun");
+    const calendarBox = document.getElementById("todayCalendar");
+    const list = document.getElementById("commentList");
+    const input = document.getElementById("commentInput");
+    const button = document.getElementById("saveComment");
+  
+    const today = new Date().toISOString().slice(0, 10);
+    let todayThoughts = [];
+  
     function escapeHtml(str) {
       return String(str)
         .replaceAll("&", "&amp;")
@@ -390,42 +376,61 @@ if (!(await isValidSession(cookie?.value))) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
-
+  
     function iconForType(type) {
       return {
         note: "📝",
         plan: "📍",
         memory: "🧠",
-        occasion: "🌟"
+        occasion: "🌟",
       }[type] || "📝";
     }
-
+  
+    async function loadDailyContent() {
+      try {
+        const res = await fetch("/.netlify/functions/generateDaily", {
+          cache: "no-store",
+        });
+  
+        const data = await res.json().catch(() => ({}));
+  
+        if (!res.ok) {
+          throw new Error(data?.error || `generateDaily failed with ${res.status}`);
+        }
+  
+        reflectionEl.textContent = data?.reflective?.text || "No reflection available.";
+        funEl.textContent = data?.fun?.text || "No fun fact available.";
+      } catch (err) {
+        console.error("Failed to load daily content:", err);
+        reflectionEl.textContent = "Could not load today's reflection.";
+        funEl.textContent = "Could not load today's fun fact.";
+      }
+    }
+  
     async function loadTodayCalendar() {
-      const box = document.getElementById("todayCalendar");
-
       try {
         const res = await fetch("/.netlify/functions/calendar-load", {
           cache: "no-store",
         });
-
+  
         const data = await res.json().catch(() => ({}));
-
+  
         if (!res.ok) {
           throw new Error(data?.error || `calendar-load failed with ${res.status}`);
         }
-
+  
         const now = new Date();
         const key =
           `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
+  
         const events = Array.isArray(data?.[key]) ? data[key] : [];
-
+  
         if (!events.length) {
-          box.innerHTML = `<div class="muted">Nothing saved for today.</div>`;
+          calendarBox.innerHTML = `<div class="muted">Nothing saved for today.</div>`;
           return;
         }
-
-        box.innerHTML = events.map((e) => `
+  
+        calendarBox.innerHTML = events.map((e) => `
           <div class="event-item">
             <div class="event-title">${iconForType(e.type)} ${escapeHtml(e.title || "Untitled")}</div>
             ${e.note ? `<div class="event-note">${escapeHtml(e.note)}</div>` : ""}
@@ -433,17 +438,10 @@ if (!(await isValidSession(cookie?.value))) {
         `).join("");
       } catch (err) {
         console.error("Failed to load today's calendar:", err);
-        box.innerHTML = `<div class="muted">Could not load today's events.</div>`;
+        calendarBox.innerHTML = `<div class="muted">Could not load today's events.</div>`;
       }
     }
-
-    const list = document.getElementById("commentList");
-    const input = document.getElementById("commentInput");
-    const button = document.getElementById("saveComment");
-
-    const today = new Date().toISOString().slice(0, 10);
-    let todayThoughts = [];
-
+  
     async function loadThoughts() {
       try {
         const res = await fetch("/.netlify/functions/content", {
@@ -454,26 +452,26 @@ if (!(await isValidSession(cookie?.value))) {
             action: "list",
           }),
         });
-
+  
         const data = await res.json().catch(() => ({}));
-
+  
         if (!res.ok) {
           throw new Error(data?.error || `content list failed with ${res.status}`);
         }
-
+  
         const entries = Array.isArray(data?.entries) ? data.entries : [];
-
+  
         todayThoughts = entries
           .filter((item) => item.date === today)
           .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
+  
         renderThoughts();
       } catch (err) {
         console.error("Failed to load thoughts:", err);
         list.innerHTML = `<div class="muted">Could not load thoughts.</div>`;
       }
     }
-
+  
     async function deleteThought(id) {
       const res = await fetch("/.netlify/functions/content", {
         method: "POST",
@@ -484,16 +482,16 @@ if (!(await isValidSession(cookie?.value))) {
           id,
         }),
       });
-    
+  
       const data = await res.json().catch(() => ({}));
-    
+  
       if (!res.ok) {
         throw new Error(data?.error || "Delete failed");
       }
-    
+  
       return data;
     }
-
+  
     function renderThoughts() {
       list.innerHTML = todayThoughts.length
         ? todayThoughts
@@ -513,15 +511,15 @@ if (!(await isValidSession(cookie?.value))) {
             `)
             .join("")
         : `<div class="muted">No thoughts yet.</div>`;
-    
+  
       document.querySelectorAll(".thought-menu").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const id = btn.getAttribute("data-id");
           if (!id) return;
-    
+  
           const confirmed = window.confirm("Delete this thought?");
           if (!confirmed) return;
-    
+  
           try {
             await deleteThought(id);
             await loadThoughts();
@@ -532,46 +530,13 @@ if (!(await isValidSession(cookie?.value))) {
         });
       });
     }
-    
-      deleteButtons.forEach((btn) => {
-        btn.addEventListener("click", async (event) => {
-          event.stopPropagation();
-    
-          const id = btn.getAttribute("data-id");
-          if (!id) return;
-    
-          const confirmed = window.confirm("Delete this thought?");
-          if (!confirmed) return;
-    
-          try {
-            await deleteThought(id);
-            await loadThoughts();
-          } catch (err) {
-            console.error("Failed to delete thought:", err);
-            alert("Could not delete the thought.");
-          }
-        });
-      });
-    
-      document.addEventListener(
-        "click",
-        (event) => {
-          if (!event.target.closest(".thought-row")) {
-            document.querySelectorAll(".thought-row.reveal-delete").forEach((row) => {
-              row.classList.remove("reveal-delete");
-            });
-          }
-        },
-        { once: true }
-      );
-    }
-    
+  
     button.addEventListener("click", async () => {
       const text = input.value.trim();
       if (!text) return;
-
+  
       button.disabled = true;
-
+  
       try {
         const res = await fetch("/.netlify/functions/content", {
           method: "POST",
@@ -585,13 +550,13 @@ if (!(await isValidSession(cookie?.value))) {
             },
           }),
         });
-
+  
         const data = await res.json().catch(() => ({}));
-
+  
         if (!res.ok) {
           throw new Error(data?.error || `content add failed with ${res.status}`);
         }
-
+  
         input.value = "";
         await loadThoughts();
       } catch (err) {
@@ -601,10 +566,11 @@ if (!(await isValidSession(cookie?.value))) {
         button.disabled = false;
       }
     });
-
+  
     loadDailyContent();
     loadTodayCalendar();
     loadThoughts();
   </script>
+  
 </body>
 </html>
