@@ -9,7 +9,11 @@ export default async function handler(req: Request) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const { id, status } = await req.json();
+  const { id, updates } = await req.json();
+
+  if (!id || !updates || typeof updates !== "object") {
+    return new Response("Invalid payload", { status: 400 });
+  }
 
   const store = getStore("bets");
   const raw = await store.get("bets");
@@ -18,9 +22,15 @@ export default async function handler(req: Request) {
     ? JSON.parse(new TextDecoder().decode(raw))
     : [];
 
-  bets = bets.map((b: any) =>
-    b.id === id ? { ...b, status } : b
-  );
+  bets = bets.map((bet: any) => {
+    if (bet.id !== id) return bet;
+
+    return {
+      ...bet,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+  });
 
   await store.set("bets", JSON.stringify(bets));
 
