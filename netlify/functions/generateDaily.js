@@ -46,25 +46,25 @@ export default async function handler(req) {
     const url = new URL(req.url);
     const force = url.searchParams.get("force") === "true";
     const today = new Date().toISOString().slice(0, 10);
- 
+
     const store = getStore("daily");
     const entries = (await store.get("entries", { type: "json" })) || {};
- 
+
     entries[today] = entries[today] || {
       reflective: null,
       fun: null,
       comments: [],
       generatedAt: null,
     };
- 
+
     const existing = entries[today];
- 
+
     if (!force && existing.reflective?.text && existing.fun?.text) {
       return new Response(JSON.stringify(existing), {
         headers: { "Content-Type": "application/json" },
       });
     }
- 
+
     if (force) {
       existing.reflective = null;
       existing.fun = null;
@@ -105,7 +105,7 @@ Return only the text.
     const funPrompt = `
 Generate ONE concise, non-obvious fact or observation about humans, institutions, law, psychology, history, design, or statistics.
 
-For example facts that involve:
+Strongly prefer facts that involve:
 - unintended consequences
 - incentives backfiring
 - design flaws shaping behavior
@@ -169,7 +169,7 @@ When relevant, a simple source for more information
     );
   } catch (err) {
     console.error("generateDaily fatal error:", err);
- 
+
     return new Response(
       JSON.stringify({
         reflective: { text: FALLBACK_REFLECTION },

@@ -102,6 +102,30 @@ export default async function handler(req) {
       return json({ ok: true, entries: updated });
     }
 
+    if (action === "update") {
+      const id = String(body.id || "");
+      const data = body.data;
+
+      if (!id) {
+        return json({ error: "Missing id" }, 400);
+      }
+
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return json({ error: "Missing or invalid data" }, 400);
+      }
+
+      const idx = entries.findIndex((item) => item.id === id);
+
+      if (idx === -1) {
+        return json({ error: "Entry not found" }, 404);
+      }
+
+      entries[idx] = { ...entries[idx], ...data };
+      await saveEntries(type, entries);
+
+      return json({ ok: true, entry: entries[idx], entries });
+    }
+
     return json({ error: "Unhandled action" }, 400);
   } catch (err) {
     console.error("content.mjs failed:", err);

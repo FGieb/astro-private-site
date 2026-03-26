@@ -1,19 +1,19 @@
 ---
 import { isValidSession } from "../lib/auth";
- 
+
 const cookie = Astro.cookies.get("auth");
- 
+
 if (!(await isValidSession(cookie?.value))) {
   return Astro.redirect("/login");
 }
 ---
- 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Notes</title>
- 
+
   <style is:global>
     body {
       margin: 0;
@@ -27,13 +27,13 @@ if (!(await isValidSession(cookie?.value))) {
       background-position: center;
       background-attachment: fixed;
     }
- 
+
     .top-nav {
       display: flex;
       justify-content: center;
       margin-top: 1.25rem;
     }
- 
+
     .nav-pill {
       display: flex;
       gap: 1.2rem;
@@ -42,26 +42,26 @@ if (!(await isValidSession(cookie?.value))) {
       border-radius: 999px;
       backdrop-filter: blur(6px);
     }
- 
+
     .nav-pill a {
       color: white;
       text-decoration: none;
       opacity: 0.85;
     }
- 
+
     .nav-pill a:hover { opacity: 1; }
- 
+
     .wrapper {
       max-width: 640px;
       margin: 3rem auto;
       padding: 0 1.25rem 4rem;
     }
- 
+
     h1 {
       text-align: center;
       margin-bottom: 2rem;
     }
- 
+
     .note-input {
       background: rgba(255,255,255,0.9);
       color: #111;
@@ -70,7 +70,7 @@ if (!(await isValidSession(cookie?.value))) {
       box-shadow: 0 12px 30px rgba(0,0,0,0.25);
       margin-bottom: 2rem;
     }
- 
+
     textarea {
       width: 100%;
       min-height: 100px;
@@ -81,7 +81,7 @@ if (!(await isValidSession(cookie?.value))) {
       resize: vertical;
       box-sizing: border-box;
     }
- 
+
     button {
       margin-top: 0.6rem;
       padding: 0.4rem 1rem;
@@ -91,7 +91,7 @@ if (!(await isValidSession(cookie?.value))) {
       color: white;
       cursor: pointer;
     }
- 
+
     .note {
       background: rgba(0,0,0,0.45);
       border-radius: 1rem;
@@ -99,16 +99,16 @@ if (!(await isValidSession(cookie?.value))) {
       margin-bottom: 1rem;
       backdrop-filter: blur(6px);
     }
- 
+
     .note-text {
       cursor: pointer;
       transition: color 0.15s;
     }
- 
+
     .note-text:hover {
       color: rgba(100, 180, 255, 0.90);
     }
- 
+
     .meta {
       font-size: 0.75rem;
       opacity: 0.6;
@@ -116,9 +116,9 @@ if (!(await isValidSession(cookie?.value))) {
     }
   </style>
 </head>
- 
+
 <body>
- 
+
   <div class="top-nav">
     <div class="nav-pill">
       <a href="/calendar">📅 Calendar</a>
@@ -127,23 +127,23 @@ if (!(await isValidSession(cookie?.value))) {
       <a href="/archive">🗂 Archive</a>
     </div>
   </div>
- 
+
   <main class="wrapper">
     <h1>📝 Shared Notes</h1>
- 
+
     <div class="note-input">
       <textarea id="noteInput" placeholder="Write a note…"></textarea>
       <button id="addNote">Add note</button>
     </div>
- 
+
     <div id="notesList"></div>
   </main>
- 
+
   <script type="module" is:inline>
     const input = document.getElementById("noteInput");
     const list = document.getElementById("notesList");
     const button = document.getElementById("addNote");
- 
+
     function escapeHtml(str) {
       return String(str)
         .replaceAll("&", "&amp;")
@@ -152,7 +152,7 @@ if (!(await isValidSession(cookie?.value))) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
- 
+
     async function callContent(body) {
       const res = await fetch("/.netlify/functions/content", {
         method: "POST",
@@ -163,38 +163,45 @@ if (!(await isValidSession(cookie?.value))) {
       if (!res.ok) throw new Error(data?.error || `content failed with ${res.status}`);
       return data;
     }
- 
+
     async function loadNotes() {
       const data = await callContent({ type: "notes", action: "list" });
       render(data.entries || []);
     }
- 
+
     function render(notes) {
       if (!notes.length) {
         list.innerHTML = '<div class="note">No notes yet.</div>';
         return;
       }
- 
+
       list.innerHTML = notes.map((n) => `
         <div class="note" data-id="${n.id}">
           <div class="note-text" data-id="${n.id}" role="button" tabindex="0"
-            aria-label="Click to delete note"
+            aria-label="Click to edit note"
           >${escapeHtml(n.text || "")}</div>
           <div class="meta">${new Date(n.createdAt).toLocaleString()}</div>
         </div>
       `).join("");
- 
+
       document.querySelectorAll(".note-text").forEach((el) => {
         const handle = async (event) => {
           event.stopPropagation();
           const id = el.getAttribute("data-id");
-          if (!id || !window.confirm("Delete this note?")) return;
+          if (!id) return;
+          const current = el.textContent;
+          const edited = window.prompt("Edit note:", current);
+          if (edited === null) return;
           try {
-            await callContent({ type: "notes", action: "delete", id });
+            if (edited.trim() === "") {
+              await callContent({ type: "notes", action: "delete", id });
+            } else if (edited.trim() !== current) {
+              await callContent({ type: "notes", action: "update", id, data: { text: edited.trim() } });
+            }
             await loadNotes();
           } catch (err) {
-            console.error("Failed to delete note:", err);
-            alert("Could not delete the note.");
+            console.error("Failed to update note:", err);
+            alert("Could not update the note.");
           }
         };
         el.addEventListener("click", handle);
@@ -203,7 +210,7 @@ if (!(await isValidSession(cookie?.value))) {
         });
       });
     }
- 
+
     button.addEventListener("click", async () => {
       const text = input.value.trim();
       if (!text) return;
@@ -216,9 +223,9 @@ if (!(await isValidSession(cookie?.value))) {
         alert("Could not save the note.");
       }
     });
- 
+
     loadNotes();
   </script>
- 
+
 </body>
 </html>

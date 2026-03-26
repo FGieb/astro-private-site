@@ -172,6 +172,7 @@ const getMonthLabel = (month: number, year: number) =>
     cursor: pointer;
     transition: color 0.15s;
   }
+
   .event-title:hover {
     color: rgba(100, 180, 255, 0.90);
   }
@@ -248,19 +249,26 @@ const getMonthLabel = (month: number, year: number) =>
           </div>
         `).join("")
       : `<div class="event-item">No events yet.</div>`;
- 
+
     document.querySelectorAll(".event-title[data-index]").forEach((el) => {
       const handle = async () => {
         const idx = parseInt(el.getAttribute("data-index"), 10);
-        if (!window.confirm("Delete this event?")) return;
         const key = keyForDate(selectedDate.month, selectedDate.day);
-        cachedEvents[key].splice(idx, 1);
-        if (!cachedEvents[key].length) delete cachedEvents[key];
+        const event = cachedEvents[key]?.[idx];
+        if (!event) return;
+        const edited = window.prompt("Edit event title:", event.title);
+        if (edited === null) return;
         try {
+          if (edited.trim() === "") {
+            cachedEvents[key].splice(idx, 1);
+            if (!cachedEvents[key].length) delete cachedEvents[key];
+          } else {
+            cachedEvents[key][idx] = { ...event, title: edited.trim() };
+          }
           await saveEvents();
         } catch (err) {
-          console.error("Failed to delete event:", err);
-          alert("Could not delete the event.");
+          console.error("Failed to update event:", err);
+          alert("Could not update the event.");
           await loadEvents();
         }
         renderCalendar();
