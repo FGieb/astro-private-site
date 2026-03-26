@@ -9,7 +9,7 @@ function json(body, status = 200) {
 }
 
 function isValidType(type) {
-  return ["notes", "calendar", "thoughts", "bets"].includes(type);
+  return ["notes", "calendar", "thoughts", "bets", "scores"].includes(type);
 }
 
 async function loadEntries(storeName) {

@@ -1,0 +1,423 @@
+---
+import { isValidSession } from "../lib/auth";
+
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scores</title>
+
+  <style is:global>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      color: white;
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.75)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
+
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
+
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+    }
+
+    .nav-pill a:hover { opacity: 1; }
+
+    .wrapper {
+      max-width: 860px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem 4rem;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      opacity: 0.55;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    /* FORM CARD */
+    .form-card {
+      background: rgba(255,255,255,0.9);
+      color: #111;
+      border-radius: 1.2rem;
+      padding: 1.4rem 1.6rem;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+      margin-bottom: 2rem;
+    }
+
+    .form-card h2 {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      opacity: 0.7;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .form-row.wide {
+      grid-template-columns: 1fr;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    input, select, textarea {
+      padding: 0.5rem 0.7rem;
+      border-radius: 0.6rem;
+      border: 1px solid #ddd;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: white;
+      color: #111;
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+
+    .add-btn {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 999px;
+      border: none;
+      background: #0a74c9;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    /* SCOREBOARD */
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .score-pill {
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      border-radius: 1rem;
+      padding: 1rem 1.2rem;
+      text-align: center;
+    }
+
+    .score-pill .game-name {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.6;
+      margin-bottom: 0.4rem;
+    }
+
+    .score-pill .leaders {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .score-pill .record {
+      font-size: 0.8rem;
+      opacity: 0.6;
+      margin-top: 0.2rem;
+    }
+
+    /* LOG TABLE */
+    .log-card {
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      border-radius: 1.2rem;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: rgba(10,116,201,0.15);
+      border-bottom: 1px solid rgba(10,116,201,0.3);
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: left;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.92rem;
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .winner-cell {
+      font-weight: 700;
+      color: rgba(100,180,255,0.95);
+    }
+
+    .row-text {
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .row-text:hover { color: rgba(100,180,255,0.9); }
+
+    .notes-cell {
+      opacity: 0.65;
+      font-size: 0.85rem;
+    }
+
+    .empty-row td {
+      text-align: center;
+      padding: 2rem;
+      opacity: 0.5;
+      font-style: italic;
+    }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <a href="/home">🏠 Home</a>
+      <a href="/bets">🎲 Bets</a>
+      <a href="/notes">📝 Notes</a>
+      <a href="/scores">🏆 Scores</a>
+      <a href="/archive">🗂 Archive</a>
+    </div>
+  </div>
+
+  <main class="wrapper">
+    <h1>🏆 Scores</h1>
+    <p class="subtitle">Keep track of who's winning what.</p>
+
+    <div class="form-card">
+      <h2>Add a result</h2>
+      <div class="form-row">
+        <label>
+          Game
+          <select id="gameSelect">
+            <option value="Backgammon">🎲 Backgammon</option>
+            <option value="Poker">🃏 Poker</option>
+            <option value="Rummikub">🀱 Rummikub</option>
+            <option value="Darts">🎯 Darts</option>
+            <option value="Pool">🎱 Pool</option>
+            <option value="Worms">🪱 Worms</option>
+            <option value="Botanic">🌿 Botanic</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label>
+          Winner
+          <select id="winnerSelect">
+            <option value="LM">LM</option>
+            <option value="BM">BM</option>
+          </select>
+        </label>
+        <label>
+          Date
+          <input type="date" id="dateInput" />
+        </label>
+      </div>
+      <div class="form-row wide">
+        <label>
+          Notes (optional)
+          <textarea id="notesInput" placeholder="Any context..."></textarea>
+        </label>
+      </div>
+      <button class="add-btn" id="addBtn">Add result</button>
+    </div>
+
+    <div class="scoreboard" id="scoreboard"></div>
+
+    <div class="log-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>Winner</th>
+            <th>Date</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="logBody">
+          <tr class="empty-row"><td colspan="4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script type="module" is:inline>
+    const GAMES = ["Backgammon", "Poker", "Rummikub", "Other"];
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    }
+
+    async function callContent(body) {
+      const res = await fetch("/.netlify/functions/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "content failed");
+      return data;
+    }
+
+    // Set today's date as default
+    document.getElementById("dateInput").value = new Date().toISOString().slice(0, 10);
+
+    async function load() {
+      const data = await callContent({ type: "scores", action: "list" });
+      const scores = (data.entries || []).sort((a, b) => b.date?.localeCompare(a.date));
+      renderScoreboard(scores);
+      renderLog(scores);
+    }
+
+    function renderScoreboard(scores) {
+      const box = document.getElementById("scoreboard");
+      if (!scores.length) { box.innerHTML = ""; return; }
+
+      // Group by game
+      const byGame = {};
+      for (const s of scores) {
+        const g = s.game || "Other";
+        if (!byGame[g]) byGame[g] = { LM: 0, BM: 0 };
+        if (s.winner === "LM") byGame[g].LM++;
+        else if (s.winner === "BM") byGame[g].BM++;
+      }
+
+      box.innerHTML = Object.entries(byGame).map(([game, tally]) => {
+        const total = tally.LM + tally.BM;
+        const leader = tally.LM > tally.BM ? "LM" : tally.BM > tally.LM ? "BM" : "Tied";
+        const leaderText = leader === "Tied" ? "🤝 Tied" : `${leader} leads`;
+        return `
+          <div class="score-pill">
+            <div class="game-name">${escapeHtml(game)}</div>
+            <div class="leaders">${leaderText}</div>
+            <div class="record">LM ${tally.LM} – ${tally.BM} BM · ${total} played</div>
+          </div>`;
+      }).join("");
+    }
+
+    function renderLog(scores) {
+      const tbody = document.getElementById("logBody");
+      if (!scores.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No results yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = scores.map(s => `
+        <tr data-id="${s.id}">
+          <td><span class="row-text" data-field="game" data-id="${s.id}">${escapeHtml(s.game || "")}</span></td>
+          <td class="winner-cell"><span class="row-text" data-field="winner" data-id="${s.id}">${escapeHtml(s.winner || "")}</span></td>
+          <td><span class="row-text" data-field="date" data-id="${s.id}">${escapeHtml(s.date || "")}</span></td>
+          <td class="notes-cell"><span class="row-text" data-field="notes" data-id="${s.id}">${escapeHtml(s.notes || "—")}</span></td>
+        </tr>
+      `).join("");
+
+      document.querySelectorAll(".row-text").forEach(el => {
+        el.addEventListener("click", async () => {
+          const id = el.dataset.id;
+          const field = el.dataset.field;
+          const current = el.textContent === "—" ? "" : el.textContent;
+          const edited = window.prompt(`Edit ${field}\n(clear + OK to delete entry):`, current);
+          if (edited === null) return;
+          try {
+            if (edited.trim() === "" && field === "notes") {
+              // Just clear notes, don't delete the entry
+              await callContent({ type: "scores", action: "update", id, data: { notes: "" } });
+            } else if (edited.trim() === "") {
+              // Delete the whole entry
+              if (window.confirm("Delete this result entirely?")) {
+                await callContent({ type: "scores", action: "delete", id });
+              }
+            } else if (edited.trim() !== current) {
+              await callContent({ type: "scores", action: "update", id, data: { [field]: edited.trim() } });
+            }
+            await load();
+          } catch (err) {
+            console.error(err);
+            alert("Could not update.");
+          }
+        });
+      });
+    }
+
+    document.getElementById("addBtn").addEventListener("click", async () => {
+      const game = document.getElementById("gameSelect").value;
+      const winner = document.getElementById("winnerSelect").value;
+      const date = document.getElementById("dateInput").value;
+      const notes = document.getElementById("notesInput").value.trim();
+      if (!date) { alert("Please set a date."); return; }
+      try {
+        await callContent({ type: "scores", action: "add", data: { game, winner, date, notes } });
+        document.getElementById("notesInput").value = "";
+        await load();
+      } catch (err) {
+        console.error(err);
+        alert("Could not save result.");
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>
