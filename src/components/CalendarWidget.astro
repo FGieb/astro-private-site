@@ -256,7 +256,7 @@ const getMonthLabel = (month: number, year: number) =>
         const key = keyForDate(selectedDate.month, selectedDate.day);
         const event = cachedEvents[key]?.[idx];
         if (!event) return;
-        const edited = window.prompt("Edit event title:", event.title);
+        const edited = window.prompt("Edit event title\n(clear + OK to delete):", event.title);
         if (edited === null) return;
         try {
           if (edited.trim() === "") {
