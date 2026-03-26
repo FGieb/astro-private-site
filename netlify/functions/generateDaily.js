@@ -75,6 +75,7 @@ function clientSafeEntry(entry) {
     comments: entry.comments || [],
     generatedAt: entry.generatedAt,
     _abError: entry._abError || null,
+    _debug: entry._debug || null,
   };
 }
 
@@ -247,9 +248,11 @@ When relevant, a simple source for more information
           votes: existing.votes || {},
           comments: existing.comments || [],
           generatedAt: existing.generatedAt,
+          _abError: existing._abError || null,
+          _debug: { force, usedFallback, hadAb: !!existing.ab },
         })
       ),
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
     );
   } catch (err) {
     console.error("generateDaily fatal error:", err);
