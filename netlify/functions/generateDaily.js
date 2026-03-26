@@ -41,28 +41,34 @@ async function callOpenAI(prompt) {
   return text;
 }
 
-export async function handler() {
+export async function handler(event) {
   try {
+    const force = event?.queryStringParameters?.force === "true";
     const today = new Date().toISOString().slice(0, 10);
-
+ 
     const store = getStore("daily");
     const entries = (await store.get("entries", { type: "json" })) || {};
-
+ 
     entries[today] = entries[today] || {
       reflective: null,
       fun: null,
       comments: [],
       generatedAt: null,
     };
-
+ 
     const existing = entries[today];
-
-    if (existing.reflective?.text && existing.fun?.text) {
+ 
+    if (!force && existing.reflective?.text && existing.fun?.text) {
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(existing),
       };
+    }
+ 
+    if (force) {
+      existing.reflective = null;
+      existing.fun = null;
     }
 
     const reflectivePrompt = `
