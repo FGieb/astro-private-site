@@ -369,16 +369,22 @@ if (!(await isValidSession(cookie?.value))) {
   
     async function loadDailyContent() {
       try {
-        const res = await fetch("/.netlify/functions/generateDaily", {
-          cache: "no-store",
-        });
-  
-        const data = await res.json().catch(() => ({}));
-  
-        if (!res.ok) {
-          throw new Error(data?.error || `generateDaily failed with ${res.status}`);
+        const today = new Date().toISOString().slice(0, 10);
+        const cacheKey = `daily-${today}`;
+        const cached = sessionStorage.getItem(cacheKey);
+
+        let data;
+        if (cached) {
+          data = JSON.parse(cached);
+        } else {
+          const res = await fetch("/.netlify/functions/generateDaily");
+          data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data?.error || `generateDaily ailed with ${res.status}`);
+          if (data?.reflective?.text && data?.fun?.text) {
+            sessionStorage.setItem(cacheKey, JSON.stringify(data));
+          }
         }
-  
+
         reflectionEl.textContent = data?.reflective?.text || "No reflection available.";
         funEl.textContent = data?.fun?.text || "No fun fact available.";
       } catch (err) {
