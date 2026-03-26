@@ -188,23 +188,23 @@ if (!(await isValidSession(cookie?.value))) {
       pointer-events: none;
     }
 
-    /* ── Add form — soft frosted card ── */
+    /* ── Add form — dark glass card ── */
     .add-card {
-      background: rgba(220, 228, 240, 0.72);
-      color: var(--text-dark);
+      background: var(--glass-mid);
+      color: white;
       border-radius: var(--radius-lg);
       padding: 1rem 1.2rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
       margin-bottom: 1.2rem;
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
     .add-card h2 {
       margin: 0 0 0.7rem;
       font-size: 0.95rem;
       font-weight: 700;
-      color: #1a1a2e;
+      color: white;
     }
 
     .form-grid {
@@ -221,7 +221,7 @@ if (!(await isValidSession(cookie?.value))) {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #4a5568;
+      color: rgba(255,255,255,0.55);
       margin-bottom: 0.2rem;
     }
 
@@ -231,9 +231,9 @@ if (!(await isValidSession(cookie?.value))) {
       width: 100%;
       padding: 0.42rem 0.65rem;
       border-radius: 0.5rem;
-      border: 1px solid rgba(0,0,0,0.15);
-      background: rgba(255,255,255,0.65);
-      color: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: white;
       font-family: inherit;
       font-size: 0.88rem;
       transition: border-color 0.15s, box-shadow 0.15s;
@@ -241,7 +241,7 @@ if (!(await isValidSession(cookie?.value))) {
 
     .form-field input::placeholder,
     .form-field textarea::placeholder {
-      color: #888;
+      color: rgba(255,255,255,0.35);
     }
 
     .form-field textarea {
@@ -255,17 +255,17 @@ if (!(await isValidSession(cookie?.value))) {
       outline: none;
       border-color: var(--accent-blue);
       box-shadow: 0 0 0 2px var(--accent-blue-soft);
-      background: rgba(255,255,255,0.85);
+      background: rgba(255,255,255,0.12);
     }
 
     .form-field select option {
-      background: white;
-      color: #1a1a2e;
+      background: #1a1e28;
+      color: white;
     }
 
     .form-field input[type="date"] {
       cursor: pointer;
-      color-scheme: light;
+      color-scheme: dark;
     }
 
     /* ── Star rating ── */
@@ -278,7 +278,7 @@ if (!(await isValidSession(cookie?.value))) {
     .star-input span {
       font-size: 1.2rem;
       cursor: pointer;
-      color: rgba(0,0,0,0.18);
+      color: rgba(255,255,255,0.2);
       transition: color 0.1s;
       user-select: none;
     }
@@ -567,7 +567,7 @@ if (!(await isValidSession(cookie?.value))) {
 
     <!-- ── Add form ── -->
     <section class="add-card" id="addCard">
-      <h2 id="formTitle">+ Add a restaurant</h2>
+      <h2 id="formTitle">🍽 Add a restaurant</h2>
 
       <!-- Restaurant fields -->
       <div id="formRestaurant" class="form-grid">
@@ -735,9 +735,9 @@ if (!(await isValidSession(cookie?.value))) {
 
     function switchForm() {
       const titles = {
-        restaurant: "+ Add a restaurant",
-        trip: "+ Add a trip",
-        media: "+ Add a movie or series",
+        restaurant: "🍽 Add a restaurant",
+        trip: "✈️ Add a trip",
+        media: "🎬 Add a movie or series",
       };
       document.getElementById("formTitle").textContent = titles[currentCat];
       document.getElementById("formRestaurant").style.display = currentCat === "restaurant" ? "" : "none";
