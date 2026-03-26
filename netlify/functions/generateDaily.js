@@ -8,10 +8,7 @@ const FALLBACK_FUN =
 
 async function callOpenAI(prompt) {
   const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_API_KEY");
-  }
+  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -27,18 +24,53 @@ async function callOpenAI(prompt) {
   });
 
   const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data?.error?.message || `OpenAI request failed with ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(data?.error?.message || `OpenAI failed with ${res.status}`);
   const text = data?.choices?.[0]?.message?.content?.trim();
-
-  if (!text) {
-    throw new Error("OpenAI returned no content");
-  }
-
+  if (!text) throw new Error("OpenAI returned no content");
   return text;
+}
+
+async function callAnthropic(prompt) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("Missing ANTHROPIC_API_KEY");
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error?.message || `Anthropic failed with ${res.status}`);
+  const text = data?.content?.[0]?.text?.trim();
+  if (!text) throw new Error("Anthropic returned no content");
+  return text;
+}
+
+// Strip model identity before sending to client (keep the blind)
+function clientSafeEntry(entry) {
+  return {
+    reflective: entry.reflective,
+    fun: entry.fun,
+    ab: entry.ab
+      ? { A: { text: entry.ab.A.text }, B: { text: entry.ab.B.text } }
+      : null,
+    votes: entry.votes
+      ? Object.fromEntries(
+          Object.entries(entry.votes).map(([p, v]) => [p, { choice: v.choice }])
+        )
+      : {},
+    comments: entry.comments || [],
+    generatedAt: entry.generatedAt,
+  };
 }
 
 export default async function handler(req) {
@@ -53,21 +85,29 @@ export default async function handler(req) {
     entries[today] = entries[today] || {
       reflective: null,
       fun: null,
+      ab: null,
+      votes: {},
       comments: [],
       generatedAt: null,
     };
 
     const existing = entries[today];
 
-    if (!force && existing.reflective?.text && existing.fun?.text) {
-      return new Response(JSON.stringify(existing), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     if (force) {
       existing.reflective = null;
       existing.fun = null;
+      existing.ab = null;
+    }
+
+    const needsReflective = !existing.reflective?.text;
+    const needsFun = !existing.fun?.text;
+    const needsAb = !existing.ab;
+
+    // Nothing to do — return cached
+    if (!needsReflective && !needsFun && !needsAb) {
+      return new Response(JSON.stringify(clientSafeEntry(existing)), {
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const reflectivePrompt = `
@@ -133,22 +173,52 @@ When relevant, a simple source for more information
 
     let usedFallback = false;
 
-    if (!existing.reflective?.text) {
+    // Generate fun fact (OpenAI only, no comparison needed)
+    if (needsFun) {
       try {
-        const reflective = await callOpenAI(reflectivePrompt);
-        existing.reflective = { text: reflective };
+        existing.fun = { text: await callOpenAI(funPrompt) };
       } catch (err) {
-        console.error("Failed to generate reflective item:", err);
+        console.error("Failed to generate fun fact:", err);
         usedFallback = true;
       }
     }
 
-    if (!existing.fun?.text) {
+    // Generate A/B reflections (both models in parallel)
+    if (needsAb) {
+      const openaiText = existing.reflective?.text ?? null;
+
+      const [openaiResult, anthropicResult] = await Promise.allSettled([
+        openaiText ? Promise.resolve(openaiText) : callOpenAI(reflectivePrompt),
+        callAnthropic(reflectivePrompt),
+      ]);
+
+      const oText = openaiResult.status === "fulfilled" ? openaiResult.value : null;
+      const aText = anthropicResult.status === "fulfilled" ? anthropicResult.value : null;
+
+      if (oText) existing.reflective = { text: oText };
+
+      if (oText && aText) {
+        // Random assignment: heads = OpenAI is A, tails = Anthropic is A
+        const flip = Math.random() < 0.5;
+        existing.ab = {
+          A: { text: flip ? oText : aText, model: flip ? "openai" : "anthropic" },
+          B: { text: flip ? aText : oText, model: flip ? "anthropic" : "openai" },
+        };
+      } else {
+        // One model failed — fall back to single reflection
+        if (oText) existing.reflective = { text: oText };
+        usedFallback = true;
+        console.error("A/B generation incomplete:", {
+          openai: openaiResult.status,
+          anthropic: anthropicResult.status,
+        });
+      }
+    } else if (needsReflective) {
+      // Only reflective missing (no ab needed, legacy path)
       try {
-        const fun = await callOpenAI(funPrompt);
-        existing.fun = { text: fun };
+        existing.reflective = { text: await callOpenAI(reflectivePrompt) };
       } catch (err) {
-        console.error("Failed to generate fun item:", err);
+        console.error("Failed to generate reflective:", err);
         usedFallback = true;
       }
     }
@@ -156,15 +226,23 @@ When relevant, a simple source for more information
     if (!usedFallback) {
       existing.generatedAt = new Date().toISOString();
       await store.setJSON("entries", entries);
+    } else if (existing.reflective?.text || existing.fun?.text) {
+      // Partial success — save what we got
+      existing.generatedAt = existing.generatedAt || new Date().toISOString();
+      await store.setJSON("entries", entries);
     }
 
     return new Response(
-      JSON.stringify({
-        reflective: existing.reflective || { text: FALLBACK_REFLECTION },
-        fun: existing.fun || { text: FALLBACK_FUN },
-        comments: existing.comments || [],
-        generatedAt: existing.generatedAt,
-      }),
+      JSON.stringify(
+        clientSafeEntry({
+          reflective: existing.reflective || { text: FALLBACK_REFLECTION },
+          fun: existing.fun || { text: FALLBACK_FUN },
+          ab: existing.ab || null,
+          votes: existing.votes || {},
+          comments: existing.comments || [],
+          generatedAt: existing.generatedAt,
+        })
+      ),
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -174,6 +252,8 @@ When relevant, a simple source for more information
       JSON.stringify({
         reflective: { text: FALLBACK_REFLECTION },
         fun: { text: FALLBACK_FUN },
+        ab: null,
+        votes: {},
         comments: [],
         generatedAt: new Date().toISOString(),
         warning: err?.message || String(err),

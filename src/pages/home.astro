@@ -139,19 +139,143 @@ if (!(await isValidSession(cookie?.value))) {
       margin-bottom: 0.7rem;
       text-transform: uppercase;
     }
-  
+
     .quote-card h1 {
       margin: 0 0 1rem 0;
       font-size: 1.95rem;
       line-height: 1.08;
       font-weight: 700;
     }
-  
+
     .quote-text {
       font-size: 1.55rem;
       line-height: 1.62;
       margin: 0;
       font-weight: 450;
+    }
+
+    /* ── A/B comparison ── */
+    .ab-hint {
+      font-size: 0.88rem;
+      color: #666;
+      margin: 0 0 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .ab-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .ab-card {
+      background: #f0f2f5;
+      border: 2px solid transparent;
+      border-radius: 0.9rem;
+      padding: 0.9rem 1rem 0.75rem;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .ab-card.chosen {
+      border-color: var(--accent-blue);
+      background: #e8f1fb;
+    }
+
+    .ab-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #999;
+      margin-bottom: 0.45rem;
+    }
+
+    .ab-text {
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #222;
+      margin: 0 0 0.75rem;
+    }
+
+    .ab-btn {
+      margin: 0;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 999px;
+      border: 1.5px solid var(--accent-blue);
+      background: transparent;
+      color: var(--accent-blue);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .ab-btn:hover { background: var(--accent-blue); color: white; }
+    .ab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .ab-who {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    .ab-player-btn {
+      margin: 0;
+      padding: 0.2rem 0.7rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 999px;
+      border: 1.5px solid #bbb;
+      background: transparent;
+      color: #444;
+      cursor: pointer;
+    }
+
+    .ab-player-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .ab-player-btn.selected { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+
+    .ab-result {
+      margin-top: 0.9rem;
+      padding: 0.75rem 1rem;
+      background: #e8f1fb;
+      border-radius: 0.8rem;
+      font-size: 0.88rem;
+      color: #1a1a2e;
+      line-height: 1.6;
+    }
+
+    .ab-result strong { color: var(--accent-blue); }
+
+    .ab-scores {
+      margin-top: 0.5rem;
+      font-size: 0.82rem;
+      color: #555;
+    }
+
+    .ab-scores .score-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+
+    .ab-scores .bar-fill {
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent-blue);
+      transition: width 0.3s;
+    }
+
+    .ab-scores .bar-track {
+      flex: 1;
+      height: 6px;
+      background: #ddd;
+      border-radius: 999px;
+      overflow: hidden;
     }
   
     .small-card,
@@ -351,22 +475,14 @@ if (!(await isValidSession(cookie?.value))) {
     .weather-alignment.divergent{ background: rgba(239,68,68,0.18);  color: #f87171; }
 
     @media (max-width: 900px) {
-      .main-grid {
-        grid-template-columns: 1fr;
-      }
-  
-      .quote-card {
-        min-height: 250px;
-        padding: 1.7rem 1.4rem;
-      }
-  
-      .quote-card h1 {
-        font-size: 1.7rem;
-      }
-  
-      .quote-text {
-        font-size: 1.28rem;
-      }
+      .main-grid { grid-template-columns: 1fr; }
+      .quote-card { min-height: 250px; padding: 1.7rem 1.4rem; }
+      .quote-card h1 { font-size: 1.7rem; }
+      .quote-text { font-size: 1.28rem; }
+    }
+
+    @media (max-width: 560px) {
+      .ab-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -395,7 +511,32 @@ if (!(await isValidSession(cookie?.value))) {
         <section class="quote-card">
           <div class="eyebrow">Today</div>
           <h1>Daily reflection</h1>
-          <p id="dailyReflection" class="quote-text">Loading...</p>
+
+          <!-- A/B comparison (shown when both models generated) -->
+          <div id="abView" style="display:none">
+            <p class="ab-hint">Two versions — which resonates more?</p>
+            <div class="ab-grid">
+              <div class="ab-card" id="abCardA">
+                <div class="ab-badge">OPTION A</div>
+                <p class="ab-text" id="abTextA"></p>
+                <button class="ab-btn" id="abBtnA">Prefer A</button>
+              </div>
+              <div class="ab-card" id="abCardB">
+                <div class="ab-badge">OPTION B</div>
+                <p class="ab-text" id="abTextB"></p>
+                <button class="ab-btn" id="abBtnB">Prefer B</button>
+              </div>
+            </div>
+            <div id="abWho" class="ab-who">
+              <span>I'm</span>
+              <button class="ab-player-btn" data-p="LM">LM</button>
+              <button class="ab-player-btn" data-p="BM">BM</button>
+            </div>
+            <div id="abResult" class="ab-result" style="display:none"></div>
+          </div>
+
+          <!-- Fallback: single reflection (no A/B data yet) -->
+          <p id="dailyReflection" class="quote-text" style="display:none">Loading...</p>
         </section>
 
         <section class="thoughts-card">
@@ -441,9 +582,123 @@ if (!(await isValidSession(cookie?.value))) {
     const list = document.getElementById("commentList");
     const input = document.getElementById("commentInput");
     const button = document.getElementById("saveComment");
-  
+
     const today = new Date().toISOString().slice(0, 10);
     let todayThoughts = [];
+
+    // ── A/B vote state ──
+    let abPlayer = localStorage.getItem("abPlayer"); // "LM" | "BM" | null
+    let abData = null; // today's ab object from generateDaily
+
+    function updatePlayerButtons() {
+      document.querySelectorAll(".ab-player-btn").forEach(btn => {
+        btn.classList.toggle("selected", btn.dataset.p === abPlayer);
+      });
+    }
+
+    document.querySelectorAll(".ab-player-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        abPlayer = btn.dataset.p;
+        localStorage.setItem("abPlayer", abPlayer);
+        updatePlayerButtons();
+        // If ab is loaded, check vote state now
+        if (abData) loadVoteState();
+      });
+    });
+
+    async function callVote(body) {
+      const res = await fetch("/.netlify/functions/daily-vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, player: abPlayer }),
+      });
+      return res.json();
+    }
+
+    function renderScores(scores) {
+      const total = (scores.openai || 0) + (scores.anthropic || 0);
+      if (total === 0) return '<div class="ab-scores">No votes yet.</div>';
+      const claudePct = total ? Math.round((scores.anthropic / total) * 100) : 0;
+      const gptPct = 100 - claudePct;
+      return `<div class="ab-scores">
+        <strong>Running scores</strong> (${total} vote${total !== 1 ? "s" : ""})
+        <div class="score-bar">
+          <span style="width:3.5em;font-size:0.8rem">Claude</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${claudePct}%"></div></div>
+          <span style="font-size:0.8rem">${scores.anthropic || 0}</span>
+        </div>
+        <div class="score-bar">
+          <span style="width:3.5em;font-size:0.8rem">GPT-4o</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${gptPct}%;background:#e67e22"></div></div>
+          <span style="font-size:0.8rem">${scores.openai || 0}</span>
+        </div>
+      </div>`;
+    }
+
+    function renderVoteResult(data) {
+      const resultEl = document.getElementById("abResult");
+      const { myVote, oppVote, scores } = data;
+      const oppName = abPlayer === "LM" ? "BM" : "LM";
+
+      let html = `<div>You chose <strong>${myVote.choice}</strong> — that was <strong>${myVote.label}</strong>.</div>`;
+
+      if (oppVote?.model) {
+        html += `<div style="margin-top:0.3rem">${oppName} chose <strong>${oppVote.choice}</strong> — <strong>${oppVote.label}</strong>.</div>`;
+      } else if (oppVote?.choice) {
+        html += `<div style="margin-top:0.3rem">${oppName} chose <strong>${oppVote.choice}</strong> (vote first to see their model).</div>`;
+      } else {
+        html += `<div style="margin-top:0.3rem;color:#888">${oppName} hasn't voted yet.</div>`;
+      }
+
+      html += renderScores(scores);
+      resultEl.innerHTML = html;
+      resultEl.style.display = "";
+
+      // Highlight chosen card
+      document.getElementById("abCardA").classList.toggle("chosen", myVote.choice === "A");
+      document.getElementById("abCardB").classList.toggle("chosen", myVote.choice === "B");
+
+      // Disable vote buttons
+      document.getElementById("abBtnA").disabled = true;
+      document.getElementById("abBtnB").disabled = true;
+      document.getElementById("abWho").style.display = "none";
+    }
+
+    async function loadVoteState() {
+      if (!abPlayer || !abData) return;
+      try {
+        const data = await callVote({ action: "get_today" });
+        if (data.hasVoted) renderVoteResult(data);
+      } catch (err) {
+        console.error("loadVoteState failed:", err);
+      }
+    }
+
+    async function submitVote(choice) {
+      if (!abPlayer) {
+        alert("Please select who you are (LM or BM) first.");
+        return;
+      }
+      try {
+        document.getElementById("abBtnA").disabled = true;
+        document.getElementById("abBtnB").disabled = true;
+        const data = await callVote({ action: "vote", choice });
+        if (data.error) {
+          alert(data.error);
+          document.getElementById("abBtnA").disabled = false;
+          document.getElementById("abBtnB").disabled = false;
+          return;
+        }
+        renderVoteResult(data);
+      } catch (err) {
+        console.error("Vote failed:", err);
+        document.getElementById("abBtnA").disabled = false;
+        document.getElementById("abBtnB").disabled = false;
+      }
+    }
+
+    document.getElementById("abBtnA").addEventListener("click", () => submitVote("A"));
+    document.getElementById("abBtnB").addEventListener("click", () => submitVote("B"));
   
     function escapeHtml(str) {
       return String(str)
@@ -465,14 +720,17 @@ if (!(await isValidSession(cookie?.value))) {
   
     async function loadDailyContent() {
       try {
-        const today = new Date().toISOString().slice(0, 10);
         const cacheKey = `daily-${today}`;
         const cached = sessionStorage.getItem(cacheKey);
 
         let data;
         if (cached) {
-          data = JSON.parse(cached);
-        } else {
+          const parsed = JSON.parse(cached);
+          // Bust cache if ab is missing (feature wasn't deployed yet when cached)
+          data = parsed?.ab ? parsed : null;
+        }
+
+        if (!data) {
           const res = await fetch("/.netlify/functions/generateDaily");
           data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || `generateDaily failed with ${res.status}`);
@@ -481,11 +739,27 @@ if (!(await isValidSession(cookie?.value))) {
           }
         }
 
-        reflectionEl.textContent = data?.reflective?.text || "No reflection available.";
         funEl.textContent = data?.fun?.text || "No fun fact available.";
+
+        if (data?.ab?.A?.text && data?.ab?.B?.text) {
+          // Show A/B comparison
+          abData = data.ab;
+          document.getElementById("abTextA").textContent = data.ab.A.text;
+          document.getElementById("abTextB").textContent = data.ab.B.text;
+          document.getElementById("abView").style.display = "";
+          reflectionEl.style.display = "none";
+          updatePlayerButtons();
+          await loadVoteState();
+        } else {
+          // Fallback: single reflection
+          reflectionEl.textContent = data?.reflective?.text || "No reflection available.";
+          reflectionEl.style.display = "";
+          document.getElementById("abView").style.display = "none";
+        }
       } catch (err) {
         console.error("Failed to load daily content:", err);
         reflectionEl.textContent = "Could not load today's reflection.";
+        reflectionEl.style.display = "";
         funEl.textContent = "Could not load today's fun fact.";
       }
     }
