@@ -42,7 +42,7 @@ async function callAnthropic(prompt) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 256,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -208,10 +208,10 @@ When relevant, a simple source for more information
         // One model failed — fall back to single reflection
         if (oText) existing.reflective = { text: oText };
         usedFallback = true;
-        console.error("A/B generation incomplete:", {
-          openai: openaiResult.status,
-          anthropic: anthropicResult.status,
-        });
+        console.error("A/B generation incomplete — openai:", openaiResult.status,
+          openaiResult.reason?.message || "",
+          "— anthropic:", anthropicResult.status,
+          anthropicResult.reason?.message || "");
       }
     } else if (needsReflective) {
       // Only reflective missing (no ab needed, legacy path)
