@@ -49,7 +49,11 @@ async function callAnthropic(prompt) {
   });
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `Anthropic failed with ${res.status}`);
+  if (!res.ok) {
+    const msg = JSON.stringify(data);
+    console.error("Anthropic error response:", msg);
+    throw new Error(`Anthropic ${res.status}: ${msg}`);
+  }
   const text = data?.content?.[0]?.text?.trim();
   if (!text) throw new Error("Anthropic returned no content");
   return text;
@@ -70,6 +74,7 @@ function clientSafeEntry(entry) {
       : {},
     comments: entry.comments || [],
     generatedAt: entry.generatedAt,
+    _abError: entry._abError || null,
   };
 }
 
@@ -208,10 +213,11 @@ When relevant, a simple source for more information
         // One model failed — fall back to single reflection
         if (oText) existing.reflective = { text: oText };
         usedFallback = true;
-        console.error("A/B generation incomplete — openai:", openaiResult.status,
-          openaiResult.reason?.message || "",
-          "— anthropic:", anthropicResult.status,
-          anthropicResult.reason?.message || "");
+        const anthropicErr = anthropicResult.reason?.message || String(anthropicResult.reason || "unknown");
+        const openaiErr = openaiResult.reason?.message || String(openaiResult.reason || "unknown");
+        console.error("A/B incomplete — openai:", openaiResult.status, openaiErr,
+          "— anthropic:", anthropicResult.status, anthropicErr);
+        existing._abError = { openai: openaiResult.status, anthropic: anthropicResult.status, anthropicErr, openaiErr };
       }
     } else if (needsReflective) {
       // Only reflective missing (no ab needed, legacy path)
