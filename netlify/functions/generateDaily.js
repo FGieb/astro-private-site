@@ -105,7 +105,7 @@ Return only the text.
     const funPrompt = `
 Generate ONE concise, non-obvious fact or observation about humans, institutions, law, psychology, history, design, or statistics.
 
-Strongly prefer facts that involve:
+For example facts that involve:
 - unintended consequences
 - incentives backfiring
 - design flaws shaping behavior
@@ -126,6 +126,9 @@ Constraints:
 - No emojis
 - No moralizing
 Return only the text.
+
+Add:
+When relevant, a simple source for more information
 `.trim();
 
     let usedFallback = false;
