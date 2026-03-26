@@ -135,36 +135,49 @@ if (!(await isValidSession(cookie?.value))) {
     /* SCOREBOARD */
     .scoreboard {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 1rem;
       margin-bottom: 2rem;
     }
 
     .score-pill {
-      background: rgba(0,0,0,0.45);
+      background: rgba(10,116,201,0.10);
+      border: 1px solid rgba(10,116,201,0.25);
       backdrop-filter: blur(6px);
-      border-radius: 1rem;
-      padding: 1rem 1.2rem;
+      border-radius: 1.1rem;
+      padding: 1.1rem 1rem;
       text-align: center;
+      transition: border-color 0.15s;
     }
 
-    .score-pill .game-name {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      opacity: 0.6;
+    .score-pill:hover {
+      border-color: rgba(10,116,201,0.45);
+    }
+
+    .score-pill .game-emoji {
+      font-size: 1.6rem;
+      line-height: 1;
       margin-bottom: 0.4rem;
     }
 
+    .score-pill .game-name {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.55;
+      margin-bottom: 0.5rem;
+    }
+
     .score-pill .leaders {
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 700;
+      color: rgba(100,180,255,0.95);
     }
 
     .score-pill .record {
-      font-size: 0.8rem;
-      opacity: 0.6;
-      margin-top: 0.2rem;
+      font-size: 0.78rem;
+      opacity: 0.5;
+      margin-top: 0.3rem;
     }
 
     /* LOG TABLE */
@@ -223,6 +236,51 @@ if (!(await isValidSession(cookie?.value))) {
       font-style: italic;
     }
 
+    /* NAV DROPDOWN */
+    .nav-group {
+      position: relative;
+    }
+
+    .nav-group-label {
+      cursor: pointer;
+      opacity: 0.85;
+      user-select: none;
+    }
+
+    .nav-group-label:hover { opacity: 1; }
+
+    .nav-group-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 0.6rem);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14,18,26,0.97);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.75rem;
+      padding: 0.35rem;
+      min-width: 130px;
+      flex-direction: column;
+      gap: 0.1rem;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-group:hover .nav-group-menu { display: flex; }
+
+    .nav-group-menu a {
+      display: block;
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.5rem;
+      white-space: nowrap;
+      opacity: 0.85;
+    }
+
+    .nav-group-menu a:hover {
+      background: rgba(255,255,255,0.08);
+      opacity: 1;
+    }
+
     @media (max-width: 600px) {
       .form-row { grid-template-columns: 1fr 1fr; }
     }
@@ -234,9 +292,14 @@ if (!(await isValidSession(cookie?.value))) {
     <div class="nav-pill">
       <a href="/calendar">📅 Calendar</a>
       <a href="/home">🏠 Home</a>
-      <a href="/bets">🎲 Bets</a>
+      <div class="nav-group">
+        <span class="nav-group-label">🎮 Games ▾</span>
+        <div class="nav-group-menu">
+          <a href="/bets">🎲 Bets</a>
+          <a href="/scores">🏆 Scores</a>
+        </div>
+      </div>
       <a href="/notes">📝 Notes</a>
-      <a href="/scores">🏆 Scores</a>
       <a href="/archive">🗂 Archive</a>
     </div>
   </div>
@@ -302,7 +365,10 @@ if (!(await isValidSession(cookie?.value))) {
   </main>
 
   <script type="module" is:inline>
-    const GAMES = ["Backgammon", "Poker", "Rummikub", "Other"];
+    const GAME_EMOJI = {
+      Backgammon: "🎲", Poker: "🃏", Rummikub: "🀱",
+      Darts: "🎯", Pool: "🎱", Worms: "🪱", Botanic: "🌿", Other: "🎮"
+    };
 
     function escapeHtml(str) {
       return String(str)
@@ -348,8 +414,10 @@ if (!(await isValidSession(cookie?.value))) {
         const total = tally.LM + tally.BM;
         const leader = tally.LM > tally.BM ? "LM" : tally.BM > tally.LM ? "BM" : "Tied";
         const leaderText = leader === "Tied" ? "🤝 Tied" : `${leader} leads`;
+        const emoji = GAME_EMOJI[game] || "🎮";
         return `
           <div class="score-pill">
+            <div class="game-emoji">${emoji}</div>
             <div class="game-name">${escapeHtml(game)}</div>
             <div class="leaders">${leaderText}</div>
             <div class="record">LM ${tally.LM} – ${tally.BM} BM · ${total} played</div>

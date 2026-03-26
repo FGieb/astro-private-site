@@ -93,7 +93,15 @@ if (!(await isValidSession(cookie?.value))) {
       opacity: 1;
       color: var(--accent-blue);
     }
-  
+
+    .nav-group { position: relative; }
+    .nav-group-label { cursor: pointer; opacity: 0.92; user-select: none; font-size: 1.02rem; }
+    .nav-group-label:hover { opacity: 1; }
+    .nav-group-menu { display: none; position: absolute; top: calc(100% + 0.6rem); left: 50%; transform: translateX(-50%); background: rgba(14,18,26,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.35rem; min-width: 130px; flex-direction: column; gap: 0.1rem; z-index: 100; backdrop-filter: blur(10px); }
+    .nav-group:hover .nav-group-menu { display: flex; }
+    .nav-group-menu a { display: block; padding: 0.4rem 0.75rem; border-radius: 0.5rem; white-space: nowrap; opacity: 0.85; }
+    .nav-group-menu a:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+
     .main-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
@@ -367,10 +375,15 @@ if (!(await isValidSession(cookie?.value))) {
       <div class="nav-pill">
         <a href="/calendar">📅 Calendar</a>
         <a href="/home">🏠 Home</a>
-        <a href="/bets">🎲 Bets</a>
+        <div class="nav-group">
+          <span class="nav-group-label">🎮 Games ▾</span>
+          <div class="nav-group-menu">
+            <a href="/bets">🎲 Bets</a>
+            <a href="/scores">🏆 Scores</a>
+          </div>
+        </div>
         <a href="/notes">📝 Notes</a>
-        <a href="/scores">🏆 Scores</a>
-      <a href="/archive">🗂 Archive</a>
+        <a href="/archive">🗂 Archive</a>
       </div>
     </div>
 
