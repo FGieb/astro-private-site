@@ -15,7 +15,7 @@ if (!(await isValidSession(cookie?.value))) {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Overview</title>
+  <title>Scrapbook</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style is:global>
@@ -53,7 +53,7 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     .page {
-      max-width: 900px;
+      max-width: 920px;
       margin: 0 auto;
       padding: 1.25rem 1.25rem 3rem;
     }
@@ -126,9 +126,9 @@ if (!(await isValidSession(cookie?.value))) {
     .cat-tab {
       padding: 0.5rem 1.15rem;
       border-radius: 999px;
-      border: 1.5px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.7);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.8);
       font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
@@ -138,6 +138,7 @@ if (!(await isValidSession(cookie?.value))) {
     .cat-tab:hover {
       border-color: var(--accent-blue);
       color: var(--accent-blue);
+      background: rgba(10, 116, 201, 0.08);
     }
 
     .cat-tab.active {
@@ -146,38 +147,39 @@ if (!(await isValidSession(cookie?.value))) {
       color: white;
     }
 
-    /* ── Add form ── */
+    /* ── Add form — LIGHT card ── */
     .add-card {
-      background: var(--glass-mid);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem 1.4rem;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.14);
-      border: 1px solid rgba(10, 116, 201, 0.10);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text-dark);
+      border-radius: var(--radius-xl);
+      padding: 1.4rem 1.6rem;
+      box-shadow: var(--shadow);
       margin-bottom: 1.4rem;
+      backdrop-filter: blur(3px);
     }
 
     .add-card h2 {
       margin: 0 0 1rem;
       font-size: 1.1rem;
-      font-weight: 600;
+      font-weight: 700;
+      color: #1a1a2e;
     }
 
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.65rem;
+      gap: 0.75rem;
     }
 
     .form-grid .full { grid-column: 1 / -1; }
 
     .form-field label {
       display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
+      font-size: 0.75rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--muted-light);
+      letter-spacing: 0.05em;
+      color: #555;
       margin-bottom: 0.3rem;
     }
 
@@ -186,12 +188,18 @@ if (!(await isValidSession(cookie?.value))) {
     .form-field select {
       width: 100%;
       padding: 0.55rem 0.75rem;
-      border-radius: 0.7rem;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.3);
-      color: white;
+      border-radius: 0.6rem;
+      border: 1.5px solid #d0d5dd;
+      background: #f8f9fb;
+      color: #1a1a2e;
       font-family: inherit;
       font-size: 0.92rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .form-field input::placeholder,
+    .form-field textarea::placeholder {
+      color: #999;
     }
 
     .form-field textarea {
@@ -205,23 +213,31 @@ if (!(await isValidSession(cookie?.value))) {
       outline: none;
       border-color: var(--accent-blue);
       box-shadow: 0 0 0 3px var(--accent-blue-soft);
+      background: #fff;
     }
 
     .form-field select option {
-      background: #1a1e28;
-      color: white;
+      background: white;
+      color: #1a1a2e;
+    }
+
+    /* date inputs — make the calendar icon visible */
+    .form-field input[type="date"] {
+      cursor: pointer;
+      color-scheme: light;
     }
 
     /* ── Star rating ── */
     .star-input {
       display: flex;
       gap: 0.2rem;
+      padding-top: 0.15rem;
     }
 
     .star-input span {
-      font-size: 1.35rem;
+      font-size: 1.4rem;
       cursor: pointer;
-      color: rgba(255,255,255,0.2);
+      color: #d0d5dd;
       transition: color 0.1s;
       user-select: none;
     }
@@ -232,11 +248,11 @@ if (!(await isValidSession(cookie?.value))) {
     .form-actions {
       display: flex;
       gap: 0.6rem;
-      margin-top: 0.85rem;
+      margin-top: 0.95rem;
     }
 
     .btn-add {
-      padding: 0.55rem 1.3rem;
+      padding: 0.55rem 1.4rem;
       border-radius: 999px;
       border: none;
       background: var(--accent-blue);
@@ -258,13 +274,14 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     .entry-card {
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.93);
       color: var(--text-dark);
       border-radius: 1rem;
       padding: 1rem 1.15rem;
       box-shadow: 0 8px 20px rgba(0,0,0,0.10);
       position: relative;
       transition: transform 0.12s, box-shadow 0.12s;
+      border: 1px solid rgba(0,0,0,0.04);
     }
 
     .entry-card:hover {
@@ -321,9 +338,9 @@ if (!(await isValidSession(cookie?.value))) {
       margin-bottom: 0.4rem;
     }
 
-    .badge-restaurant { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+    .badge-restaurant { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
     .badge-trip { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .badge-media { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+    .badge-media { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
 
     .entry-actions {
       position: absolute;
@@ -340,7 +357,7 @@ if (!(await isValidSession(cookie?.value))) {
       font-size: 0.88rem;
       padding: 0.15rem 0.3rem;
       border-radius: 0.4rem;
-      opacity: 0.4;
+      opacity: 0.35;
       transition: opacity 0.15s;
       margin: 0;
       color: var(--text-dark);
@@ -353,11 +370,109 @@ if (!(await isValidSession(cookie?.value))) {
       padding: 2.5rem 1rem;
       color: var(--muted-light);
       font-size: 0.95rem;
+      grid-column: 1 / -1;
     }
 
     .empty-state .empty-icon {
       font-size: 2rem;
       margin-bottom: 0.5rem;
+    }
+
+    /* ── Timeline view ── */
+    .timeline {
+      display: none;
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .timeline.visible { display: block; }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 0.55rem;
+      top: 0;
+      bottom: 0;
+      width: 2.5px;
+      background: linear-gradient(to bottom, var(--accent-blue), rgba(10,116,201,0.2));
+      border-radius: 999px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1rem;
+      padding-left: 0.8rem;
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -1.72rem;
+      top: 0.85rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2.5px solid var(--accent-blue);
+      background: white;
+    }
+
+    .timeline-item.cat-restaurant::before { border-color: #dc2626; }
+    .timeline-item.cat-trip::before { border-color: #16a34a; }
+    .timeline-item.cat-media::before { border-color: #7c3aed; }
+
+    .timeline-card {
+      background: rgba(255, 255, 255, 0.93);
+      color: var(--text-dark);
+      border-radius: 0.85rem;
+      padding: 0.85rem 1.1rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .timeline-date {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+    }
+
+    .timeline-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 0.2rem;
+    }
+
+    .timeline-detail {
+      font-size: 0.82rem;
+      color: #666;
+      line-height: 1.45;
+    }
+
+    .timeline-month-header {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.6rem;
+      margin-top: 0.4rem;
+      padding-left: 0.8rem;
+      position: relative;
+    }
+
+    .timeline-month-header::before {
+      content: "";
+      position: absolute;
+      left: -1.72rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-blue);
     }
 
     @media (max-width: 600px) {
@@ -381,7 +496,7 @@ if (!(await isValidSession(cookie?.value))) {
             <a href="/poker">🃏 Poker</a>
           </div>
         </div>
-        <a href="/overview">📋 Overview</a>
+        <a href="/overview">🍷 Scrapbook</a>
         <a href="/home">🏠 Home</a>
         <a href="/notes">📝 Notes</a>
         <a href="/archive">🗂 Archive</a>
@@ -389,7 +504,7 @@ if (!(await isValidSession(cookie?.value))) {
     </div>
 
     <header class="overview-header">
-      <h1>📋 Overview</h1>
+      <h1>🍷 Scrapbook</h1>
       <p class="subtitle">Restaurants, trips, and things we watched.</p>
     </header>
 
@@ -397,10 +512,11 @@ if (!(await isValidSession(cookie?.value))) {
       <button class="cat-tab active" data-cat="restaurant">🍽 Restaurants</button>
       <button class="cat-tab" data-cat="trip">✈️ Trips</button>
       <button class="cat-tab" data-cat="media">🎬 Movies & Series</button>
+      <button class="cat-tab" data-cat="timeline">📅 Timeline</button>
     </div>
 
     <!-- ── Add form ── -->
-    <section class="add-card">
+    <section class="add-card" id="addCard">
       <h2 id="formTitle">+ Add a restaurant</h2>
 
       <!-- Restaurant fields -->
@@ -491,13 +607,16 @@ if (!(await isValidSession(cookie?.value))) {
       </div>
     </section>
 
-    <!-- ── Entries ── -->
+    <!-- ── Entries (card grid) ── -->
     <div class="entries-grid" id="entriesGrid">
       <div class="empty-state">
         <div class="empty-icon">🍽</div>
         Loading...
       </div>
     </div>
+
+    <!-- ── Timeline view ── -->
+    <div class="timeline" id="timelineView"></div>
   </div>
 
   <script type="module" is:inline>
@@ -535,10 +654,23 @@ if (!(await isValidSession(cookie?.value))) {
         currentCat = tab.dataset.cat;
         document.querySelectorAll(".cat-tab").forEach((t) => t.classList.remove("active"));
         tab.classList.add("active");
-        switchForm();
-        renderEntries();
+        switchView();
       });
     });
+
+    function switchView() {
+      const isTimeline = currentCat === "timeline";
+      document.getElementById("addCard").style.display = isTimeline ? "none" : "";
+      document.getElementById("entriesGrid").style.display = isTimeline ? "none" : "";
+      document.getElementById("timelineView").classList.toggle("visible", isTimeline);
+
+      if (isTimeline) {
+        renderTimeline();
+      } else {
+        switchForm();
+        renderEntries();
+      }
+    }
 
     function switchForm() {
       const titles = {
@@ -587,7 +719,19 @@ if (!(await isValidSession(cookie?.value))) {
       } catch { return d; }
     }
 
-    // ── Render ──
+    function getEntryDate(e) {
+      return e.date || e.dateFrom || e.dateWatched || e.createdAt?.slice(0, 10) || "";
+    }
+
+    function getEntryName(e) {
+      return e.name || e.destination || e.title || "Untitled";
+    }
+
+    function getCatIcon(cat) {
+      return { restaurant: "🍽", trip: "✈️", media: "🎬" }[cat] || "";
+    }
+
+    // ── Render cards ──
     function renderEntries() {
       const grid = document.getElementById("entriesGrid");
       const filtered = allEntries.filter((e) => e.category === currentCat);
@@ -632,7 +776,7 @@ if (!(await isValidSession(cookie?.value))) {
           meta = parts.join("");
         }
 
-        const name = currentCat === "restaurant" ? e.name : currentCat === "trip" ? e.destination : e.title;
+        const name = getEntryName(e);
 
         return `
           <div class="entry-card" data-id="${e.id}">
@@ -641,7 +785,7 @@ if (!(await isValidSession(cookie?.value))) {
               <button class="btn-del" data-id="${e.id}" title="Delete">🗑</button>
             </div>
             ${badge}
-            <div class="entry-name">${escapeHtml(name || "Untitled")}</div>
+            <div class="entry-name">${escapeHtml(name)}</div>
             ${e.rating ? starsHtml(e.rating) : ""}
             <div class="entry-meta">${meta}</div>
             ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ""}
@@ -670,6 +814,79 @@ if (!(await isValidSession(cookie?.value))) {
           openEdit(entry);
         });
       });
+    }
+
+    // ── Timeline ──
+    function renderTimeline() {
+      const container = document.getElementById("timelineView");
+      const sorted = [...allEntries].sort((a, b) => {
+        const da = getEntryDate(a);
+        const db = getEntryDate(b);
+        return db.localeCompare(da);
+      });
+
+      if (!sorted.length) {
+        container.innerHTML = '<div class="empty-state" style="padding-left:0"><div class="empty-icon">📅</div>Nothing in the scrapbook yet.</div>';
+        return;
+      }
+
+      let html = "";
+      let lastMonth = "";
+
+      sorted.forEach((e) => {
+        const d = getEntryDate(e);
+        const monthKey = d ? d.slice(0, 7) : "unknown";
+        const monthLabel = d
+          ? new Date(d + "T00:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+          : "Undated";
+
+        if (monthKey !== lastMonth) {
+          html += `<div class="timeline-month-header">${escapeHtml(monthLabel)}</div>`;
+          lastMonth = monthKey;
+        }
+
+        const cat = e.category;
+        const icon = getCatIcon(cat);
+        const name = getEntryName(e);
+        const badge = cat === "restaurant"
+          ? '<span class="entry-badge badge-restaurant">Restaurant</span>'
+          : cat === "trip"
+          ? '<span class="entry-badge badge-trip">Trip</span>'
+          : `<span class="entry-badge badge-media">${escapeHtml(e.mediaType === "series" ? "Series" : "Movie")}</span>`;
+
+        let detail = "";
+        if (cat === "restaurant") {
+          const parts = [];
+          if (e.location) parts.push(escapeHtml(e.location));
+          if (e.cuisine) parts.push(escapeHtml(e.cuisine));
+          if (e.rating) parts.push("★".repeat(e.rating));
+          detail = parts.join(" · ");
+        } else if (cat === "trip") {
+          const parts = [];
+          if (e.dateFrom && e.dateTo) parts.push(`${formatDate(e.dateFrom)} → ${formatDate(e.dateTo)}`);
+          if (e.highlights) parts.push(escapeHtml(e.highlights));
+          detail = parts.join(" · ");
+        } else {
+          const parts = [];
+          if (e.mediaType) parts.push(e.mediaType === "series" ? "Series" : "Movie");
+          if (e.rating) parts.push("★".repeat(e.rating));
+          detail = parts.join(" · ");
+        }
+
+        html += `
+          <div class="timeline-item cat-${cat}">
+            <div class="timeline-card">
+              <div class="timeline-date">${d ? escapeHtml(formatDate(d)) : "No date"} ${icon}</div>
+              ${badge}
+              <div class="timeline-title">${escapeHtml(name)}</div>
+              ${detail ? `<div class="timeline-detail">${detail}</div>` : ""}
+              ${e.notes ? `<div class="timeline-detail" style="margin-top:0.2rem;color:#888;font-style:italic">${escapeHtml(e.notes)}</div>` : ""}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
     }
 
     function openEdit(entry) {
@@ -800,9 +1017,8 @@ if (!(await isValidSession(cookie?.value))) {
       try {
         const data = await callContent({ type: "tracker", action: "list" });
         allEntries = Array.isArray(data?.entries) ? data.entries : [];
-        // Sort newest first
         allEntries.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        renderEntries();
+        switchView();
       } catch (err) {
         console.error("Failed to load tracker entries:", err);
         document.getElementById("entriesGrid").innerHTML =
