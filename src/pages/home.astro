@@ -431,27 +431,11 @@ if (!(await isValidSession(cookie?.value))) {
   
     async function loadThoughts() {
       try {
-        const res = await fetch("/.netlify/functions/content", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "thoughts",
-            action: "list",
-          }),
-        });
-  
-        const data = await res.json().catch(() => ({}));
-  
-        if (!res.ok) {
-          throw new Error(data?.error || `content list failed with ${res.status}`);
-        }
-  
+        const data = await callContent({ type: "thoughts", action: "list" });
         const entries = Array.isArray(data?.entries) ? data.entries : [];
-  
         todayThoughts = entries
           .filter((item) => item.date === today)
           .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  
         renderThoughts();
       } catch (err) {
         console.error("Failed to load thoughts:", err);
@@ -459,26 +443,17 @@ if (!(await isValidSession(cookie?.value))) {
       }
     }
   
-    async function deleteThought(id) {
+    async function callContent(body) {
       const res = await fetch("/.netlify/functions/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "thoughts",
-          action: "delete",
-          id,
-        }),
+        body: JSON.stringify(body),
       });
-  
       const data = await res.json().catch(() => ({}));
-  
-      if (!res.ok) {
-        throw new Error(data?.error || "Delete failed");
-      }
-  
+      if (!res.ok) throw new Error(data?.error || "content failed");
       return data;
     }
-  
+
     function renderThoughts() {
       list.innerHTML = todayThoughts.length
         ? todayThoughts
@@ -489,7 +464,7 @@ if (!(await isValidSession(cookie?.value))) {
                   data-id="${item.id}"
                   role="button"
                   tabindex="0"
-                  aria-label="Click to delete thought"
+                  aria-label="Click to edit thought"
                 >${escapeHtml(item.text || "")}</div>
               </div>
             `)
@@ -500,13 +475,20 @@ if (!(await isValidSession(cookie?.value))) {
         const handle = async (event) => {
           event.stopPropagation();
           const id = el.getAttribute("data-id");
-          if (!id || !window.confirm("Delete this thought?")) return;
+          if (!id) return;
+          const current = el.textContent;
+          const edited = window.prompt("Edit thought:", current);
+          if (edited === null) return;
           try {
-            await deleteThought(id);
+            if (edited.trim() === "") {
+              await callContent({ type: "thoughts", action: "delete", id });
+            } else if (edited.trim() !== current) {
+              await callContent({ type: "thoughts", action: "update", id, data: { text: edited.trim() } });
+            }
             await loadThoughts();
           } catch (err) {
-            console.error("Failed to delete thought:", err);
-            alert("Could not delete the thought.");
+            console.error("Failed to update thought:", err);
+            alert("Could not update the thought.");
           }
         };
         el.addEventListener("click", handle);

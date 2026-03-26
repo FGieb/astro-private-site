@@ -178,7 +178,7 @@ if (!(await isValidSession(cookie?.value))) {
       list.innerHTML = notes.map((n) => `
         <div class="note" data-id="${n.id}">
           <div class="note-text" data-id="${n.id}" role="button" tabindex="0"
-            aria-label="Click to delete note"
+            aria-label="Click to edit note"
           >${escapeHtml(n.text || "")}</div>
           <div class="meta">${new Date(n.createdAt).toLocaleString()}</div>
         </div>
@@ -188,13 +188,20 @@ if (!(await isValidSession(cookie?.value))) {
         const handle = async (event) => {
           event.stopPropagation();
           const id = el.getAttribute("data-id");
-          if (!id || !window.confirm("Delete this note?")) return;
+          if (!id) return;
+          const current = el.textContent;
+          const edited = window.prompt("Edit note:", current);
+          if (edited === null) return;
           try {
-            await callContent({ type: "notes", action: "delete", id });
+            if (edited.trim() === "") {
+              await callContent({ type: "notes", action: "delete", id });
+            } else if (edited.trim() !== current) {
+              await callContent({ type: "notes", action: "update", id, data: { text: edited.trim() } });
+            }
             await loadNotes();
           } catch (err) {
-            console.error("Failed to delete note:", err);
-            alert("Could not delete the note.");
+            console.error("Failed to update note:", err);
+            alert("Could not update the note.");
           }
         };
         el.addEventListener("click", handle);
