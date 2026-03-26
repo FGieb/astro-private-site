@@ -41,9 +41,10 @@ async function callOpenAI(prompt) {
   return text;
 }
 
-export async function handler(event) {
+export default async function handler(req) {
   try {
-    const force = event?.queryStringParameters?.force === "true";
+    const url = new URL(req.url);
+    const force = url.searchParams.get("force") === "true";
     const today = new Date().toISOString().slice(0, 10);
 
     const store = getStore("daily");
@@ -59,11 +60,9 @@ export async function handler(event) {
     const existing = entries[today];
 
     if (!force && existing.reflective?.text && existing.fun?.text) {
-      return {
-        statusCode: 200,
+      return new Response(JSON.stringify(existing), {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(existing),
-      };
+      });
     }
 
     if (force) {
@@ -156,29 +155,27 @@ Return only the text.
       await store.setJSON("entries", entries);
     }
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    return new Response(
+      JSON.stringify({
         reflective: existing.reflective || { text: FALLBACK_REFLECTION },
         fun: existing.fun || { text: FALLBACK_FUN },
         comments: existing.comments || [],
         generatedAt: existing.generatedAt,
       }),
-    };
+      { headers: { "Content-Type": "application/json" } }
+    );
   } catch (err) {
     console.error("generateDaily fatal error:", err);
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    return new Response(
+      JSON.stringify({
         reflective: { text: FALLBACK_REFLECTION },
         fun: { text: FALLBACK_FUN },
         comments: [],
         generatedAt: new Date().toISOString(),
         warning: err?.message || String(err),
       }),
-    };
+      { headers: { "Content-Type": "application/json" } }
+    );
   }
 }
