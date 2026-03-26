@@ -168,6 +168,14 @@ const getMonthLabel = (month: number, year: number) =>
     margin-bottom: 0.5rem;
   }
 
+  .event-title {
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .event-title:hover {
+    color: rgba(100, 180, 255, 0.90);
+  }
+
   @media (max-width: 900px) {
     .calendar-shell {
       grid-template-columns: 1fr;
@@ -231,13 +239,38 @@ const getMonthLabel = (month: number, year: number) =>
         .toLocaleDateString(undefined, { month: "long", day: "numeric" })}`;
 
     eventList.innerHTML = list.length
-      ? list.map(e => `
+      ? list.map((e, i) => `
           <div class="event-item">
-            <strong>${typeIcon(e.type)} ${e.title}</strong>
+            <div class="event-title" data-index="${i}" role="button" tabindex="0"
+              aria-label="Click to delete event"
+            ><strong>${typeIcon(e.type)} ${e.title}</strong></div>
             ${e.note ? `<div>${e.note}</div>` : ""}
           </div>
         `).join("")
       : `<div class="event-item">No events yet.</div>`;
+ 
+    document.querySelectorAll(".event-title[data-index]").forEach((el) => {
+      const handle = async () => {
+        const idx = parseInt(el.getAttribute("data-index"), 10);
+        if (!window.confirm("Delete this event?")) return;
+        const key = keyForDate(selectedDate.month, selectedDate.day);
+        cachedEvents[key].splice(idx, 1);
+        if (!cachedEvents[key].length) delete cachedEvents[key];
+        try {
+          await saveEvents();
+        } catch (err) {
+          console.error("Failed to delete event:", err);
+          alert("Could not delete the event.");
+          await loadEvents();
+        }
+        renderCalendar();
+        renderEvents();
+      };
+      el.addEventListener("click", handle);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handle(); }
+      });
+    });
   };
 
   const renderCalendar = () => {
