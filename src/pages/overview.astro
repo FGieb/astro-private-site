@@ -1,0 +1,816 @@
+---
+export const prerender = false;
+export const runtime = "nodejs";
+
+import { isValidSession } from "../lib/auth";
+
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Overview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style is:global>
+    :root {
+      --glass-dark: rgba(10, 16, 28, 0.52);
+      --glass-mid: rgba(12, 20, 36, 0.44);
+      --glass-light: rgba(255, 255, 255, 0.87);
+      --text-dark: #121212;
+      --text-light: #ffffff;
+      --muted-light: rgba(255,255,255,0.72);
+      --accent-blue: #0a74c9;
+      --accent-blue-soft: rgba(10, 116, 201, 0.14);
+      --accent-blue-border: rgba(10, 116, 201, 0.28);
+      --shadow: 0 18px 40px rgba(0,0,0,0.18);
+      --radius-xl: 1.6rem;
+      --radius-lg: 1.15rem;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-light);
+      min-height: 100vh;
+      background-color: #2a2f38;
+      background-image:
+        linear-gradient(rgba(18, 24, 36, 0.52), rgba(18, 24, 36, 0.60)),
+        linear-gradient(rgba(10, 116, 201, 0.10), rgba(10, 116, 201, 0.08)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.25rem 1.25rem 3rem;
+    }
+
+    /* ── Nav ── */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 0.25rem;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(14, 18, 26, 0.68);
+      padding: 0.78rem 1.5rem;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+      flex-wrap: wrap;
+      border: 1px solid #1f1f1f;
+    }
+
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.92;
+      font-size: 1.02rem;
+    }
+
+    .nav-pill a:hover { opacity: 1; color: var(--accent-blue); }
+
+    .nav-group { position: relative; }
+    .nav-group-label { cursor: pointer; opacity: 0.92; user-select: none; font-size: 1.02rem; }
+    .nav-group-label:hover { opacity: 1; }
+    .nav-group-menu { display: none; position: absolute; top: calc(100% + 0.6rem); left: 50%; transform: translateX(-50%); background: rgba(14,18,26,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.35rem; min-width: 130px; flex-direction: column; gap: 0.1rem; z-index: 100; backdrop-filter: blur(10px); }
+    .nav-group:hover .nav-group-menu { display: flex; }
+    .nav-group-menu a { display: block; padding: 0.4rem 0.75rem; border-radius: 0.5rem; white-space: nowrap; opacity: 0.85; }
+    .nav-group-menu a:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+
+    /* ── Page header ── */
+    .overview-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .overview-header h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.85rem;
+      font-weight: 700;
+    }
+
+    .overview-header .subtitle {
+      margin: 0;
+      color: var(--muted-light);
+      font-size: 0.95rem;
+    }
+
+    /* ── Category tabs ── */
+    .cat-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-bottom: 1.6rem;
+    }
+
+    .cat-tab {
+      padding: 0.5rem 1.15rem;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.7);
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .cat-tab:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .cat-tab.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+
+    /* ── Add form ── */
+    .add-card {
+      background: var(--glass-mid);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.4rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+      border: 1px solid rgba(10, 116, 201, 0.10);
+      margin-bottom: 1.4rem;
+    }
+
+    .add-card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .form-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted-light);
+      margin-bottom: 0.3rem;
+    }
+
+    .form-field input,
+    .form-field textarea,
+    .form-field select {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border-radius: 0.7rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.3);
+      color: white;
+      font-family: inherit;
+      font-size: 0.92rem;
+    }
+
+    .form-field textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus,
+    .form-field select:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px var(--accent-blue-soft);
+    }
+
+    .form-field select option {
+      background: #1a1e28;
+      color: white;
+    }
+
+    /* ── Star rating ── */
+    .star-input {
+      display: flex;
+      gap: 0.2rem;
+    }
+
+    .star-input span {
+      font-size: 1.35rem;
+      cursor: pointer;
+      color: rgba(255,255,255,0.2);
+      transition: color 0.1s;
+      user-select: none;
+    }
+
+    .star-input span.filled { color: #f59e0b; }
+    .star-input span:hover { color: #fbbf24; }
+
+    .form-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.85rem;
+    }
+
+    .btn-add {
+      padding: 0.55rem 1.3rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent-blue);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: opacity 0.15s;
+    }
+
+    .btn-add:hover { opacity: 0.88; }
+    .btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Entry cards grid ── */
+    .entries-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.9rem;
+    }
+
+    .entry-card {
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--text-dark);
+      border-radius: 1rem;
+      padding: 1rem 1.15rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.10);
+      position: relative;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+
+    .entry-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+    }
+
+    .entry-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+      color: #1a1a2e;
+      padding-right: 2rem;
+    }
+
+    .entry-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.75rem;
+      font-size: 0.82rem;
+      color: #555;
+      margin-bottom: 0.4rem;
+    }
+
+    .entry-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .entry-stars {
+      color: #f59e0b;
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+    }
+
+    .entry-notes {
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.45;
+      margin-top: 0.3rem;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      padding-top: 0.35rem;
+    }
+
+    .entry-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      margin-bottom: 0.4rem;
+    }
+
+    .badge-restaurant { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+    .badge-trip { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .badge-media { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+
+    .entry-actions {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.7rem;
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .entry-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.88rem;
+      padding: 0.15rem 0.3rem;
+      border-radius: 0.4rem;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+      margin: 0;
+      color: var(--text-dark);
+    }
+
+    .entry-actions button:hover { opacity: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--muted-light);
+      font-size: 0.95rem;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .entries-grid { grid-template-columns: 1fr; }
+      .cat-tabs { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="top-nav">
+      <div class="nav-pill">
+        <a href="/calendar">📅 Calendar</a>
+        <a href="/home">🏠 Home</a>
+        <div class="nav-group">
+          <span class="nav-group-label">🎮 Games ▾</span>
+          <div class="nav-group-menu">
+            <a href="/bets">🎲 Bets</a>
+            <a href="/scores">🏆 Scores</a>
+            <a href="/poker">🃏 Poker</a>
+          </div>
+        </div>
+        <a href="/overview">📋 Overview</a>
+        <a href="/notes">📝 Notes</a>
+        <a href="/archive">🗂 Archive</a>
+      </div>
+    </div>
+
+    <header class="overview-header">
+      <h1>📋 Overview</h1>
+      <p class="subtitle">Restaurants, trips, and things we watched.</p>
+    </header>
+
+    <div class="cat-tabs">
+      <button class="cat-tab active" data-cat="restaurant">🍽 Restaurants</button>
+      <button class="cat-tab" data-cat="trip">✈️ Trips</button>
+      <button class="cat-tab" data-cat="media">🎬 Movies & Series</button>
+    </div>
+
+    <!-- ── Add form ── -->
+    <section class="add-card">
+      <h2 id="formTitle">+ Add a restaurant</h2>
+
+      <!-- Restaurant fields -->
+      <div id="formRestaurant" class="form-grid">
+        <div class="form-field">
+          <label>Name</label>
+          <input type="text" id="rName" placeholder="e.g. Le Petit Chou" />
+        </div>
+        <div class="form-field">
+          <label>Location</label>
+          <input type="text" id="rLocation" placeholder="e.g. Brussels" />
+        </div>
+        <div class="form-field">
+          <label>Cuisine</label>
+          <input type="text" id="rCuisine" placeholder="e.g. French, Italian..." />
+        </div>
+        <div class="form-field">
+          <label>Date visited</label>
+          <input type="date" id="rDate" />
+        </div>
+        <div class="form-field">
+          <label>Rating</label>
+          <div class="star-input" id="rStars">
+            <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+          </div>
+        </div>
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="rNotes" placeholder="What did you think?"></textarea>
+        </div>
+      </div>
+
+      <!-- Trip fields -->
+      <div id="formTrip" class="form-grid" style="display:none">
+        <div class="form-field full">
+          <label>Destination</label>
+          <input type="text" id="tDest" placeholder="e.g. Lisbon, Portugal" />
+        </div>
+        <div class="form-field">
+          <label>From</label>
+          <input type="date" id="tFrom" />
+        </div>
+        <div class="form-field">
+          <label>To</label>
+          <input type="date" id="tTo" />
+        </div>
+        <div class="form-field full">
+          <label>Highlights</label>
+          <input type="text" id="tHighlights" placeholder="e.g. Beach, old town, pasteis de nata..." />
+        </div>
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="tNotes" placeholder="How was it?"></textarea>
+        </div>
+      </div>
+
+      <!-- Media fields -->
+      <div id="formMedia" class="form-grid" style="display:none">
+        <div class="form-field">
+          <label>Title</label>
+          <input type="text" id="mTitle" placeholder="e.g. Succession" />
+        </div>
+        <div class="form-field">
+          <label>Type</label>
+          <select id="mType">
+            <option value="movie">Movie</option>
+            <option value="series">Series</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Date watched</label>
+          <input type="date" id="mDate" />
+        </div>
+        <div class="form-field">
+          <label>Rating</label>
+          <div class="star-input" id="mStars">
+            <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+          </div>
+        </div>
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="mNotes" placeholder="Worth rewatching?"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-add" id="btnAdd">Add</button>
+      </div>
+    </section>
+
+    <!-- ── Entries ── -->
+    <div class="entries-grid" id="entriesGrid">
+      <div class="empty-state">
+        <div class="empty-icon">🍽</div>
+        Loading...
+      </div>
+    </div>
+  </div>
+
+  <script type="module" is:inline>
+    let currentCat = "restaurant";
+    let allEntries = [];
+    let starRatings = { rStars: 0, mStars: 0 };
+
+    // ── Star inputs ──
+    document.querySelectorAll(".star-input").forEach((container) => {
+      const key = container.id;
+      container.querySelectorAll("span").forEach((star) => {
+        star.addEventListener("click", () => {
+          const v = parseInt(star.dataset.v);
+          starRatings[key] = starRatings[key] === v ? 0 : v;
+          updateStars(container, starRatings[key]);
+        });
+        star.addEventListener("mouseenter", () => {
+          updateStars(container, parseInt(star.dataset.v));
+        });
+        star.addEventListener("mouseleave", () => {
+          updateStars(container, starRatings[key]);
+        });
+      });
+    });
+
+    function updateStars(container, value) {
+      container.querySelectorAll("span").forEach((s) => {
+        s.classList.toggle("filled", parseInt(s.dataset.v) <= value);
+      });
+    }
+
+    // ── Category tabs ──
+    document.querySelectorAll(".cat-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        currentCat = tab.dataset.cat;
+        document.querySelectorAll(".cat-tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        switchForm();
+        renderEntries();
+      });
+    });
+
+    function switchForm() {
+      const titles = {
+        restaurant: "+ Add a restaurant",
+        trip: "+ Add a trip",
+        media: "+ Add a movie or series",
+      };
+      document.getElementById("formTitle").textContent = titles[currentCat];
+      document.getElementById("formRestaurant").style.display = currentCat === "restaurant" ? "" : "none";
+      document.getElementById("formTrip").style.display = currentCat === "trip" ? "" : "none";
+      document.getElementById("formMedia").style.display = currentCat === "media" ? "" : "none";
+    }
+
+    // ── API ──
+    async function callContent(body) {
+      const res = await fetch("/.netlify/functions/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Request failed");
+      return data;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function starsHtml(rating) {
+      if (!rating) return "";
+      return '<span class="entry-stars">' + "★".repeat(rating) + "☆".repeat(5 - rating) + "</span>";
+    }
+
+    function formatDate(d) {
+      if (!d) return "";
+      try {
+        return new Date(d + "T00:00:00").toLocaleDateString("en-GB", {
+          day: "numeric", month: "short", year: "numeric",
+        });
+      } catch { return d; }
+    }
+
+    // ── Render ──
+    function renderEntries() {
+      const grid = document.getElementById("entriesGrid");
+      const filtered = allEntries.filter((e) => e.category === currentCat);
+
+      if (!filtered.length) {
+        const icons = { restaurant: "🍽", trip: "✈️", media: "🎬" };
+        const msgs = {
+          restaurant: "No restaurants yet — time to eat out!",
+          trip: "No trips yet — where to next?",
+          media: "Nothing watched yet — movie night?",
+        };
+        grid.innerHTML = `<div class="empty-state"><div class="empty-icon">${icons[currentCat]}</div>${msgs[currentCat]}</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((e) => {
+        const badge = currentCat === "restaurant"
+          ? '<span class="entry-badge badge-restaurant">Restaurant</span>'
+          : currentCat === "trip"
+          ? '<span class="entry-badge badge-trip">Trip</span>'
+          : `<span class="entry-badge badge-media">${escapeHtml(e.mediaType === "series" ? "Series" : "Movie")}</span>`;
+
+        let meta = "";
+        if (currentCat === "restaurant") {
+          const parts = [];
+          if (e.location) parts.push(`<span>📍 ${escapeHtml(e.location)}</span>`);
+          if (e.cuisine) parts.push(`<span>🍴 ${escapeHtml(e.cuisine)}</span>`);
+          if (e.date) parts.push(`<span>📅 ${escapeHtml(formatDate(e.date))}</span>`);
+          meta = parts.join("");
+        } else if (currentCat === "trip") {
+          const parts = [];
+          if (e.dateFrom && e.dateTo) {
+            parts.push(`<span>📅 ${escapeHtml(formatDate(e.dateFrom))} → ${escapeHtml(formatDate(e.dateTo))}</span>`);
+          } else if (e.dateFrom) {
+            parts.push(`<span>📅 ${escapeHtml(formatDate(e.dateFrom))}</span>`);
+          }
+          if (e.highlights) parts.push(`<span>✨ ${escapeHtml(e.highlights)}</span>`);
+          meta = parts.join("");
+        } else {
+          const parts = [];
+          if (e.dateWatched) parts.push(`<span>📅 ${escapeHtml(formatDate(e.dateWatched))}</span>`);
+          meta = parts.join("");
+        }
+
+        const name = currentCat === "restaurant" ? e.name : currentCat === "trip" ? e.destination : e.title;
+
+        return `
+          <div class="entry-card" data-id="${e.id}">
+            <div class="entry-actions">
+              <button class="btn-edit" data-id="${e.id}" title="Edit">✏️</button>
+              <button class="btn-del" data-id="${e.id}" title="Delete">🗑</button>
+            </div>
+            ${badge}
+            <div class="entry-name">${escapeHtml(name || "Untitled")}</div>
+            ${e.rating ? starsHtml(e.rating) : ""}
+            <div class="entry-meta">${meta}</div>
+            ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ""}
+          </div>
+        `;
+      }).join("");
+
+      // Bind delete buttons
+      grid.querySelectorAll(".btn-del").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Delete this entry?")) return;
+          try {
+            await callContent({ type: "tracker", action: "delete", id: btn.dataset.id });
+            await loadEntries();
+          } catch (err) {
+            alert("Could not delete: " + err.message);
+          }
+        });
+      });
+
+      // Bind edit buttons
+      grid.querySelectorAll(".btn-edit").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const entry = allEntries.find((e) => e.id === btn.dataset.id);
+          if (!entry) return;
+          openEdit(entry);
+        });
+      });
+    }
+
+    function openEdit(entry) {
+      const cat = entry.category;
+      let newNotes;
+
+      if (cat === "restaurant") {
+        const name = prompt("Name:", entry.name || "");
+        if (name === null) return;
+        const location = prompt("Location:", entry.location || "");
+        if (location === null) return;
+        const cuisine = prompt("Cuisine:", entry.cuisine || "");
+        if (cuisine === null) return;
+        const rating = prompt("Rating (1-5):", entry.rating || "");
+        if (rating === null) return;
+        newNotes = prompt("Notes:", entry.notes || "");
+        if (newNotes === null) return;
+        updateEntry(entry.id, {
+          name: name.trim(),
+          location: location.trim(),
+          cuisine: cuisine.trim(),
+          rating: Math.min(5, Math.max(0, parseInt(rating) || 0)),
+          notes: newNotes.trim(),
+        });
+      } else if (cat === "trip") {
+        const dest = prompt("Destination:", entry.destination || "");
+        if (dest === null) return;
+        const highlights = prompt("Highlights:", entry.highlights || "");
+        if (highlights === null) return;
+        newNotes = prompt("Notes:", entry.notes || "");
+        if (newNotes === null) return;
+        updateEntry(entry.id, {
+          destination: dest.trim(),
+          highlights: highlights.trim(),
+          notes: newNotes.trim(),
+        });
+      } else {
+        const title = prompt("Title:", entry.title || "");
+        if (title === null) return;
+        const type = prompt("Type (movie/series):", entry.mediaType || "movie");
+        if (type === null) return;
+        const rating = prompt("Rating (1-5):", entry.rating || "");
+        if (rating === null) return;
+        newNotes = prompt("Notes:", entry.notes || "");
+        if (newNotes === null) return;
+        updateEntry(entry.id, {
+          title: title.trim(),
+          mediaType: (type.trim().toLowerCase() === "series") ? "series" : "movie",
+          rating: Math.min(5, Math.max(0, parseInt(rating) || 0)),
+          notes: newNotes.trim(),
+        });
+      }
+    }
+
+    async function updateEntry(id, data) {
+      try {
+        await callContent({ type: "tracker", action: "update", id, data });
+        await loadEntries();
+      } catch (err) {
+        alert("Could not update: " + err.message);
+      }
+    }
+
+    // ── Add entry ──
+    document.getElementById("btnAdd").addEventListener("click", async () => {
+      const btn = document.getElementById("btnAdd");
+      btn.disabled = true;
+
+      try {
+        let data;
+
+        if (currentCat === "restaurant") {
+          const name = document.getElementById("rName").value.trim();
+          if (!name) { alert("Please enter a name."); return; }
+          data = {
+            category: "restaurant",
+            name,
+            location: document.getElementById("rLocation").value.trim(),
+            cuisine: document.getElementById("rCuisine").value.trim(),
+            date: document.getElementById("rDate").value,
+            rating: starRatings.rStars,
+            notes: document.getElementById("rNotes").value.trim(),
+          };
+        } else if (currentCat === "trip") {
+          const dest = document.getElementById("tDest").value.trim();
+          if (!dest) { alert("Please enter a destination."); return; }
+          data = {
+            category: "trip",
+            destination: dest,
+            dateFrom: document.getElementById("tFrom").value,
+            dateTo: document.getElementById("tTo").value,
+            highlights: document.getElementById("tHighlights").value.trim(),
+            notes: document.getElementById("tNotes").value.trim(),
+          };
+        } else {
+          const title = document.getElementById("mTitle").value.trim();
+          if (!title) { alert("Please enter a title."); return; }
+          data = {
+            category: "media",
+            title,
+            mediaType: document.getElementById("mType").value,
+            dateWatched: document.getElementById("mDate").value,
+            rating: starRatings.mStars,
+            notes: document.getElementById("mNotes").value.trim(),
+          };
+        }
+
+        await callContent({ type: "tracker", action: "add", data });
+        clearForm();
+        await loadEntries();
+      } catch (err) {
+        alert("Could not add entry: " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function clearForm() {
+      document.querySelectorAll(".add-card input, .add-card textarea").forEach((el) => { el.value = ""; });
+      document.getElementById("mType").value = "movie";
+      starRatings.rStars = 0;
+      starRatings.mStars = 0;
+      document.querySelectorAll(".star-input").forEach((c) => updateStars(c, 0));
+    }
+
+    // ── Load ──
+    async function loadEntries() {
+      try {
+        const data = await callContent({ type: "tracker", action: "list" });
+        allEntries = Array.isArray(data?.entries) ? data.entries : [];
+        // Sort newest first
+        allEntries.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        renderEntries();
+      } catch (err) {
+        console.error("Failed to load tracker entries:", err);
+        document.getElementById("entriesGrid").innerHTML =
+          '<div class="empty-state">Could not load entries.</div>';
+      }
+    }
+
+    loadEntries();
+  </script>
+</body>
+</html>

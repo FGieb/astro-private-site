@@ -9,7 +9,7 @@ function json(body, status = 200) {
 }
 
 function isValidType(type) {
-  return ["notes", "calendar", "thoughts", "bets", "scores"].includes(type);
+  return ["notes", "calendar", "thoughts", "bets", "scores", "tracker"].includes(type);
 }
 
 async function loadEntries(storeName) {
@@ -55,7 +55,7 @@ export default async function handler(req) {
       return json({ error: `Invalid content type: ${type}` }, 400);
     }
 
-    if (!["list", "add", "delete"].includes(action)) {
+    if (!["list", "add", "delete", "update"].includes(action)) {
       return json({ error: `Invalid action: ${action}` }, 400);
     }
 
