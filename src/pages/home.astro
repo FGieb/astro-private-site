@@ -725,16 +725,15 @@ if (!(await isValidSession(cookie?.value))) {
 
         let data;
         if (cached) {
-          const parsed = JSON.parse(cached);
-          // Bust cache if ab is missing (feature wasn't deployed yet when cached)
-          data = parsed?.ab ? parsed : null;
+          data = JSON.parse(cached);
         }
 
         if (!data) {
           const res = await fetch("/.netlify/functions/generateDaily");
           data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || `generateDaily failed with ${res.status}`);
-          if (data?.reflective?.text && data?.fun?.text) {
+          // Always cache so we don't keep re-fetching on every page load
+          if (data?.reflective?.text) {
             sessionStorage.setItem(cacheKey, JSON.stringify(data));
           }
         }
