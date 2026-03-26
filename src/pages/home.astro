@@ -231,7 +231,7 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     .thought-text:hover {
-      color: rgba(255, 160, 160, 0.90);
+      color: var(--accent-blue);
     }
             
     textarea {
@@ -484,7 +484,7 @@ if (!(await isValidSession(cookie?.value))) {
                   role="button"
                   tabindex="0"
                   aria-label="Click to delete thought"
-                >– ${escapeHtml(item.text || "")}</div>
+                > ${escapeHtml(item.text || "")}</div>
               </div>
             `)
             .join("")
