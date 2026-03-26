@@ -126,6 +126,9 @@ Constraints:
 - No emojis
 - No moralizing
 Return only the text.
+
+Add:
+When relevant, a simple source for more information
 `.trim();
 
     let usedFallback = false;
