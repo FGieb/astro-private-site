@@ -174,7 +174,7 @@ Constraints:
 Return only the text.
 
 Add:
-When relevant, a simple source for more information
+When relevant, a simple source for more information, but only a name or link. dont force it.
 `.trim();
 
     let usedFallback = false;
