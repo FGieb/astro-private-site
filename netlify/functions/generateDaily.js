@@ -123,13 +123,15 @@ Constraints:
 Return only the text.
 `.trim();
 
+    let usedFallback = false;
+
     if (!existing.reflective?.text) {
       try {
         const reflective = await callOpenAI(reflectivePrompt);
         existing.reflective = { text: reflective };
       } catch (err) {
         console.error("Failed to generate reflective item:", err);
-        existing.reflective = { text: FALLBACK_REFLECTION };
+        usedFallback = true;
       }
     }
 
@@ -139,19 +141,26 @@ Return only the text.
         existing.fun = { text: fun };
       } catch (err) {
         console.error("Failed to generate fun item:", err);
-        existing.fun = { text: FALLBACK_FUN };
+        usedFallback = true;
       }
     }
 
-    existing.generatedAt = new Date().toISOString();
-
-    await store.setJSON("entries", entries);
+    if (!usedFallback) {
+      existing.generatedAt = new Date().toISOString();
+      await store.setJSON("entries", entries);
+    }
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(existing),
+      body: JSON.stringify({
+        reflective: existing.reflective || { text: FALLBACK_REFLECTION },
+        fun: existing.fun || { text: FALLBACK_FUN },
+        comments: existing.comments || [],
+        generatedAt: existing.generatedAt,
+      }),
     };
+
   } catch (err) {
     console.error("generateDaily fatal error:", err);
 
