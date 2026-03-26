@@ -120,25 +120,26 @@ if (!(await isValidSession(cookie?.value))) {
       display: flex;
       justify-content: center;
       gap: 0.4rem;
-      margin-bottom: 1.6rem;
+      margin-bottom: 1.4rem;
     }
 
     .cat-tab {
-      padding: 0.5rem 1.15rem;
+      padding: 0.45rem 1.05rem;
       border-radius: 999px;
-      border: 1.5px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.8);
-      font-size: 0.92rem;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.85);
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.15s;
+      backdrop-filter: blur(4px);
     }
 
     .cat-tab:hover {
       border-color: var(--accent-blue);
       color: var(--accent-blue);
-      background: rgba(10, 116, 201, 0.08);
+      background: rgba(10, 116, 201, 0.12);
     }
 
     .cat-tab.active {
@@ -147,20 +148,61 @@ if (!(await isValidSession(cookie?.value))) {
       color: white;
     }
 
-    /* ── Add form — LIGHT card ── */
+    /* ── Search bar ── */
+    .search-bar {
+      margin-bottom: 1rem;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 0.5rem 1rem 0.5rem 2.2rem;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.10);
+      color: white;
+      font-family: inherit;
+      font-size: 0.88rem;
+      backdrop-filter: blur(6px);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .search-bar input::placeholder { color: rgba(255,255,255,0.45); }
+
+    .search-bar input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      background: rgba(255,255,255,0.14);
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap::before {
+      content: "🔍";
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.82rem;
+      pointer-events: none;
+    }
+
+    /* ── Add form — soft frosted card ── */
     .add-card {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(220, 228, 240, 0.72);
       color: var(--text-dark);
-      border-radius: var(--radius-xl);
-      padding: 1.4rem 1.6rem;
-      box-shadow: var(--shadow);
-      margin-bottom: 1.4rem;
-      backdrop-filter: blur(3px);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.2rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      margin-bottom: 1.2rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.22);
     }
 
     .add-card h2 {
-      margin: 0 0 1rem;
-      font-size: 1.1rem;
+      margin: 0 0 0.7rem;
+      font-size: 0.95rem;
       font-weight: 700;
       color: #1a1a2e;
     }
@@ -168,42 +210,42 @@ if (!(await isValidSession(cookie?.value))) {
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+      gap: 0.55rem;
     }
 
     .form-grid .full { grid-column: 1 / -1; }
 
     .form-field label {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #555;
-      margin-bottom: 0.3rem;
+      color: #4a5568;
+      margin-bottom: 0.2rem;
     }
 
     .form-field input,
     .form-field textarea,
     .form-field select {
       width: 100%;
-      padding: 0.55rem 0.75rem;
-      border-radius: 0.6rem;
-      border: 1.5px solid #d0d5dd;
-      background: #f8f9fb;
+      padding: 0.42rem 0.65rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(0,0,0,0.15);
+      background: rgba(255,255,255,0.65);
       color: #1a1a2e;
       font-family: inherit;
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
 
     .form-field input::placeholder,
     .form-field textarea::placeholder {
-      color: #999;
+      color: #888;
     }
 
     .form-field textarea {
-      min-height: 60px;
+      min-height: 48px;
       resize: vertical;
     }
 
@@ -212,8 +254,8 @@ if (!(await isValidSession(cookie?.value))) {
     .form-field select:focus {
       outline: none;
       border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px var(--accent-blue-soft);
-      background: #fff;
+      box-shadow: 0 0 0 2px var(--accent-blue-soft);
+      background: rgba(255,255,255,0.85);
     }
 
     .form-field select option {
@@ -221,7 +263,6 @@ if (!(await isValidSession(cookie?.value))) {
       color: #1a1a2e;
     }
 
-    /* date inputs — make the calendar icon visible */
     .form-field input[type="date"] {
       cursor: pointer;
       color-scheme: light;
@@ -230,14 +271,14 @@ if (!(await isValidSession(cookie?.value))) {
     /* ── Star rating ── */
     .star-input {
       display: flex;
-      gap: 0.2rem;
-      padding-top: 0.15rem;
+      gap: 0.15rem;
+      padding-top: 0.1rem;
     }
 
     .star-input span {
-      font-size: 1.4rem;
+      font-size: 1.2rem;
       cursor: pointer;
-      color: #d0d5dd;
+      color: rgba(0,0,0,0.18);
       transition: color 0.1s;
       user-select: none;
     }
@@ -248,18 +289,18 @@ if (!(await isValidSession(cookie?.value))) {
     .form-actions {
       display: flex;
       gap: 0.6rem;
-      margin-top: 0.95rem;
+      margin-top: 0.65rem;
     }
 
     .btn-add {
-      padding: 0.55rem 1.4rem;
+      padding: 0.45rem 1.2rem;
       border-radius: 999px;
       border: none;
       background: var(--accent-blue);
       color: white;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       transition: opacity 0.15s;
     }
 
@@ -269,30 +310,31 @@ if (!(await isValidSession(cookie?.value))) {
     /* ── Entry cards grid ── */
     .entries-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 0.9rem;
+      grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+      gap: 0.8rem;
     }
 
     .entry-card {
-      background: rgba(255, 255, 255, 0.93);
+      background: rgba(230, 235, 245, 0.88);
       color: var(--text-dark);
-      border-radius: 1rem;
-      padding: 1rem 1.15rem;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.10);
+      border-radius: 0.9rem;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.10);
       position: relative;
       transition: transform 0.12s, box-shadow 0.12s;
-      border: 1px solid rgba(0,0,0,0.04);
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(8px);
     }
 
     .entry-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.14);
     }
 
     .entry-name {
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 700;
-      margin: 0 0 0.35rem;
+      margin: 0 0 0.25rem;
       color: #1a1a2e;
       padding-right: 2rem;
     }
@@ -421,12 +463,13 @@ if (!(await isValidSession(cookie?.value))) {
     .timeline-item.cat-media::before { border-color: #7c3aed; }
 
     .timeline-card {
-      background: rgba(255, 255, 255, 0.93);
+      background: rgba(230, 235, 245, 0.88);
       color: var(--text-dark);
       border-radius: 0.85rem;
-      padding: 0.85rem 1.1rem;
+      padding: 0.75rem 1rem;
       box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.04);
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(8px);
     }
 
     .timeline-date {
@@ -513,6 +556,13 @@ if (!(await isValidSession(cookie?.value))) {
       <button class="cat-tab" data-cat="trip">✈️ Trips</button>
       <button class="cat-tab" data-cat="media">🎬 Movies & Series</button>
       <button class="cat-tab" data-cat="timeline">📅 Timeline</button>
+    </div>
+
+    <!-- ── Search ── -->
+    <div class="search-bar" id="searchBar">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search by name, location, notes..." />
+      </div>
     </div>
 
     <!-- ── Add form ── -->
@@ -623,6 +673,17 @@ if (!(await isValidSession(cookie?.value))) {
     let currentCat = "restaurant";
     let allEntries = [];
     let starRatings = { rStars: 0, mStars: 0 };
+    let searchQuery = "";
+
+    // ── Search ──
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      if (currentCat === "timeline") {
+        renderTimeline();
+      } else {
+        renderEntries();
+      }
+    });
 
     // ── Star inputs ──
     document.querySelectorAll(".star-input").forEach((container) => {
@@ -732,9 +793,18 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     // ── Render cards ──
+    function matchesSearch(e) {
+      if (!searchQuery) return true;
+      const fields = [
+        e.name, e.destination, e.title, e.location, e.cuisine,
+        e.highlights, e.notes, e.mediaType,
+      ];
+      return fields.some((f) => f && f.toLowerCase().includes(searchQuery));
+    }
+
     function renderEntries() {
       const grid = document.getElementById("entriesGrid");
-      const filtered = allEntries.filter((e) => e.category === currentCat);
+      const filtered = allEntries.filter((e) => e.category === currentCat && matchesSearch(e));
 
       if (!filtered.length) {
         const icons = { restaurant: "🍽", trip: "✈️", media: "🎬" };
@@ -819,7 +889,7 @@ if (!(await isValidSession(cookie?.value))) {
     // ── Timeline ──
     function renderTimeline() {
       const container = document.getElementById("timelineView");
-      const sorted = [...allEntries].sort((a, b) => {
+      const sorted = [...allEntries].filter(matchesSearch).sort((a, b) => {
         const da = getEntryDate(a);
         const db = getEntryDate(b);
         return db.localeCompare(da);
