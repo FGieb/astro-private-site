@@ -7,11 +7,7 @@ const cookie = Astro.cookies.get("auth");
 if (!(await isValidSession(cookie?.value))) {
   return Astro.redirect("/login");
 }
-
-const entries = Object.entries(daily)
-  .sort(([a], [b]) => b.localeCompare(a));
 ---
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -99,7 +95,6 @@ const entries = Object.entries(daily)
       );
       border-radius: 0.6rem;
       font-size: 0.9rem;
-      display: none;
     }
 
     .comments-title {
@@ -120,6 +115,12 @@ const entries = Object.entries(daily)
       opacity: 0.7;
       margin-top: 0.4rem;
     }
+
+    .loading {
+      text-align: center;
+      opacity: 0.6;
+      padding: 2rem 0;
+    }
   </style>
 </head>
 
@@ -135,52 +136,105 @@ const entries = Object.entries(daily)
 
   <main class="wrapper">
     <h1>Archive</h1>
-
-    {entries.map(([date, entry]) => (
-      <div class="entry" data-date={date}>
-        <div class="date">{date}</div>
-
-        <div class="reflection">
-          {entry.reflective?.text}
-        </div>
-
-        <div class="comments" data-comments-for={date}>
-          <div class="comments-title">Thoughts</div>
-        </div>
-
-        <div class="fun">
-          {entry.fun?.text}
-        </div>
-      </div>
-    ))}
+    <div id="archiveEntries"><div class="loading">Loading...</div></div>
   </main>
 
-  <script type="module" is:inline>
-    async function hydrateComments() {
-      let serverDaily = {};
-      try {
-        const res = await fetch("/.netlify/functions/daily-load");
-        serverDaily = await res.json();
-      } catch {
-        return;
-      }
-
-      for (const [date, entry] of Object.entries(serverDaily)) {
-        const block = document.querySelector(
-          `[data-comments-for="${date}"]`
-        );
-        if (!block || !entry.comments?.length) continue;
-
-        block.style.display = "block";
-        block.innerHTML =
-          '<div class="comments-title">Thoughts</div>' +
-          entry.comments
-            .map(c => `<div class="comment-line">– ${c.text}</div>`)
-            .join("");
-      }
+  <script type="module" is:inline define:vars={{ staticDaily: daily }}>
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
-    hydrateComments();
+    async function loadAndRender() {
+      // Start with static daily.json as the base (entries up to last deploy)
+      const merged = {};
+      for (const [date, entry] of Object.entries(staticDaily)) {
+        merged[date] = { ...entry, newThoughts: [] };
+      }
+
+      // Overlay with live blob store data (newer entries + old comments)
+      try {
+        const res = await fetch("/.netlify/functions/daily-load");
+        if (res.ok) {
+          const blobData = await res.json();
+          for (const [date, entry] of Object.entries(blobData)) {
+            if (!merged[date]) merged[date] = { comments: [], newThoughts: [] };
+            if (!merged[date].newThoughts) merged[date].newThoughts = [];
+            if (entry.reflective?.text) merged[date].reflective = entry.reflective;
+            if (entry.fun?.text) merged[date].fun = entry.fun;
+            if (Array.isArray(entry.comments)) merged[date].comments = entry.comments;
+            if (entry.generatedAt) merged[date].generatedAt = entry.generatedAt;
+          }
+        }
+      } catch {}
+
+      // Add new thoughts from content.mjs (the new thoughts bucket)
+      try {
+        const res = await fetch("/.netlify/functions/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "thoughts", action: "list" }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const thoughts = Array.isArray(data?.entries) ? data.entries : [];
+          for (const thought of thoughts) {
+            const date = thought.date;
+            if (!date) continue;
+            if (!merged[date]) merged[date] = { comments: [], newThoughts: [] };
+            if (!merged[date].newThoughts) merged[date].newThoughts = [];
+            merged[date].newThoughts.push(thought);
+          }
+        }
+      } catch {}
+
+      // Sort descending and render
+      const sorted = Object.entries(merged).sort(([a], [b]) => b.localeCompare(a));
+
+      const html = sorted.map(([date, entry]) => {
+        const reflection = entry.reflective?.text || "";
+        const fun = entry.fun?.text || "";
+
+        // Old-style comments (from daily blob store)
+        const oldComments = (entry.comments || [])
+          .map(c => (typeof c === "string" ? c : c.text) || "")
+          .filter(Boolean);
+
+        // New thoughts (from content.mjs thoughts bucket)
+        const newThoughts = (entry.newThoughts || [])
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+          .map(t => t.text || "")
+          .filter(Boolean);
+
+        const allThoughts = [...oldComments, ...newThoughts];
+
+        if (!reflection && !fun && !allThoughts.length) return "";
+
+        const thoughtsHtml = allThoughts.length
+          ? `<div class="comments">
+              <div class="comments-title">Thoughts</div>
+              ${allThoughts.map(t => `<div class="comment-line">– ${escapeHtml(t)}</div>`).join("")}
+            </div>`
+          : "";
+
+        return `
+          <div class="entry">
+            <div class="date">${escapeHtml(date)}</div>
+            ${reflection ? `<div class="reflection">${escapeHtml(reflection)}</div>` : ""}
+            ${thoughtsHtml}
+            ${fun ? `<div class="fun">${escapeHtml(fun)}</div>` : ""}
+          </div>`;
+      }).filter(Boolean).join("");
+
+      document.getElementById("archiveEntries").innerHTML =
+        html || '<div class="loading">No entries yet.</div>';
+    }
+
+    loadAndRender();
   </script>
 </body>
 </html>
