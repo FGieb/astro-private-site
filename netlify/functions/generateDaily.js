@@ -160,7 +160,6 @@ Return only the text.
         generatedAt: existing.generatedAt,
       }),
     };
-
   } catch (err) {
     console.error("generateDaily fatal error:", err);
 
