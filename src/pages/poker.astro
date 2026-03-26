@@ -1,0 +1,813 @@
+---
+import { isValidSession } from "../lib/auth";
+
+const cookie = Astro.cookies.get("auth");
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poker</title>
+  <style is:global>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a1a0a;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      padding: 1rem 1rem 0;
+    }
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.5rem 1.2rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
+    .nav-pill a { color: #ccc; text-decoration: none; font-size: 0.9rem; }
+    .nav-pill a:hover { color: white; }
+    .nav-group { position: relative; display: flex; align-items: center; }
+    .nav-group-label { cursor: pointer; color: #ccc; font-size: 0.9rem; user-select: none; }
+    .nav-group-label:hover { color: white; }
+    .nav-group-menu {
+      display: none; position: absolute; top: calc(100% + 0.5rem); left: 50%;
+      transform: translateX(-50%); background: rgba(14,18,26,0.97);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem;
+      padding: 0.35rem; min-width: 130px; flex-direction: column;
+      gap: 0.1rem; z-index: 100;
+    }
+    .nav-group:hover .nav-group-menu { display: flex; }
+    .nav-group-menu a {
+      display: block; padding: 0.4rem 0.75rem;
+      border-radius: 0.5rem; white-space: nowrap; color: #ccc; font-size: 0.85rem;
+    }
+    .nav-group-menu a:hover { background: rgba(255,255,255,0.08); color: white; }
+
+    /* ── Screens ── */
+    .screen { display: none; }
+    .screen.active { display: flex; }
+
+    /* ── Player Select ── */
+    #screen-select {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      gap: 2rem;
+    }
+    #screen-select h1 { font-size: 2rem; margin: 0; }
+    #screen-select p { color: #aaa; margin: 0; }
+    .player-btns { display: flex; gap: 1.5rem; }
+    .player-btn {
+      padding: 1rem 2.5rem;
+      font-size: 1.4rem;
+      font-weight: 700;
+      border: 2px solid #4a8a4a;
+      background: rgba(40,80,40,0.4);
+      color: white;
+      border-radius: 1rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .player-btn:hover { background: rgba(60,120,60,0.6); transform: scale(1.04); }
+
+    /* ── Waiting ── */
+    #screen-waiting {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      gap: 1rem;
+      text-align: center;
+    }
+    #screen-waiting h2 { font-size: 1.6rem; margin: 0; }
+    .waiting-dots { font-size: 2rem; letter-spacing: 0.3rem; animation: blink 1.2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .joined-list { color: #7bc97b; font-size: 0.95rem; }
+
+    /* ── Table ── */
+    #screen-game {
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      gap: 0.5rem;
+    }
+
+    .table-wrap {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Player strips */
+    .player-area {
+      background: rgba(255,255,255,0.05);
+      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .player-area.active-turn {
+      border: 2px solid #f0c040;
+      background: rgba(240,192,64,0.07);
+    }
+    .player-area.inactive-turn {
+      border: 2px solid transparent;
+    }
+    .player-info { flex: 1; }
+    .player-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dealer-badge {
+      font-size: 0.7rem;
+      background: #c8860a;
+      color: #fff;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+    }
+    .blind-badge {
+      font-size: 0.7rem;
+      background: #1a6a8a;
+      color: #fff;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+    }
+    .player-chips { color: #7bc97b; font-size: 0.95rem; }
+    .player-bet { color: #f0c040; font-size: 0.85rem; min-height: 1.2em; }
+    .cards-row { display: flex; gap: 0.4rem; }
+
+    /* Cards */
+    .card {
+      width: 48px;
+      height: 68px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      position: relative;
+      user-select: none;
+    }
+    .card.face-up { background: #f8f5ee; color: #222; }
+    .card.face-up.red { color: #c0292b; }
+    .card .rank { font-size: 0.85rem; position: absolute; top: 4px; left: 5px; line-height: 1; }
+    .card .suit-big { font-size: 1.3rem; }
+    .card .rank-bot { font-size: 0.85rem; position: absolute; bottom: 4px; right: 5px; line-height: 1; transform: rotate(180deg); }
+    .card.back {
+      background: linear-gradient(135deg, #1a3a8a 25%, #1557a0 25%, #1557a0 50%, #1a3a8a 50%, #1a3a8a 75%, #1557a0 75%);
+      background-size: 10px 10px;
+      border-color: #aac;
+    }
+    .card.empty {
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,255,255,0.12);
+    }
+
+    /* Community */
+    .community-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .community-cards {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .phase-label {
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Pot */
+    .pot-display {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #f0c040;
+    }
+    .pot-display span { font-size: 0.8rem; color: #999; font-weight: 400; }
+
+    /* Actions */
+    .action-area {
+      background: rgba(0,0,0,0.4);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .action-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 0.6rem 0.5rem;
+      border-radius: 0.6rem;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .action-btn:hover { opacity: 0.85; transform: scale(1.02); }
+    .action-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn-fold { background: #8a2020; color: white; }
+    .btn-check { background: #3a5a3a; color: white; }
+    .btn-call { background: #2a6a2a; color: white; }
+    .btn-raise { background: #1a4a8a; color: white; }
+    .btn-deal { background: #5a3a8a; color: white; flex: none; padding: 0.7rem 2rem; }
+    .btn-reset { background: #5a3a20; color: #ccc; font-size: 0.8rem; flex: none; padding: 0.4rem 0.8rem; }
+    .raise-row {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .raise-input {
+      width: 90px;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.5rem;
+      border: 1px solid #4a6a4a;
+      background: #0f1f0f;
+      color: white;
+      font-size: 0.9rem;
+    }
+    .quick-btns { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .quick-btn {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: 0.4rem;
+      border: 1px solid #3a5a3a;
+      background: rgba(40,80,40,0.3);
+      color: #bbb;
+      cursor: pointer;
+    }
+    .quick-btn:hover { background: rgba(60,100,60,0.5); color: white; }
+    .waiting-turn {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      padding: 0.4rem;
+      animation: blink 1.5s infinite;
+    }
+
+    /* Log */
+    .log-area {
+      background: rgba(0,0,0,0.3);
+      border-radius: 0.75rem;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.78rem;
+      color: #888;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+    .log-area .log-line { line-height: 1.5; }
+    .log-area .log-line.highlight { color: #c8c060; }
+
+    /* Showdown */
+    .showdown-banner {
+      text-align: center;
+      padding: 0.5rem;
+    }
+    .showdown-banner h3 { margin: 0 0 0.2rem; font-size: 1.3rem; color: #f0c040; }
+    .showdown-banner p { margin: 0; color: #aaa; font-size: 0.9rem; }
+
+    /* Gameover */
+    #screen-gameover {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      gap: 1.5rem;
+      text-align: center;
+    }
+    #screen-gameover h2 { font-size: 2rem; margin: 0; color: #f0c040; }
+    #screen-gameover p { color: #aaa; margin: 0; }
+    .reset-btn {
+      padding: 0.8rem 2rem;
+      border-radius: 0.8rem;
+      border: none;
+      background: #3a5a3a;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .reset-btn:hover { background: #4a7a4a; }
+
+    .status-bar {
+      font-size: 0.8rem;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <a href="/home">🏠 Home</a>
+      <div class="nav-group">
+        <span class="nav-group-label">🎮 Games ▾</span>
+        <div class="nav-group-menu">
+          <a href="/bets">🎲 Bets</a>
+          <a href="/scores">🏆 Scores</a>
+          <a href="/poker">🃏 Poker</a>
+        </div>
+      </div>
+      <a href="/notes">📝 Notes</a>
+      <a href="/archive">🗂 Archive</a>
+    </div>
+  </div>
+
+  <!-- ── Player Select ── -->
+  <div id="screen-select" class="screen">
+    <h1>🃏 Texas Hold'em</h1>
+    <p>Who are you?</p>
+    <div class="player-btns">
+      <button class="player-btn" id="btn-lm">LM</button>
+      <button class="player-btn" id="btn-bm">BM</button>
+    </div>
+    <p style="font-size:0.8rem;color:#555">Your choice is saved on this device.</p>
+  </div>
+
+  <!-- ── Waiting ── -->
+  <div id="screen-waiting" class="screen">
+    <h2>Waiting for both players</h2>
+    <div class="waiting-dots">• • •</div>
+    <div id="waiting-info" class="joined-list"></div>
+    <button class="reset-btn" id="btn-switch-player" style="font-size:0.85rem;padding:0.5rem 1rem;">
+      Switch player
+    </button>
+  </div>
+
+  <!-- ── Game ── -->
+  <div id="screen-game" class="screen">
+    <div class="table-wrap">
+
+      <!-- Opponent -->
+      <div id="opp-area" class="player-area inactive-turn">
+        <div class="cards-row" id="opp-cards"></div>
+        <div class="player-info">
+          <div class="player-name" id="opp-name">Opponent</div>
+          <div class="player-chips" id="opp-chips">1000 chips</div>
+          <div class="player-bet" id="opp-bet"></div>
+        </div>
+      </div>
+
+      <!-- Community + Pot -->
+      <div class="community-wrap">
+        <div class="phase-label" id="phase-label">PREFLOP</div>
+        <div class="community-cards" id="community-cards"></div>
+        <div class="pot-display" id="pot-display"><span>Pot: </span>0</div>
+      </div>
+
+      <!-- Me -->
+      <div id="my-area" class="player-area inactive-turn">
+        <div class="cards-row" id="my-cards"></div>
+        <div class="player-info">
+          <div class="player-name" id="my-name">Me</div>
+          <div class="player-chips" id="my-chips">1000 chips</div>
+          <div class="player-bet" id="my-bet"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div id="action-area" class="action-area" style="display:none"></div>
+
+      <!-- Log -->
+      <div class="log-area" id="log-area"></div>
+
+      <!-- Status -->
+      <div class="status-bar" id="status-bar"></div>
+
+    </div>
+  </div>
+
+  <!-- ── Game Over ── -->
+  <div id="screen-gameover" class="screen">
+    <h2>🏆 Game Over</h2>
+    <p id="gameover-msg"></p>
+    <button class="reset-btn" id="btn-new-game-reset">Start New Game</button>
+    <button class="reset-btn" id="btn-switch-player-go" style="background:#3a3a5a;font-size:0.85rem">
+      Switch player
+    </button>
+  </div>
+
+  <script type="module" is:inline>
+    // ========================
+    // State
+    // ========================
+    let myPlayer = localStorage.getItem("pokerPlayer");
+    let gameState = null;
+    let pollTimer = null;
+    let raiseAmount = 20;
+
+    // ========================
+    // Helpers
+    // ========================
+    function opp(p) { return p === "LM" ? "BM" : "LM"; }
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.getElementById("screen-" + id).classList.add("active");
+    }
+
+    async function callPoker(body) {
+      const res = await fetch("/.netlify/functions/poker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Request failed");
+      return data;
+    }
+
+    // ========================
+    // Card rendering
+    // ========================
+    const SUIT_SYMBOL = { s: "♠", h: "♥", d: "♦", c: "♣" };
+    const SUIT_COLOR  = { s: false, h: true, d: true, c: false };
+    const RANK_DISPLAY = { T: "10", J: "J", Q: "Q", K: "K", A: "A" };
+
+    function rankStr(r) { return RANK_DISPLAY[r] || r; }
+
+    function cardHTML(card) {
+      const r = card[0], s = card[1];
+      const sym = SUIT_SYMBOL[s] || s;
+      const red = SUIT_COLOR[s] ? " red" : "";
+      const rs = rankStr(r);
+      return `<div class="card face-up${red}">
+        <span class="rank">${rs}</span>
+        <span class="suit-big">${sym}</span>
+        <span class="rank-bot">${rs}</span>
+      </div>`;
+    }
+
+    function cardBackHTML() {
+      return `<div class="card back"></div>`;
+    }
+
+    function emptyCardHTML() {
+      return `<div class="card empty"></div>`;
+    }
+
+    // ========================
+    // Render
+    // ========================
+    function render(state) {
+      const me = myPlayer;
+      const op = opp(me);
+
+      // Phase
+      document.getElementById("phase-label").textContent = state.phase.toUpperCase();
+
+      // Pot
+      document.getElementById("pot-display").innerHTML =
+        `<span>Pot: </span>${state.pot}`;
+
+      // Community cards (5 slots)
+      const comm = state.community || [];
+      let commHTML = "";
+      for (let i = 0; i < 5; i++) {
+        commHTML += i < comm.length ? cardHTML(comm[i]) : emptyCardHTML();
+      }
+      document.getElementById("community-cards").innerHTML = commHTML;
+
+      // My cards
+      const myHand = state.myHand || [];
+      document.getElementById("my-cards").innerHTML =
+        myHand.map(c => cardHTML(c)).join("") || emptyCardHTML() + emptyCardHTML();
+
+      // Opponent cards
+      const oppEl = document.getElementById("opp-cards");
+      if (state.phase === "showdown" && state.oppHand?.length) {
+        oppEl.innerHTML = state.oppHand.map(c => cardHTML(c)).join("");
+      } else {
+        const n = state.oppHandCount || 2;
+        oppEl.innerHTML = Array(n).fill(0).map(() => cardBackHTML()).join("");
+      }
+
+      // Names + chips + bets
+      function nameBadges(player, state) {
+        let badges = "";
+        if (state.dealer === player) badges += `<span class="dealer-badge">D/SB</span>`;
+        else badges += `<span class="blind-badge">BB</span>`;
+        return badges;
+      }
+
+      document.getElementById("my-name").innerHTML = `${me} ${nameBadges(me, state)}`;
+      document.getElementById("opp-name").innerHTML = `${op} ${nameBadges(op, state)}`;
+      document.getElementById("my-chips").textContent = `${state.chips?.[me] ?? 0} chips`;
+      document.getElementById("opp-chips").textContent = `${state.chips?.[op] ?? 0} chips`;
+
+      const myRoundBet = state.roundBets?.[me];
+      const opRoundBet = state.roundBets?.[op];
+      document.getElementById("my-bet").textContent = myRoundBet ? `Bet: ${myRoundBet}` : "";
+      document.getElementById("opp-bet").textContent = opRoundBet ? `Bet: ${opRoundBet}` : "";
+
+      // Active turn highlights
+      document.getElementById("my-area").className =
+        "player-area " + (state.toAct === me ? "active-turn" : "inactive-turn");
+      document.getElementById("opp-area").className =
+        "player-area " + (state.toAct === op ? "active-turn" : "inactive-turn");
+
+      // Action area
+      renderActions(state);
+
+      // Log
+      const logLines = (state.log || []).slice(-6).reverse();
+      document.getElementById("log-area").innerHTML =
+        logLines.map(l => `<div class="log-line ${l.startsWith("SHOWDOWN") || l.startsWith("New") ? "highlight" : ""}">${l}</div>`).join("");
+
+      // Status
+      if (state.toAct) {
+        document.getElementById("status-bar").textContent =
+          state.toAct === me ? "Your turn" : `Waiting for ${state.toAct}…`;
+      } else {
+        document.getElementById("status-bar").textContent = "";
+      }
+    }
+
+    function renderActions(state) {
+      const area = document.getElementById("action-area");
+      const me = myPlayer;
+
+      // Showdown
+      if (state.phase === "showdown") {
+        area.style.display = "";
+        const gameOver = state.chips?.LM === 0 || state.chips?.BM === 0;
+        if (gameOver) {
+          area.innerHTML = `<div class="showdown-banner">
+            <h3>${state.winner === "tie" ? "Tie!" : state.winner + " wins!"}</h3>
+            <p>${state.winnerHand}</p>
+            <p style="color:#f0a040;margin-top:0.5rem">Game over!</p>
+          </div>`;
+          return;
+        }
+        area.innerHTML = `
+          <div class="showdown-banner">
+            <h3>${state.winner === "tie" ? "🤝 Tie!" : "🏆 " + state.winner + " wins!"}</h3>
+            <p>${state.winnerHand}</p>
+          </div>
+          <div class="action-row">
+            <button class="action-btn btn-deal" id="btn-deal-next">Deal Next Hand</button>
+            <button class="action-btn btn-reset" id="btn-reset">New Game</button>
+          </div>`;
+        document.getElementById("btn-deal-next").onclick = async () => {
+          try { await doAction({ action: "new_hand" }); } catch(e) { alert(e.message); }
+        };
+        document.getElementById("btn-reset").onclick = resetGame;
+        return;
+      }
+
+      // Not our turn
+      if (state.toAct !== me) {
+        area.style.display = "";
+        area.innerHTML = `<div class="waiting-turn">Waiting for ${state.toAct}…</div>
+          <div class="action-row" style="justify-content:flex-end">
+            <button class="action-btn btn-reset" id="btn-reset-wait">New Game</button>
+          </div>`;
+        document.getElementById("btn-reset-wait").onclick = resetGame;
+        return;
+      }
+
+      // Our turn — build action buttons
+      area.style.display = "";
+      const callAmt = Math.max(0, (state.minBet || 0) - (state.roundBets?.[me] || 0));
+      const myChips = state.chips?.[me] || 0;
+      const minR = state.minRaise || 20;
+      const maxR = Math.max(0, myChips - callAmt);
+
+      // Clamp raiseAmount
+      if (raiseAmount < minR) raiseAmount = minR;
+      if (raiseAmount > maxR && maxR > 0) raiseAmount = maxR;
+
+      const canCheck = callAmt === 0;
+      const canRaise = maxR > 0;
+
+      area.innerHTML = `
+        <div class="action-row">
+          <button class="action-btn btn-fold" id="btn-fold">Fold</button>
+          ${canCheck
+            ? `<button class="action-btn btn-check" id="btn-check">Check</button>`
+            : `<button class="action-btn btn-call" id="btn-call">Call ${callAmt}</button>`}
+        </div>
+        ${canRaise ? `
+        <div class="raise-row">
+          <input type="number" class="raise-input" id="raise-input"
+            min="${minR}" max="${maxR}" step="10" value="${raiseAmount}" />
+          <button class="action-btn btn-raise" id="btn-raise" style="flex:0 0 auto;padding:0.5rem 1rem">
+            ${callAmt > 0 ? "Raise" : "Bet"}
+          </button>
+        </div>
+        <div class="quick-btns">
+          <button class="quick-btn" data-q="min">Min (${minR})</button>
+          <button class="quick-btn" data-q="half">½ Pot (${Math.max(minR, Math.floor(state.pot / 2))})</button>
+          <button class="quick-btn" data-q="pot">Pot (${Math.max(minR, state.pot)})</button>
+          <button class="quick-btn" data-q="allin">All-in (${maxR})</button>
+        </div>` : ""}
+        <div class="action-row" style="justify-content:flex-end">
+          <button class="action-btn btn-reset" id="btn-reset-act">New Game</button>
+        </div>`;
+
+      document.getElementById("btn-fold").onclick = () => doBet("fold");
+      if (canCheck) {
+        document.getElementById("btn-check").onclick = () => doBet("check");
+      } else {
+        document.getElementById("btn-call").onclick = () => doBet("call");
+      }
+      document.getElementById("btn-reset-act").onclick = resetGame;
+
+      if (canRaise) {
+        const inp = document.getElementById("raise-input");
+        inp.oninput = () => { raiseAmount = parseInt(inp.value) || minR; };
+
+        document.getElementById("btn-raise").onclick = () => {
+          const v = parseInt(document.getElementById("raise-input").value) || minR;
+          doBet("raise", v);
+        };
+
+        document.querySelectorAll(".quick-btn").forEach(btn => {
+          btn.onclick = () => {
+            const q = btn.dataset.q;
+            let v = minR;
+            if (q === "half") v = Math.max(minR, Math.floor(state.pot / 2));
+            if (q === "pot") v = Math.max(minR, state.pot);
+            if (q === "allin") v = maxR;
+            raiseAmount = Math.min(v, maxR);
+            document.getElementById("raise-input").value = raiseAmount;
+          };
+        });
+      }
+    }
+
+    // ========================
+    // Actions
+    // ========================
+    async function doAction(body) {
+      const { state } = await callPoker({ ...body, player: myPlayer });
+      gameState = state;
+      render(state);
+      checkGameOver(state);
+    }
+
+    async function doBet(move, amount) {
+      try {
+        await doAction({ action: "bet_action", move, amount });
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function resetGame() {
+      if (!confirm("Start a completely new game? This resets all chips.")) return;
+      try {
+        const { state } = await callPoker({ action: "reset", player: myPlayer });
+        gameState = state;
+        // Re-join automatically
+        const { state: s2 } = await callPoker({ action: "join", player: myPlayer });
+        gameState = s2;
+        updateUI(s2);
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function checkGameOver(state) {
+      if (state.phase === "showdown" && (state.chips?.LM === 0 || state.chips?.BM === 0)) {
+        const loser = state.chips?.LM === 0 ? "LM" : "BM";
+        const winner = loser === "LM" ? "BM" : "LM";
+        document.getElementById("gameover-msg").textContent =
+          `${winner} wins the match! ${loser} is out of chips.`;
+        showScreen("gameover");
+      }
+    }
+
+    // ========================
+    // Polling
+    // ========================
+    function startPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        if (!myPlayer) return;
+        try {
+          const { state } = await callPoker({ action: "get_state", player: myPlayer });
+          if (state.updatedAt !== gameState?.updatedAt) {
+            gameState = state;
+            updateUI(state);
+          }
+        } catch {}
+      }, 2500);
+    }
+
+    // ========================
+    // UI routing
+    // ========================
+    function updateUI(state) {
+      if (!state) { showScreen("waiting"); return; }
+
+      if (state.phase === "waiting") {
+        showScreen("waiting");
+        const joined = state.players || [];
+        document.getElementById("waiting-info").textContent =
+          joined.length === 0 ? "No players yet"
+          : joined.length === 1 ? `${joined[0]} has joined. Waiting for ${opp(joined[0])}…`
+          : `${joined[0]} and ${joined[1]} joined.`;
+        return;
+      }
+
+      if (state.phase === "showdown" && (state.chips?.LM === 0 || state.chips?.BM === 0)) {
+        checkGameOver(state);
+        return;
+      }
+
+      showScreen("game");
+      render(state);
+    }
+
+    async function joinGame() {
+      try {
+        const { state } = await callPoker({ action: "join", player: myPlayer });
+        gameState = state;
+        updateUI(state);
+        startPolling();
+      } catch (e) {
+        console.error("Join failed:", e);
+      }
+    }
+
+    function pickPlayer(p) {
+      myPlayer = p;
+      localStorage.setItem("pokerPlayer", p);
+      joinGame();
+    }
+
+    // ========================
+    // Init
+    // ========================
+    document.getElementById("btn-lm").onclick = () => pickPlayer("LM");
+    document.getElementById("btn-bm").onclick = () => pickPlayer("BM");
+
+    document.getElementById("btn-switch-player").onclick = () => {
+      localStorage.removeItem("pokerPlayer");
+      myPlayer = null;
+      showScreen("select");
+    };
+    document.getElementById("btn-switch-player-go").onclick = () => {
+      localStorage.removeItem("pokerPlayer");
+      myPlayer = null;
+      showScreen("select");
+    };
+    document.getElementById("btn-new-game-reset").onclick = async () => {
+      try {
+        const { state } = await callPoker({ action: "reset", player: myPlayer || "LM" });
+        gameState = state;
+        const { state: s2 } = await callPoker({ action: "join", player: myPlayer || "LM" });
+        gameState = s2;
+        updateUI(s2);
+        startPolling();
+      } catch (e) { alert(e.message); }
+    };
+
+    if (myPlayer) {
+      joinGame();
+    } else {
+      showScreen("select");
+    }
+  </script>
+
+</body>
+</html>
