@@ -180,6 +180,37 @@ if (!(await isValidSession(cookie?.value))) {
       margin-top: 0.3rem;
     }
 
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .filter-btn {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7);
+      border-radius: 999px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+      border-color: rgba(10,116,201,0.5);
+      color: white;
+    }
+
+    .filter-btn.active {
+      background: rgba(10,116,201,0.2);
+      border-color: rgba(10,116,201,0.6);
+      color: white;
+      font-weight: 600;
+    }
+
     /* LOG TABLE */
     .log-card {
       background: rgba(0,0,0,0.45);
@@ -347,6 +378,8 @@ if (!(await isValidSession(cookie?.value))) {
 
     <div class="scoreboard" id="scoreboard"></div>
 
+    <div class="filter-bar" id="filterBar"></div>
+
     <div class="log-card">
       <table>
         <thead>
@@ -390,11 +423,32 @@ if (!(await isValidSession(cookie?.value))) {
     // Set today's date as default
     document.getElementById("dateInput").value = new Date().toISOString().slice(0, 10);
 
+    let allScores = [];
+    let activeFilter = "All";
+
     async function load() {
       const data = await callContent({ type: "scores", action: "list" });
-      const scores = (data.entries || []).sort((a, b) => b.date?.localeCompare(a.date));
-      renderScoreboard(scores);
-      renderLog(scores);
+      allScores = (data.entries || []).sort((a, b) => b.date?.localeCompare(a.date));
+      renderScoreboard(allScores);
+      renderFilterBar(allScores);
+      renderLog(allScores);
+    }
+
+    function renderFilterBar(scores) {
+      const bar = document.getElementById("filterBar");
+      const games = ["All", ...new Set(scores.map(s => s.game).filter(Boolean))];
+      if (games.length <= 2) { bar.innerHTML = ""; return; } // no filter needed for 0-1 games
+      bar.innerHTML = games.map(g => `
+        <button class="filter-btn${g === activeFilter ? " active" : ""}" data-game="${escapeHtml(g)}">${g === "All" ? "All games" : (GAME_EMOJI[g] || "") + " " + escapeHtml(g)}</button>
+      `).join("");
+      bar.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          activeFilter = btn.dataset.game;
+          renderFilterBar(allScores);
+          const filtered = activeFilter === "All" ? allScores : allScores.filter(s => s.game === activeFilter);
+          renderLog(filtered);
+        });
+      });
     }
 
     function renderScoreboard(scores) {
