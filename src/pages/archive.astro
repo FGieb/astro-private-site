@@ -92,6 +92,12 @@ if (!(await isValidSession(cookie?.value))) {
       margin-bottom: 0.5rem;
     }
 
+    .reflection-alt {
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(0,0,0,0.12);
+      margin-top: 0.4rem;
+    }
+ 
     .comments {
       margin: 0.6rem 0 0.9rem;
       padding: 0.8rem 1rem;
@@ -184,6 +190,7 @@ if (!(await isValidSession(cookie?.value))) {
             if (entry.reflective?.text) merged[date].reflective = entry.reflective;
             if (entry.fun?.text) merged[date].fun = entry.fun;
             if (Array.isArray(entry.comments)) merged[date].comments = entry.comments;
+            if (entry.ab) merged[date].ab = entry.ab;
             if (entry.generatedAt) merged[date].generatedAt = entry.generatedAt;
           }
         }
@@ -213,6 +220,8 @@ if (!(await isValidSession(cookie?.value))) {
       const sorted = Object.entries(merged).sort(([a], [b]) => b.localeCompare(a));
 
       const html = sorted.map(([date, entry]) => {
+        const abA = entry.ab?.A?.text || "";
+        const abB = entry.ab?.B?.text || "";
         const reflection = entry.reflective?.text || "";
         const fun = entry.fun?.text || "";
 
@@ -229,7 +238,7 @@ if (!(await isValidSession(cookie?.value))) {
 
         const allThoughts = [...oldComments, ...newThoughts];
 
-        if (!reflection && !fun && !allThoughts.length) return "";
+        if (!reflection && !abA && !abB && !fun && !allThoughts.length) return "";
 
         const thoughtsHtml = allThoughts.length
           ? `<div class="comments">
@@ -241,7 +250,12 @@ if (!(await isValidSession(cookie?.value))) {
         return `
           <div class="entry">
             <div class="date">${escapeHtml(date)}</div>
-            ${reflection ? `<div class="reflection">${escapeHtml(reflection)}</div>` : ""}
+            ${(abA && abB)
+              ? `<div class="reflection">${escapeHtml(abA)}</div>
+                 <div class="reflection reflection-alt">${escapeHtml(abB)}</div>`
+              : reflection
+                ? `<div class="reflection">${escapeHtml(reflection)}</div>`
+                : ""}
             ${thoughtsHtml}
             ${fun ? `<div class="fun">${escapeHtml(fun)}</div>` : ""}
           </div>`;
