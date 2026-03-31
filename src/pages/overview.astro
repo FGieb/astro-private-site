@@ -1126,7 +1126,7 @@ if (!(await isValidSession(cookie?.value))) {
  
       const titles = { restaurant: "✏️ Edit restaurant", trip: "✏️ Edit trip", media: "✏️ Edit movie / series" };
       document.getElementById("editModalTitle").textContent = titles[cat] || "✏️ Edit entry";
-
+      if (cat === "restaurant") {
         document.getElementById("eName").value = entry.name || "";
         document.getElementById("eLocation").value = entry.location || "";
         document.getElementById("eCuisine").value = entry.cuisine || "";
