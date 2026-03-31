@@ -307,6 +307,48 @@ if (!(await isValidSession(cookie?.value))) {
     .btn-add:hover { opacity: 0.88; }
     .btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* ── Edit modal ── */
+    .edit-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.62);
+      z-index: 2000;
+      overflow-y: auto;
+      backdrop-filter: blur(4px);
+    }
+ 
+    .edit-modal-box {
+      background: rgba(12, 18, 32, 0.97);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 1.15rem;
+      padding: 1.5rem;
+      max-width: 540px;
+      margin: 3rem auto;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+    }
+ 
+    .edit-modal-box h2 {
+      margin: 0 0 1rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: white;
+    }
+ 
+    .btn-cancel {
+      padding: 0.45rem 1.2rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: transparent;
+      color: rgba(255,255,255,0.72);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.88rem;
+      transition: opacity 0.15s;
+    }
+ 
+    .btn-cancel:hover { opacity: 0.8; }
+ 
     /* ── Entry cards grid ── */
     .entries-grid {
       display: grid;
@@ -669,10 +711,107 @@ if (!(await isValidSession(cookie?.value))) {
     <div class="timeline" id="timelineView"></div>
   </div>
 
+  <!-- ── Edit modal ── -->
+  <div class="edit-modal-overlay" id="editModal">
+    <div class="edit-modal-box">
+      <h2 id="editModalTitle">Edit entry</h2>
+ 
+      <!-- Restaurant fields -->
+      <div id="editFormRestaurant" class="form-grid" style="display:none">
+        <div class="form-field">
+          <label>Name</label>
+          <input type="text" id="eName" />
+        </div>
+        <div class="form-field">
+          <label>Location</label>
+          <input type="text" id="eLocation" />
+        </div>
+        <div class="form-field">
+          <label>Cuisine</label>
+          <input type="text" id="eCuisine" />
+        </div>
+        <div class="form-field">
+          <label>Date visited</label>
+          <input type="date" id="eRDate" />
+        </div>
+        <div class="form-field">
+          <label>Rating</label>
+          <div class="star-input" id="eRStars">
+            <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+          </div>
+        </div>
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="eRNotes"></textarea>
+        </div>
+      </div>
+ 
+      <!-- Trip fields -->
+      <div id="editFormTrip" class="form-grid" style="display:none">
+        <div class="form-field full">
+          <label>Destination</label>
+          <input type="text" id="eDest" />
+        </div>
+        <div class="form-field">
+          <label>From</label>
+          <input type="date" id="eDateFrom" />
+        </div>
+        <div class="form-field">
+          <label>To</label>
+          <input type="date" id="eDateTo" />
+        </div>
+        <div class="form-field full">
+          <label>Highlights</label>
+          <input type="text" id="eHighlights" />
+        </div>
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="eTNotes"></textarea>
+        </div>
+      </div>
+ 
+      <!-- Media fields -->
+      <div id="editFormMedia" class="form-grid" style="display:none">
+        <div class="form-field">
+          <label>Title</label>
+          <input type="text" id="eTitle" />
+        </div>
+        <div class="form-field">
+          <label>Type</label>
+          <select id="eType">
+            <option value="movie">Movie</option>
+            <option value="series">Series</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Date watched</label>
+          <input type="date" id="eDateWatched" />
+        </div>
+        <div class="form-field">
+          <label>Rating</label>
+          <div class="star-input" id="eMStars">
+            <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+          </div>
+        </div>
+        <div class="form-field full">
+          <label>Notes</label>
+          <textarea id="eMNotes"></textarea>
+        </div>
+      </div>
+ 
+      <div class="form-actions" style="margin-top:1rem">
+        <button class="btn-add" id="btnEditSave">Save</button>
+        <button class="btn-cancel" id="btnEditCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+ 
   <script type="module" is:inline>
     let currentCat = "restaurant";
     let allEntries = [];
     let starRatings = { rStars: 0, mStars: 0 };
+    let editStarRatings = { eRStars: 0, eMStars: 0 };
+    let currentEditEntry = null;
     let searchQuery = "";
 
     // ── Search ──
@@ -709,6 +848,24 @@ if (!(await isValidSession(cookie?.value))) {
       });
     }
 
+    // ── Edit modal star inputs ──
+    document.querySelectorAll("#editModal .star-input").forEach((container) => {
+      const key = container.id;
+      container.querySelectorAll("span").forEach((star) => {
+        star.addEventListener("click", () => {
+          const v = parseInt(star.dataset.v);
+          editStarRatings[key] = editStarRatings[key] === v ? 0 : v;
+          updateStars(container, editStarRatings[key]);
+        });
+        star.addEventListener("mouseenter", () => {
+          updateStars(container, parseInt(star.dataset.v));
+        });
+        star.addEventListener("mouseleave", () => {
+          updateStars(container, editStarRatings[key]);
+        });
+      });
+    });
+ 
     // ── Category tabs ──
     document.querySelectorAll(".cat-tab").forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -960,57 +1117,87 @@ if (!(await isValidSession(cookie?.value))) {
     }
 
     function openEdit(entry) {
+      currentEditEntry = entry;
       const cat = entry.category;
-      let newNotes;
+ 
+      document.getElementById("editFormRestaurant").style.display = cat === "restaurant" ? "" : "none";
+      document.getElementById("editFormTrip").style.display = cat === "trip" ? "" : "none";
+      document.getElementById("editFormMedia").style.display = cat === "media" ? "" : "none";
+ 
+      const titles = { restaurant: "✏️ Edit restaurant", trip: "✏️ Edit trip", media: "✏️ Edit movie / series" };
+      document.getElementById("editModalTitle").textContent = titles[cat] || "✏️ Edit entry";
 
-      if (cat === "restaurant") {
-        const name = prompt("Name:", entry.name || "");
-        if (name === null) return;
-        const location = prompt("Location:", entry.location || "");
-        if (location === null) return;
-        const cuisine = prompt("Cuisine:", entry.cuisine || "");
-        if (cuisine === null) return;
-        const rating = prompt("Rating (1-5):", entry.rating || "");
-        if (rating === null) return;
-        newNotes = prompt("Notes:", entry.notes || "");
-        if (newNotes === null) return;
-        updateEntry(entry.id, {
-          name: name.trim(),
-          location: location.trim(),
-          cuisine: cuisine.trim(),
-          rating: Math.min(5, Math.max(0, parseInt(rating) || 0)),
-          notes: newNotes.trim(),
-        });
+        document.getElementById("eName").value = entry.name || "";
+        document.getElementById("eLocation").value = entry.location || "";
+        document.getElementById("eCuisine").value = entry.cuisine || "";
+        document.getElementById("eRDate").value = entry.date || "";
+        document.getElementById("eRNotes").value = entry.notes || "";
+        editStarRatings.eRStars = entry.rating || 0;
+        updateStars(document.getElementById("eRStars"), editStarRatings.eRStars);
       } else if (cat === "trip") {
-        const dest = prompt("Destination:", entry.destination || "");
-        if (dest === null) return;
-        const highlights = prompt("Highlights:", entry.highlights || "");
-        if (highlights === null) return;
-        newNotes = prompt("Notes:", entry.notes || "");
-        if (newNotes === null) return;
-        updateEntry(entry.id, {
-          destination: dest.trim(),
-          highlights: highlights.trim(),
-          notes: newNotes.trim(),
-        });
+        document.getElementById("eDest").value = entry.destination || "";
+        document.getElementById("eDateFrom").value = entry.dateFrom || "";
+        document.getElementById("eDateTo").value = entry.dateTo || "";
+        document.getElementById("eHighlights").value = entry.highlights || "";
+        document.getElementById("eTNotes").value = entry.notes || "";
       } else {
-        const title = prompt("Title:", entry.title || "");
-        if (title === null) return;
-        const type = prompt("Type (movie/series):", entry.mediaType || "movie");
-        if (type === null) return;
-        const rating = prompt("Rating (1-5):", entry.rating || "");
-        if (rating === null) return;
-        newNotes = prompt("Notes:", entry.notes || "");
-        if (newNotes === null) return;
-        updateEntry(entry.id, {
-          title: title.trim(),
-          mediaType: (type.trim().toLowerCase() === "series") ? "series" : "movie",
-          rating: Math.min(5, Math.max(0, parseInt(rating) || 0)),
-          notes: newNotes.trim(),
-        });
+        document.getElementById("eTitle").value = entry.title || "";
+        document.getElementById("eType").value = entry.mediaType || "movie";
+        document.getElementById("eDateWatched").value = entry.dateWatched || "";
+        document.getElementById("eMNotes").value = entry.notes || "";
+        editStarRatings.eMStars = entry.rating || 0;
+        updateStars(document.getElementById("eMStars"), editStarRatings.eMStars);
       }
+      document.getElementById("editModal").style.display = "";
     }
-
+    function closeEditModal() {
+      document.getElementById("editModal").style.display = "none";
+      currentEditEntry = null;
+    }
+ 
+    document.getElementById("btnEditCancel").addEventListener("click", closeEditModal);
+ 
+    document.getElementById("editModal").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("editModal")) closeEditModal();
+    });
+ 
+    document.getElementById("btnEditSave").addEventListener("click", () => {
+      if (!currentEditEntry) return;
+      const cat = currentEditEntry.category;
+      const id = currentEditEntry.id;
+      let data;
+ 
+      if (cat === "restaurant") {
+        data = {
+          name: document.getElementById("eName").value.trim(),
+          location: document.getElementById("eLocation").value.trim(),
+          cuisine: document.getElementById("eCuisine").value.trim(),
+          date: document.getElementById("eRDate").value,
+          rating: editStarRatings.eRStars,
+          notes: document.getElementById("eRNotes").value.trim(),
+        };
+      } else if (cat === "trip") {
+        data = {
+          destination: document.getElementById("eDest").value.trim(),
+          dateFrom: document.getElementById("eDateFrom").value,
+          dateTo: document.getElementById("eDateTo").value,
+          highlights: document.getElementById("eHighlights").value.trim(),
+          notes: document.getElementById("eTNotes").value.trim(),
+        };
+      } else {
+        data = {
+          title: document.getElementById("eTitle").value.trim(),
+          mediaType: document.getElementById("eType").value,
+          dateWatched: document.getElementById("eDateWatched").value,
+          rating: editStarRatings.eMStars,
+          notes: document.getElementById("eMNotes").value.trim(),
+        };
+      }
+ 
+      closeEditModal();
+      updateEntry(id, data);
+    });
+ 
     async function updateEntry(id, data) {
       try {
         await callContent({ type: "tracker", action: "update", id, data });
