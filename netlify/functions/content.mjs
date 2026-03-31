@@ -1,5 +1,12 @@
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
+import { extractMention } from "../../src/lib/mentions";
+import { sendMentionNotification } from "./_shared/pushover.mjs";
+ 
+const MENTION_CONFIG = {
+  notes: { source: "New note", link: "/notes" },
+  thoughts: { source: "New thought", link: "/home" },
+};
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -81,6 +88,24 @@ export default async function handler(req) {
       const updated = [newEntry, ...entries];
       await saveEntries(type, updated);
 
+      const mentionConfigAdd = MENTION_CONFIG[type];
+      if (mentionConfigAdd) {
+        const text = data.text || data.content || "";
+        const mention = extractMention(text);
+        if (mention) {
+          try {
+            await sendMentionNotification({
+              mentioned: mention,
+              source: mentionConfigAdd.source,
+              text,
+              link: `${process.env.PUBLIC_SITE_URL || ""}${mentionConfigAdd.link}`,
+            });
+          } catch (err) {
+            console.error("Mention notification failed:", err);
+          }
+        }
+      }
+ 
       return json({ ok: true, entry: newEntry, entries: updated });
     }
 
@@ -123,6 +148,24 @@ export default async function handler(req) {
       entries[idx] = { ...entries[idx], ...data };
       await saveEntries(type, entries);
 
+      const mentionConfigUpdate = MENTION_CONFIG[type];
+      if (mentionConfigUpdate) {
+        const text = data.text || data.content || "";
+        const mention = extractMention(text);
+        if (mention) {
+          try {
+            await sendMentionNotification({
+              mentioned: mention,
+              source: mentionConfigUpdate.source,
+              text,
+              link: `${process.env.PUBLIC_SITE_URL || ""}${mentionConfigUpdate.link}`,
+            });
+          } catch (err) {
+            console.error("Mention notification failed:", err);
+          }
+        }
+      }
+ 
       return json({ ok: true, entry: entries[idx], entries });
     }
 
