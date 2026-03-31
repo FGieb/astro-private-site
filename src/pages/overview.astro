@@ -1148,7 +1148,7 @@ if (!(await isValidSession(cookie?.value))) {
         editStarRatings.eMStars = entry.rating || 0;
         updateStars(document.getElementById("eMStars"), editStarRatings.eMStars);
       }
-      document.getElementById("editModal").style.display = "";
+      document.getElementById("editModal").style.display = "block";
     }
     function closeEditModal() {
       document.getElementById("editModal").style.display = "none";
