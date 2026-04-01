@@ -135,6 +135,27 @@ if (!(await isValidSession(cookie?.value))) {
       opacity: 0.6;
       padding: 2rem 0;
     }
+ 
+    .mention {
+      display: inline-block;
+      padding: 0.05em 0.4em;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85em;
+      letter-spacing: 0.02em;
+    }
+ 
+    .mention-lm {
+      background: rgba(10, 116, 201, 0.15);
+      color: #2a7cc7;
+      border: 1px solid rgba(10, 116, 201, 0.3);
+    }
+ 
+    .mention-bm {
+      background: rgba(139, 92, 246, 0.12);
+      color: #8b5cf6;
+      border: 1px solid rgba(139, 92, 246, 0.28);
+    }
   </style>
 </head>
 
@@ -154,6 +175,7 @@ if (!(await isValidSession(cookie?.value))) {
       <a href="/home">🏠 Home</a>
       <a href="/notes">📝 Notes</a>
       <a href="/archive">🗂 Archive</a>
+      <a href="/mentions">🏷 Mentions</a>
     </div>
   </div>
 
@@ -172,6 +194,12 @@ if (!(await isValidSession(cookie?.value))) {
         .replaceAll("'", "&#039;");
     }
 
+    function renderText(str) {
+      return escapeHtml(str)
+        .replace(/(^|\s)(@LM)\b/g, '$1<span class="mention mention-lm">@LM</span>')
+        .replace(/(^|\s)(@BM)\b/g, '$1<span class="mention mention-bm">@BM</span>');
+    }
+ 
     async function loadAndRender() {
       // Start with static daily.json as the base (entries up to last deploy)
       const merged = {};
@@ -243,7 +271,7 @@ if (!(await isValidSession(cookie?.value))) {
         const thoughtsHtml = allThoughts.length
           ? `<div class="comments">
               <div class="comments-title">Thoughts</div>
-              ${allThoughts.map(t => `<div class="comment-line">– ${escapeHtml(t)}</div>`).join("")}
+              ${allThoughts.map(t => `<div class="comment-line">– ${renderText(t)}</div>`).join("")}             
             </div>`
           : "";
 
