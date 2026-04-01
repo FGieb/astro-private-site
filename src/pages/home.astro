@@ -474,6 +474,27 @@ if (!(await isValidSession(cookie?.value))) {
     .weather-alignment.partial  { background: rgba(234,179,8,0.18);  color: #fbbf24; }
     .weather-alignment.divergent{ background: rgba(239,68,68,0.18);  color: #f87171; }
 
+    .mention {
+      display: inline-block;
+      padding: 0.05em 0.45em;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.88em;
+      letter-spacing: 0.02em;
+    }
+ 
+    .mention-lm {
+      background: rgba(10, 116, 201, 0.22);
+      color: #60b0ff;
+      border: 1px solid rgba(10, 116, 201, 0.38);
+    }
+ 
+    .mention-bm {
+      background: rgba(139, 92, 246, 0.18);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.32);
+    }
+ 
     @media (max-width: 900px) {
       .main-grid { grid-template-columns: 1fr; }
       .quote-card { min-height: 250px; padding: 1.7rem 1.4rem; }
@@ -504,6 +525,7 @@ if (!(await isValidSession(cookie?.value))) {
         <a href="/home">🏠 Home</a>
         <a href="/notes">📝 Notes</a>
         <a href="/archive">🗂 Archive</a>
+        <a href="/mentions">🏷 Mentions</a>
       </div>
     </div>
 
@@ -709,7 +731,13 @@ if (!(await isValidSession(cookie?.value))) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
-  
+ 
+    function renderText(str) {
+      return escapeHtml(str)
+        .replace(/(^|\s)(@LM)\b/g, '$1<span class="mention mention-lm">@LM</span>')
+        .replace(/(^|\s)(@BM)\b/g, '$1<span class="mention mention-bm">@BM</span>');
+    }
+   
     function iconForType(type) {
       return {
         note: "📝",
@@ -790,7 +818,7 @@ if (!(await isValidSession(cookie?.value))) {
         calendarBox.innerHTML = events.map((e) => `
           <div class="event-item">
             <div class="event-title">${iconForType(e.type)} ${escapeHtml(e.title || "Untitled")}</div>
-            ${e.note ? `<div class="event-note">${escapeHtml(e.note)}</div>` : ""}
+            ${e.note ? `<div class="event-note">${renderText(e.note)}</div>` : ""}            
           </div>
         `).join("");
       } catch (err) {
@@ -835,7 +863,7 @@ if (!(await isValidSession(cookie?.value))) {
                   role="button"
                   tabindex="0"
                   aria-label="Click to edit thought"
-                >${escapeHtml(item.text || "")}</div>
+                >${renderText(item.text || "")}</div>        
               </div>
             `)
             .join("")
