@@ -1,0 +1,323 @@
+---
+import { isValidSession } from "../lib/auth";
+ 
+const cookie = Astro.cookies.get("auth");
+ 
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+---
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mentions</title>
+ 
+  <style is:global>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      color: white;
+      background:
+        linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.75)),
+        url("/images/homebackground.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+ 
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.25rem;
+    }
+ 
+    .nav-pill {
+      display: flex;
+      gap: 1.2rem;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
+ 
+    .nav-pill a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+    }
+ 
+    .nav-pill a:hover { opacity: 1; }
+    .nav-group { position: relative; display: flex; align-items: center; }
+    .nav-group-label { cursor: pointer; opacity: 0.85; user-select: none; }
+    .nav-group-label:hover { opacity: 1; }
+    .nav-group-menu { display: none; position: absolute; top: calc(100% + 0.6rem); left: 50%; transform: translateX(-50%); background: rgba(14,18,26,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.35rem; min-width: 130px; flex-direction: column; gap: 0.1rem; z-index: 100; backdrop-filter: blur(10px); }
+    .nav-group:hover .nav-group-menu { display: flex; }
+    .nav-group-menu a { display: block; padding: 0.4rem 0.75rem; border-radius: 0.5rem; white-space: nowrap; opacity: 0.85; }
+    .nav-group-menu a:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+ 
+    .wrapper {
+      max-width: 680px;
+      margin: 3rem auto;
+      padding: 0 1.25rem 4rem;
+    }
+ 
+    h1 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+ 
+    .filter-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+ 
+    .filter-btn {
+      padding: 0.3rem 1rem;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      background: transparent;
+      color: rgba(255,255,255,0.75);
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin: 0;
+    }
+ 
+    .filter-btn:hover {
+      border-color: rgba(255,255,255,0.5);
+      color: white;
+      background: transparent;
+    }
+ 
+    .filter-btn.active-all {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.5);
+      color: white;
+    }
+ 
+    .filter-btn.active-lm {
+      background: rgba(10, 116, 201, 0.25);
+      border-color: rgba(10, 116, 201, 0.6);
+      color: #60b0ff;
+    }
+ 
+    .filter-btn.active-bm {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.55);
+      color: #c084fc;
+    }
+ 
+    .mention-entry {
+      background: rgba(0,0,0,0.42);
+      border-radius: 1rem;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 0.85rem;
+      backdrop-filter: blur(6px);
+      border-left: 3px solid transparent;
+    }
+ 
+    .mention-entry.tag-lm { border-left-color: rgba(10, 116, 201, 0.6); }
+    .mention-entry.tag-bm { border-left-color: rgba(139, 92, 246, 0.55); }
+ 
+    .entry-text {
+      font-size: 0.97rem;
+      line-height: 1.5;
+      margin-bottom: 0.4rem;
+    }
+ 
+    .entry-meta {
+      font-size: 0.75rem;
+      opacity: 0.55;
+      display: flex;
+      gap: 0.75rem;
+    }
+ 
+    .source-badge {
+      display: inline-block;
+      padding: 0.1em 0.55em;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.6);
+    }
+ 
+    .mention {
+      display: inline-block;
+      padding: 0.05em 0.45em;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.88em;
+      letter-spacing: 0.02em;
+    }
+ 
+    .mention-lm {
+      background: rgba(10, 116, 201, 0.22);
+      color: #60b0ff;
+      border: 1px solid rgba(10, 116, 201, 0.38);
+    }
+ 
+    .mention-bm {
+      background: rgba(139, 92, 246, 0.18);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.32);
+    }
+ 
+    .empty {
+      text-align: center;
+      opacity: 0.55;
+      padding: 3rem 0;
+    }
+ 
+    #mentionsList { min-height: 4rem; }
+  </style>
+</head>
+ 
+<body>
+  <div class="top-nav">
+    <div class="nav-pill">
+      <a href="/calendar">📅 Calendar</a>
+      <div class="nav-group">
+        <span class="nav-group-label">🎮 Games ▾</span>
+        <div class="nav-group-menu">
+          <a href="/bets">🎲 Bets</a>
+          <a href="/scores">🏆 Scores</a>
+          <a href="/poker">🃏 Poker</a>
+        </div>
+      </div>
+      <a href="/overview">🍷 Scrapbook</a>
+      <a href="/home">🏠 Home</a>
+      <a href="/notes">📝 Notes</a>
+      <a href="/archive">🗂 Archive</a>
+      <a href="/mentions">🏷 Mentions</a>
+    </div>
+  </div>
+ 
+  <main class="wrapper">
+    <h1>🏷 Mentions</h1>
+ 
+    <div class="filter-bar">
+      <button class="filter-btn active-all" id="filterAll">All</button>
+      <button class="filter-btn" id="filterLM">@LM only</button>
+      <button class="filter-btn" id="filterBM">@BM only</button>
+    </div>
+ 
+    <div id="mentionsList"><div class="empty">Loading…</div></div>
+  </main>
+ 
+  <script type="module" is:inline>
+    const MENTION_RE = /(^|\s)(@LM|@BM)\b/;
+ 
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+ 
+    function renderText(str) {
+      return escapeHtml(str)
+        .replace(/(^|\s)(@LM)\b/g, '$1<span class="mention mention-lm">@LM</span>')
+        .replace(/(^|\s)(@BM)\b/g, '$1<span class="mention mention-bm">@BM</span>');
+    }
+ 
+    function getMentionTag(text) {
+      const m = text.match(/(^|\s)(@LM|@BM)\b/);
+      return m ? m[2] : null;
+    }
+ 
+    async function callContent(body) {
+      const res = await fetch("/.netlify/functions/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "content failed");
+      return data;
+    }
+ 
+    let allEntries = [];
+    let activeFilter = "all";
+ 
+    async function loadMentions() {
+      const list = document.getElementById("mentionsList");
+      try {
+        const [notesData, thoughtsData] = await Promise.all([
+          callContent({ type: "notes", action: "list" }),
+          callContent({ type: "thoughts", action: "list" }),
+        ]);
+ 
+        const notes = (notesData.entries || [])
+          .filter(e => MENTION_RE.test(e.text || ""))
+          .map(e => ({ ...e, source: "note" }));
+ 
+        const thoughts = (thoughtsData.entries || [])
+          .filter(e => MENTION_RE.test(e.text || ""))
+          .map(e => ({ ...e, source: "thought" }));
+ 
+        allEntries = [...notes, ...thoughts].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+ 
+        renderList();
+      } catch (err) {
+        console.error("Failed to load mentions:", err);
+        list.innerHTML = '<div class="empty">Could not load mentions.</div>';
+      }
+    }
+ 
+    function renderList() {
+      const list = document.getElementById("mentionsList");
+ 
+      let entries = allEntries;
+      if (activeFilter === "lm") entries = entries.filter(e => /@LM\b/.test(e.text || ""));
+      if (activeFilter === "bm") entries = entries.filter(e => /@BM\b/.test(e.text || ""));
+ 
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty">No mentions found.</div>';
+        return;
+      }
+ 
+      list.innerHTML = entries.map(e => {
+        const tag = getMentionTag(e.text || "");
+        const tagClass = tag === "@LM" ? "tag-lm" : tag === "@BM" ? "tag-bm" : "";
+        const sourceLabel = e.source === "note" ? "📝 Note" : "💬 Thought";
+        const date = e.createdAt ? new Date(e.createdAt).toLocaleString() : "";
+        return `
+          <div class="mention-entry ${tagClass}">
+            <div class="entry-text">${renderText(e.text || "")}</div>
+            <div class="entry-meta">
+              <span class="source-badge">${sourceLabel}</span>
+              <span>${date}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+ 
+    function setFilter(f) {
+      activeFilter = f;
+      document.getElementById("filterAll").className = "filter-btn" + (f === "all" ? " active-all" : "");
+      document.getElementById("filterLM").className = "filter-btn" + (f === "lm" ? " active-lm" : "");
+      document.getElementById("filterBM").className = "filter-btn" + (f === "bm" ? " active-bm" : "");
+      renderList();
+    }
+ 
+    document.getElementById("filterAll").addEventListener("click", () => setFilter("all"));
+    document.getElementById("filterLM").addEventListener("click", () => setFilter("lm"));
+    document.getElementById("filterBM").addEventListener("click", () => setFilter("bm"));
+ 
+    loadMentions();
+  </script>
+</body>
+</html>
