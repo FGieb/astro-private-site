@@ -121,6 +121,27 @@ if (!(await isValidSession(cookie?.value))) {
       opacity: 0.6;
       margin-top: 0.4rem;
     }
+ 
+    .mention {
+      display: inline-block;
+      padding: 0.05em 0.45em;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.88em;
+      letter-spacing: 0.02em;
+    }
+ 
+    .mention-lm {
+      background: rgba(10, 116, 201, 0.22);
+      color: #60b0ff;
+      border: 1px solid rgba(10, 116, 201, 0.38);
+    }
+ 
+    .mention-bm {
+      background: rgba(139, 92, 246, 0.18);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.32);
+    }
   </style>
 </head>
 
@@ -141,6 +162,7 @@ if (!(await isValidSession(cookie?.value))) {
       <a href="/home">🏠 Home</a>
       <a href="/notes">📝 Notes</a>
       <a href="/archive">🗂 Archive</a>
+      <a href="/mentions">🏷 Mentions</a>
     </div>
   </div>
 
@@ -169,6 +191,12 @@ if (!(await isValidSession(cookie?.value))) {
         .replaceAll("'", "&#039;");
     }
 
+    function renderText(str) {
+      return escapeHtml(str)
+        .replace(/(^|\s)(@LM)\b/g, '$1<span class="mention mention-lm">@LM</span>')
+        .replace(/(^|\s)(@BM)\b/g, '$1<span class="mention mention-bm">@BM</span>');
+    }
+ 
     async function callContent(body) {
       const res = await fetch("/.netlify/functions/content", {
         method: "POST",
@@ -195,7 +223,7 @@ if (!(await isValidSession(cookie?.value))) {
         <div class="note" data-id="${n.id}">
           <div class="note-text" data-id="${n.id}" role="button" tabindex="0"
             aria-label="Click to edit note"
-          >${escapeHtml(n.text || "")}</div>
+          >${renderText(n.text || "")}</div>
           <div class="meta">${new Date(n.createdAt).toLocaleString()}</div>
         </div>
       `).join("");
