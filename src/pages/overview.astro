@@ -594,10 +594,10 @@ if (!(await isValidSession(cookie?.value))) {
     </header>
 
     <div class="cat-tabs">
-      <button class="cat-tab active" data-cat="restaurant">🍽 Restaurants</button>
+      <button class="cat-tab" data-cat="restaurant">🍽 Restaurants</button>
       <button class="cat-tab" data-cat="trip">✈️ Trips</button>
       <button class="cat-tab" data-cat="media">🎬 Movies & Series</button>
-      <button class="cat-tab" data-cat="timeline">📅 Timeline</button>
+      <button class="cat-tab active" data-cat="timeline">📅 Timeline</button>
     </div>
 
     <!-- ── Search ── -->
@@ -807,7 +807,7 @@ if (!(await isValidSession(cookie?.value))) {
   </div>
  
   <script type="module" is:inline>
-    let currentCat = "restaurant";
+    let currentCat = "timeline";
     let allEntries = [];
     let starRatings = { rStars: 0, mStars: 0 };
     let editStarRatings = { eRStars: 0, eMStars: 0 };
@@ -961,7 +961,13 @@ if (!(await isValidSession(cookie?.value))) {
 
     function renderEntries() {
       const grid = document.getElementById("entriesGrid");
-      const filtered = allEntries.filter((e) => e.category === currentCat && matchesSearch(e));
+      const filtered = allEntries
+        .filter((e) => e.category === currentCat && matchesSearch(e))
+        .sort((a, b) => {
+          const da = getEntryDate(a);
+          const db = getEntryDate(b);
+          return db.localeCompare(da);
+        });
 
       if (!filtered.length) {
         const icons = { restaurant: "🍽", trip: "✈️", media: "🎬" };
