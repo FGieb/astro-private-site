@@ -27,7 +27,32 @@ async function callOpenAI(prompt) {
   if (!res.ok) throw new Error(data?.error?.message || `OpenAI failed with ${res.status}`);
   const text = data?.choices?.[0]?.message?.content?.trim();
   if (!text) throw new Error("OpenAI returned no content");
-  return text;
+  return stripQuotes(text);
+}
+
+// Strip wrapping quotes that some models add around their output
+function stripQuotes(text) {
+  return text.replace(/^[“”‘’"']+|[“”‘’"']+$/g, "").trim();
+}
+
+// Collect recent reflections and fun facts to pass as avoidance context
+function getRecentContext(entries, today, days = 21) {
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const reflections = [];
+  const funFacts = [];
+
+  for (const [date, entry] of Object.entries(entries).sort()) {
+    if (date >= today) continue;
+    if (new Date(date) < cutoff) continue;
+    if (entry?.reflective?.text) reflections.push(entry.reflective.text);
+    if (entry?.ab?.A?.text) reflections.push(entry.ab.A.text);
+    if (entry?.ab?.B?.text) reflections.push(entry.ab.B.text);
+    if (entry?.fun?.text) funFacts.push(entry.fun.text);
+  }
+
+  return { reflections, funFacts };
 }
 
 async function callAnthropic(prompt) {
@@ -56,7 +81,7 @@ async function callAnthropic(prompt) {
   }
   const text = data?.content?.[0]?.text?.trim();
   if (!text) throw new Error("Anthropic returned no content");
-  return text;
+  return stripQuotes(text);
 }
 
 // Strip model identity before sending to client (keep the blind)
@@ -116,6 +141,16 @@ export default async function handler(req) {
       });
     }
 
+    const { reflections: recentReflections, funFacts: recentFunFacts } = getRecentContext(entries, today);
+
+    const recentReflectiveSection = recentReflections.length > 0
+      ? `\nRecent items already used — do NOT repeat these themes, phrasings, examples, or near-identical ideas:\n${recentReflections.map(r => `- ${r}`).join("\n")}\n`
+      : "";
+
+    const recentFunSection = recentFunFacts.length > 0
+      ? `\nRecent facts already used — do NOT repeat these topics, phenomena, or near-identical examples:\n${recentFunFacts.map(f => `- ${f}`).join("\n")}\n`
+      : "";
+
     const reflectivePrompt = `
 Generate ONE daily reflective item for two people who share a private website.
 
@@ -145,8 +180,9 @@ Constraints:
 - No emojis
 - No "you should"
 - If quoting someone, include their name
+- Do not wrap your response in quotation marks
 Return only the text.
-`.trim();
+${recentReflectiveSection}`.trim();
 
     const funPrompt = `
 Generate ONE concise, non-obvious fact or observation about humans, institutions, law, psychology, history, design, or statistics.
@@ -171,11 +207,12 @@ Constraints:
 - Precise and factual
 - No emojis
 - No moralizing
+- Do not wrap your response in quotation marks
 Return only the text.
 
 Add:
 When relevant, a simple source for more information, but only a name or link. dont force it.
-`.trim();
+${recentFunSection}`.trim();
 
     let usedFallback = false;
 
