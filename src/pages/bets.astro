@@ -45,6 +45,63 @@ bets.sort((a, b) => {
       <p class="subtitle">A small ledger of promises.</p>
     </header>
 
+    <!-- ═══════════════  DICE & DARES  ═══════════════ -->
+    <section class="dice-section">
+      <button type="button" id="diceToggle" class="dice-toggle-btn">
+        🎲 Dice &amp; Dares
+        <span class="toggle-arrow">▾</span>
+      </button>
+
+      <div id="dicePanel" class="dice-panel hidden">
+
+        <!-- Step 0 — who are you? -->
+        <div id="diceStep0" class="dice-step">
+          <p class="dice-prompt">Who's rolling?</p>
+          <div class="player-btns">
+            <button type="button" class="player-btn" data-player="LM">LM</button>
+            <button type="button" class="player-btn" data-player="BM">BM</button>
+          </div>
+        </div>
+
+        <!-- Step 1 — roll for category -->
+        <div id="diceStep1" class="dice-step hidden">
+          <p class="dice-prompt"><span id="playerLabel"></span>, roll for the category.</p>
+          <div class="dice-container">
+            <div class="die" id="dieCat">
+              <div class="die-face">?</div>
+            </div>
+          </div>
+          <button type="button" id="rollCatBtn" class="roll-btn">Roll for category</button>
+          <div id="catResult" class="roll-result hidden">
+            <p>You rolled <strong id="catNumber"></strong></p>
+            <p class="result-name" id="catName"></p>
+            <button type="button" id="goToBetRoll" class="continue-btn">Continue to the bet roll →</button>
+          </div>
+        </div>
+
+        <!-- Step 2 — roll for the bet -->
+        <div id="diceStep2" class="dice-step hidden">
+          <p class="dice-prompt">Category: <strong id="catLabel2"></strong></p>
+          <button type="button" id="backToCat" class="back-link">← back to categories</button>
+          <div class="dice-container">
+            <div class="die" id="dieBet">
+              <div class="die-face">?</div>
+            </div>
+          </div>
+          <button type="button" id="rollBetBtn" class="roll-btn">Roll for the bet</button>
+          <div id="betResult" class="roll-result hidden">
+            <p class="tonight-label">Tonight's bet</p>
+            <p class="tonight-bet" id="betText">—</p>
+            <p class="tonight-desc" id="betDesc"></p>
+            <button type="button" id="saveDiceBet" class="save-dice-btn">🎲 Save to bets</button>
+            <button type="button" id="startOver" class="back-link" style="margin-top:.5rem">Start over</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+    <!-- ═══════════════ /DICE & DARES ═══════════════ -->
+
     <div class="bets-layout">
       <section class="bets-card">
         <div class="table-wrap">
@@ -384,12 +441,454 @@ bets.sort((a, b) => {
       });
     });
   </script>
+
+  <!-- ═══════════════  DICE & DARES SCRIPT  ═══════════════ -->
+  <script>
+    const CATEGORIES = [
+      {
+        name: "Micro-moments",
+        tag: "low effort, quick spark",
+        bets: [
+          { title: "1-minute eye contact", desc: "Set a timer for one minute and hold eye contact — no talking, no laughing your way out of it." },
+          { title: "Philosophical question or dilemma", desc: "One of you poses a real dilemma or big question, the other has to actually answer it, not deflect." },
+          { title: "5 random facts", desc: "Each brings 5 facts to impress the other — surprising, funny, or oddly specific, no mid-game research." },
+          { title: "Lie detector game", desc: "Each of you tells 3 stories, two true and one invented, the other has to spot the lie." }
+        ]
+      },
+      {
+        name: "Made for you",
+        tag: "someone prepares & presents",
+        bets: [
+          { title: "PowerPoint on a topic", desc: "Pick a topic, however niche, and build a short deck to actually present to the other." },
+          { title: "Presentation", desc: "Same spirit as the PowerPoint, but freeform — no slides required, just come prepared to talk." },
+          { title: "Teaching a skill", desc: "Teach the other something you genuinely know how to do, hands-on if possible." },
+          { title: "City tour, as guide", desc: "Plan a walking route with streets, monuments and a few facts, and guide the other through it outside." },
+          { title: "A random day from the chat", desc: "Scroll back to a random day from the last month and present what happened, like reporting the news." }
+        ]
+      },
+      {
+        name: "Taste & drink",
+        tag: "cocktails, dinners, weird snacks",
+        bets: [
+          { title: "Homemade cocktail night", desc: "Design and make a cocktail from what's in the house, or a quick supermarket run." },
+          { title: "Wine and dinner", desc: "Plan a proper wine and dinner pairing — doesn't have to be fancy, just intentional." },
+          { title: "Wine price testing", desc: "Buy 2–3 wines across a price range and blind taste them — see if the cheap one actually loses." },
+          { title: "Weird food", desc: "Buy, cook, or order something neither of you has tried before." },
+          { title: "Food testing at the store", desc: "Pick a category — chips, chocolate, whatever — and compare a few brands side by side." },
+          { title: "Five-ingredient cook-off", desc: "Cook a full dish using only five ingredients. Salt, water and oil don't count." }
+        ]
+      },
+      {
+        name: "Go explore",
+        tag: "out of the apartment",
+        bets: [
+          { title: "Choose a museum", desc: "Pick a museum neither of you has been to, and go." },
+          { title: "Night in Paris", desc: "Plan a full evening — a walk, a bar, a restaurant — like you're showing a friend around." },
+          { title: "Metro line adventure", desc: "Pick a metro line at random and get off wherever looks interesting." },
+          { title: "Random country night", desc: "Spin a globe or use a random generator, then build a night around that country — a dish, a phrase or two, a drink." },
+          { title: "Scavenger hunt", desc: "Build a mini hunt with clues around the city or apartment for the other to solve." }
+        ]
+      },
+      {
+        name: "Structured game night",
+        tag: "a format, not just an activity",
+        bets: [
+          { title: "Dice date", desc: "Assign an action to each die number, then roll through a whole evening built entirely on chance." },
+          { title: "Offline evening", desc: "No phones for the night — one of you plans everything: what to do, eat, talk about, play." },
+          { title: "Documentary + debate", desc: "Pick a surprising or obscure documentary, prepare snacks that match the topic, then debate what you watched." },
+          { title: "Can't wear black", desc: "Pick a colour, and that's the only thing either of you can wear for the night." },
+          { title: "Home Olympics", desc: "Invent three ridiculous physical challenges and run a best-of-three." },
+          { title: "Dress-up theme night", desc: "Pick a dress code, however specific — no vetoes allowed." }
+        ]
+      },
+      {
+        name: "A little deeper",
+        tag: "more meaningful, a bit of vulnerability",
+        bets: [
+          { title: "3 questions never asked", desc: "Each of you asks one question you've genuinely never asked the other, then actually answers it." },
+          { title: "Name one fear", desc: "Say one fear out loud — no follow-up questions unless the other actually wants to ask." },
+          { title: "Podcast interview", desc: "Interview each other like a guest on a show. Recording is optional, but treat it like a real conversation." },
+          { title: "Time capsule", desc: "Each write down predictions and hopes for a year from now, seal it, and put a date in the calendar to open it." },
+          { title: "Write and perform something", desc: "Write a song, poem or toast for the other, and actually perform it." }
+        ]
+      }
+    ];
+
+    let chosenPlayer = "";
+    let chosenCatIdx = -1;
+    let chosenBetIdx = -1;
+    let rolling = false;
+
+    /* ---------- helpers ---------- */
+    const $ = (sel) => document.querySelector(sel);
+    const show = (el) => el?.classList.remove("hidden");
+    const hide = (el) => el?.classList.add("hidden");
+
+    function wrapIndex(roll, len) {
+      // dice gives 1-6, list may be shorter
+      return ((roll - 1) % len);
+    }
+
+    function animateDie(dieEl, finalNumber, cb) {
+      if (rolling) return;
+      rolling = true;
+      const face = dieEl.querySelector(".die-face");
+      let ticks = 0;
+      const total = 14;
+      const iv = setInterval(() => {
+        face.textContent = Math.floor(Math.random() * 6) + 1;
+        dieEl.classList.add("rolling");
+        ticks++;
+        if (ticks >= total) {
+          clearInterval(iv);
+          face.textContent = finalNumber;
+          dieEl.classList.remove("rolling");
+          dieEl.classList.add("landed");
+          setTimeout(() => dieEl.classList.remove("landed"), 400);
+          rolling = false;
+          cb?.();
+        }
+      }, 90);
+    }
+
+    /* ---------- toggle panel ---------- */
+    $("#diceToggle")?.addEventListener("click", () => {
+      const panel = $("#dicePanel");
+      const arrow = $(".toggle-arrow");
+      panel.classList.toggle("hidden");
+      arrow.textContent = panel.classList.contains("hidden") ? "\u25BE" : "\u25B4";
+    });
+
+    /* ---------- step 0: pick player ---------- */
+    document.querySelectorAll(".player-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        chosenPlayer = btn.dataset.player;
+        $("#playerLabel").textContent = chosenPlayer;
+        hide($("#diceStep0"));
+        show($("#diceStep1"));
+        $("#dieCat .die-face").textContent = "?";
+        hide($("#catResult"));
+      });
+    });
+
+    /* ---------- step 1: roll for category ---------- */
+    $("#rollCatBtn")?.addEventListener("click", () => {
+      const roll = Math.floor(Math.random() * 6) + 1;
+      chosenCatIdx = wrapIndex(roll, CATEGORIES.length);
+      animateDie($("#dieCat"), roll, () => {
+        $("#catNumber").textContent = roll;
+        $("#catName").textContent = CATEGORIES[chosenCatIdx].name + " — " + CATEGORIES[chosenCatIdx].tag;
+        show($("#catResult"));
+      });
+    });
+
+    $("#goToBetRoll")?.addEventListener("click", () => {
+      hide($("#diceStep1"));
+      show($("#diceStep2"));
+      $("#catLabel2").textContent = CATEGORIES[chosenCatIdx].name;
+      $("#dieBet .die-face").textContent = "?";
+      hide($("#betResult"));
+    });
+
+    /* ---------- step 2: roll for bet ---------- */
+    $("#backToCat")?.addEventListener("click", () => {
+      hide($("#diceStep2"));
+      show($("#diceStep1"));
+    });
+
+    $("#rollBetBtn")?.addEventListener("click", () => {
+      const cat = CATEGORIES[chosenCatIdx];
+      const roll = Math.floor(Math.random() * 6) + 1;
+      chosenBetIdx = wrapIndex(roll, cat.bets.length);
+      animateDie($("#dieBet"), roll, () => {
+        const bet = cat.bets[chosenBetIdx];
+        $("#betText").textContent = bet.title;
+        $("#betDesc").textContent = bet.desc;
+        show($("#betResult"));
+      });
+    });
+
+    /* ---------- save ---------- */
+    $("#saveDiceBet")?.addEventListener("click", async () => {
+      const cat = CATEGORIES[chosenCatIdx];
+      const bet = cat.bets[chosenBetIdx];
+      const today = new Date().toISOString().slice(0, 10);
+
+      const form = new FormData();
+      form.append("betDate", today);
+      form.append("title", bet.title);
+      form.append("stakes", cat.name);
+      form.append("owner", chosenPlayer);
+      form.append("status", "open");
+      form.append("executedDate", "");
+      form.append("notes", "\uD83C\uDFB2 Rolled via Dice & Dares — " + bet.desc);
+
+      $("#saveDiceBet").disabled = true;
+      $("#saveDiceBet").textContent = "Saving…";
+
+      try {
+        const res = await fetch("/.netlify/functions/add-bet", {
+          method: "POST",
+          body: form,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data?.error || "Failed");
+        location.reload();
+      } catch (err) {
+        alert("Could not save the dice bet.");
+        console.error(err);
+        $("#saveDiceBet").disabled = false;
+        $("#saveDiceBet").textContent = "\uD83C\uDFB2 Save to bets";
+      }
+    });
+
+    /* ---------- start over ---------- */
+    $("#startOver")?.addEventListener("click", () => {
+      hide($("#diceStep1"));
+      hide($("#diceStep2"));
+      show($("#diceStep0"));
+      chosenPlayer = "";
+      chosenCatIdx = -1;
+      chosenBetIdx = -1;
+    });
+  </script>
 </BaseLayout>
 
 <style is:global>
   :root {
     color-scheme: dark;
   }
+
+  /* ===== DICE & DARES ===== */
+  .dice-section {
+    max-width: 640px;
+    margin: 0 auto 2rem;
+  }
+
+  .dice-toggle-btn {
+    width: 100%;
+    background: linear-gradient(180deg, #101214 0%, #0d0f11 100%);
+    border: 1px solid #20242a;
+    border-radius: 1.25rem;
+    padding: 1rem 1.5rem;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color .2s;
+  }
+
+  .dice-toggle-btn:hover {
+    border-color: #0a74c9;
+  }
+
+  .toggle-arrow {
+    font-size: 1.2rem;
+    opacity: .6;
+  }
+
+  .dice-panel {
+    background: linear-gradient(180deg, #101214 0%, #0d0f11 100%);
+    border: 1px solid #20242a;
+    border-top: none;
+    border-radius: 0 0 1.25rem 1.25rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  }
+
+  .dice-panel.hidden {
+    display: none;
+  }
+
+  .dice-step.hidden {
+    display: none;
+  }
+
+  .dice-prompt {
+    font-size: 1.05rem;
+    margin-bottom: 1.2rem;
+    opacity: .9;
+  }
+
+  .player-btns {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .player-btn {
+    background: #143252;
+    color: white;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    padding: .7rem 2.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .player-btn:hover {
+    border-color: #0a74c9;
+    background: #1a4a75;
+  }
+
+  /* die */
+  .dice-container {
+    display: flex;
+    justify-content: center;
+    margin: 1.2rem 0;
+  }
+
+  .die {
+    width: 96px;
+    height: 96px;
+    background: linear-gradient(135deg, #1a1e24, #0e1116);
+    border: 2px solid #2a3040;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45);
+    transition: transform .15s;
+  }
+
+  .die-face {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: white;
+    user-select: none;
+  }
+
+  .die.rolling {
+    animation: diceShake .09s infinite alternate;
+  }
+
+  .die.landed {
+    animation: dicePop .35s ease;
+  }
+
+  @keyframes diceShake {
+    0%   { transform: rotate(-6deg) scale(1.04); }
+    100% { transform: rotate(6deg) scale(0.97); }
+  }
+
+  @keyframes dicePop {
+    0%   { transform: scale(1.15); }
+    60%  { transform: scale(0.95); }
+    100% { transform: scale(1); }
+  }
+
+  .roll-btn {
+    background: #0a74c9;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: .65rem 1.6rem;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .roll-btn:hover {
+    background: #0960a8;
+  }
+
+  .roll-result {
+    margin-top: 1.2rem;
+  }
+
+  .roll-result.hidden {
+    display: none;
+  }
+
+  .result-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #5eb3f5;
+    margin: .3rem 0 .8rem;
+  }
+
+  .continue-btn {
+    background: #143252;
+    color: white;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    padding: .55rem 1.4rem;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .continue-btn:hover {
+    background: #1a4a75;
+  }
+
+  .back-link {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.55);
+    font-size: .85rem;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-bottom: .6rem;
+    display: inline-block;
+  }
+
+  .back-link:hover {
+    color: rgba(255,255,255,.8);
+  }
+
+  .tonight-label {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    opacity: .5;
+    margin-bottom: .2rem;
+  }
+
+  .tonight-bet {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #5eb3f5;
+    margin: .2rem 0 .4rem;
+  }
+
+  .tonight-desc {
+    font-size: .9rem;
+    opacity: .7;
+    max-width: 440px;
+    margin: 0 auto .9rem;
+    line-height: 1.45;
+  }
+
+  .save-dice-btn {
+    background: #0a74c9;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: .65rem 1.6rem;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .save-dice-btn:hover {
+    background: #0960a8;
+  }
+
+  .save-dice-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+  /* ===== /DICE & DARES ===== */
 
   .bets-shell {
     max-width: 1450px;
