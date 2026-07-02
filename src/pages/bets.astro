@@ -66,6 +66,11 @@ bets.sort((a, b) => {
         <!-- Step 1 — roll for category -->
         <div id="diceStep1" class="dice-step hidden">
           <p class="dice-prompt"><span id="playerLabel"></span>, roll for the category.</p>
+
+          <div id="catOverview" class="overview-grid">
+            <!-- filled by JS -->
+          </div>
+
           <div class="dice-container">
             <div class="die" id="dieCat">
               <div class="die-face">?</div>
@@ -73,7 +78,6 @@ bets.sort((a, b) => {
           </div>
           <button type="button" id="rollCatBtn" class="roll-btn">Roll for category</button>
           <div id="catResult" class="roll-result hidden">
-            <p>You rolled <strong id="catNumber"></strong></p>
             <p class="result-name" id="catName"></p>
             <button type="button" id="goToBetRoll" class="continue-btn">Continue to the bet roll →</button>
           </div>
@@ -83,6 +87,11 @@ bets.sort((a, b) => {
         <div id="diceStep2" class="dice-step hidden">
           <p class="dice-prompt">Category: <strong id="catLabel2"></strong></p>
           <button type="button" id="backToCat" class="back-link">← back to categories</button>
+
+          <div id="betOverview" class="overview-list">
+            <!-- filled by JS -->
+          </div>
+
           <div class="dice-container">
             <div class="die" id="dieBet">
               <div class="die-face">?</div>
@@ -524,9 +533,9 @@ bets.sort((a, b) => {
     const show = (el) => el?.classList.remove("hidden");
     const hide = (el) => el?.classList.add("hidden");
 
-    function wrapIndex(roll, len) {
-      // dice gives 1-6, list may be shorter
-      return ((roll - 1) % len);
+    /** Truly uniform random index from 0 to len-1 */
+    function randomIndex(len) {
+      return Math.floor(Math.random() * len);
     }
 
     function animateDie(dieEl, finalNumber, cb) {
@@ -551,6 +560,36 @@ bets.sort((a, b) => {
       }, 90);
     }
 
+    /* ---------- render overview grids ---------- */
+    function renderCatOverview() {
+      const el = $("#catOverview");
+      el.innerHTML = CATEGORIES.map((cat, i) =>
+        `<div class="overview-card">
+          <span class="overview-num">${i + 1}</span>
+          <span class="overview-title">${cat.name}</span>
+          <span class="overview-tag">${cat.tag}</span>
+        </div>`
+      ).join("");
+    }
+
+    function renderBetOverview(catIdx) {
+      const cat = CATEGORIES[catIdx];
+      const el = $("#betOverview");
+      el.innerHTML = cat.bets.map((b, i) =>
+        `<div class="overview-item">
+          <span class="overview-num">${i + 1}</span>
+          <span class="overview-title">${b.title}</span>
+        </div>`
+      ).join("");
+    }
+
+    function highlightOverviewItem(container, idx) {
+      const items = document.querySelectorAll(`${container} .overview-card, ${container} .overview-item`);
+      items.forEach((el, i) => {
+        el.classList.toggle("selected", i === idx);
+      });
+    }
+
     /* ---------- toggle panel ---------- */
     $("#diceToggle")?.addEventListener("click", () => {
       const panel = $("#dicePanel");
@@ -568,16 +607,17 @@ bets.sort((a, b) => {
         show($("#diceStep1"));
         $("#dieCat .die-face").textContent = "?";
         hide($("#catResult"));
+        renderCatOverview();
       });
     });
 
     /* ---------- step 1: roll for category ---------- */
     $("#rollCatBtn")?.addEventListener("click", () => {
-      const roll = Math.floor(Math.random() * 6) + 1;
-      chosenCatIdx = wrapIndex(roll, CATEGORIES.length);
-      animateDie($("#dieCat"), roll, () => {
-        $("#catNumber").textContent = roll;
+      chosenCatIdx = randomIndex(CATEGORIES.length);
+      const displayNum = chosenCatIdx + 1;
+      animateDie($("#dieCat"), displayNum, () => {
         $("#catName").textContent = CATEGORIES[chosenCatIdx].name + " — " + CATEGORIES[chosenCatIdx].tag;
+        highlightOverviewItem("#catOverview", chosenCatIdx);
         show($("#catResult"));
       });
     });
@@ -588,6 +628,7 @@ bets.sort((a, b) => {
       $("#catLabel2").textContent = CATEGORIES[chosenCatIdx].name;
       $("#dieBet .die-face").textContent = "?";
       hide($("#betResult"));
+      renderBetOverview(chosenCatIdx);
     });
 
     /* ---------- step 2: roll for bet ---------- */
@@ -598,12 +639,13 @@ bets.sort((a, b) => {
 
     $("#rollBetBtn")?.addEventListener("click", () => {
       const cat = CATEGORIES[chosenCatIdx];
-      const roll = Math.floor(Math.random() * 6) + 1;
-      chosenBetIdx = wrapIndex(roll, cat.bets.length);
-      animateDie($("#dieBet"), roll, () => {
+      chosenBetIdx = randomIndex(cat.bets.length);
+      const displayNum = chosenBetIdx + 1;
+      animateDie($("#dieBet"), displayNum, () => {
         const bet = cat.bets[chosenBetIdx];
         $("#betText").textContent = bet.title;
         $("#betDesc").textContent = bet.desc;
+        highlightOverviewItem("#betOverview", chosenBetIdx);
         show($("#betResult"));
       });
     });
@@ -887,6 +929,87 @@ bets.sort((a, b) => {
   .save-dice-btn:disabled {
     opacity: .55;
     cursor: not-allowed;
+  }
+  /* overview grids */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .6rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .overview-card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .75rem;
+    padding: .65rem .8rem;
+    text-align: left;
+    transition: all .2s;
+  }
+
+  .overview-card.selected {
+    border-color: #0a74c9;
+    background: rgba(10,116,201,.15);
+    box-shadow: 0 0 12px rgba(10,116,201,.25);
+  }
+
+  .overview-list {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .overview-item {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .6rem;
+    padding: .55rem .8rem;
+    text-align: left;
+    transition: all .2s;
+  }
+
+  .overview-item.selected {
+    border-color: #0a74c9;
+    background: rgba(10,116,201,.15);
+    box-shadow: 0 0 12px rgba(10,116,201,.25);
+  }
+
+  .overview-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: rgba(10,116,201,.25);
+    border-radius: 50%;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #5eb3f5;
+    flex-shrink: 0;
+  }
+
+  .overview-title {
+    display: block;
+    font-weight: 600;
+    font-size: .9rem;
+    margin-top: .15rem;
+  }
+
+  .overview-tag {
+    display: block;
+    font-size: .75rem;
+    opacity: .5;
+    margin-top: .1rem;
+  }
+
+  @media (max-width: 640px) {
+    .overview-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
   /* ===== /DICE & DARES ===== */
 
