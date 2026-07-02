@@ -1,0 +1,637 @@
+---
+import { isValidSession } from "../lib/auth";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+---
+
+<BaseLayout title="Prompts">
+  <main class="prompts-shell">
+    <header class="prompts-header">
+      <h1>💬 Conversation Roulette</h1>
+      <p class="subtitle">Random prompts to spark something real.</p>
+      <div id="progressWrap" class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="progress-text" id="progressText">Loading…</p>
+      </div>
+    </header>
+
+    <!-- The prompt card -->
+    <section class="prompt-card" id="promptCard">
+      <div id="promptIdle" class="prompt-state">
+        <p class="prompt-cta">Ready for a conversation starter?</p>
+        <button type="button" id="spinBtn" class="spin-btn">🎰 Spin</button>
+      </div>
+
+      <div id="promptActive" class="prompt-state hidden">
+        <span class="cat-tag" id="catTag"></span>
+        <p class="prompt-text" id="promptText"></p>
+
+        <div class="prompt-actions">
+          <button type="button" id="skipBtn" class="action-btn skip-btn">Skip — next one</button>
+          <button type="button" id="doneBtn" class="action-btn done-btn">✓ Done — we discussed it</button>
+        </div>
+
+        <div id="noteArea" class="note-area hidden">
+          <textarea id="noteInput" rows="3" placeholder="Jot down a note, a quote, a reaction… (optional)"></textarea>
+          <button type="button" id="saveNoteBtn" class="action-btn save-note-btn">Save note & mark done</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="history-card" id="historyCard">
+      <div class="history-header">
+        <h2>Discussed</h2>
+        <button type="button" id="resetBtn" class="reset-btn">↻ New round</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <p class="empty-history">Nothing yet — spin to get started.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const PROMPTS = [
+      {
+        cat: "Would you rather",
+        prompts: [
+          "Would you rather always be 10 minutes late or always be 20 minutes early?",
+          "Would you rather know how you'll die, or when you'll die?",
+          "Would you rather be able to undo any one decision from your past, or guarantee one decision in your future goes right?",
+          "Would you rather read minds or see 10 years into the future?",
+          "Would you rather have the ability to pause time for everyone else, or rewind your own day once a day?",
+          "Would you rather be really good at one thing, or decent at many things?",
+          "Would you rather always have to say exactly what you think, or never be able to share an opinion unless asked?",
+          "Would you rather be the smartest person in every room, or the most well-liked?",
+          "Would you rather never be able to use social media again, or never be able to watch another movie/show?",
+          "Would you rather have a rewind button on your life, or a pause button?",
+          "Would you rather be able to talk to animals, or speak every human language fluently?",
+          "Would you rather live somewhere with amazing weather but no good food, or amazing food but terrible weather?",
+          "Would you rather be fluent in a new language instantly, or be able to cook any cuisine perfectly instantly?",
+          "Would you rather lose the ability to text, or lose the ability to call?"
+        ]
+      },
+      {
+        cat: "Curious questions",
+        prompts: [
+          "What's a sound you could listen to on repeat?",
+          "What's something you find calming that other people don't?",
+          "What's a smell that immediately improves your mood?",
+          "What's something you always notice in a room?",
+          "What's a small thing that makes a place feel lived-in?",
+          "What's something you like having in your hands?",
+          "What's a texture you dislike?",
+          "What's something you like hearing other people talk about?",
+          "What's something you enjoy but rarely choose first?",
+          "What's a small habit you'd keep even if it's impractical?",
+          "What's something that feels better than it looks?",
+          "What's something that looks better than it feels?",
+          "What's a place you feel oddly nostalgic for?",
+          "What's more satisfying: starting something or finishing it?",
+          "What's something you're surprisingly picky about?",
+          "What's something you enjoy organising?",
+          "What's something you enjoy leaving unplanned?",
+          "What's something you enjoy doing alone?",
+          "What's something you enjoy doing together with others?"
+        ]
+      },
+      {
+        cat: "Quick picks",
+        prompts: [
+          "Sweet snack or salty snack?",
+          "Window seat or aisle?",
+          "Busy café or quiet café?",
+          "Rain with plans or sun with no plans?",
+          "Hot shower or long bath?",
+          "Barefoot or socks?",
+          "Morning air or night air?"
+        ]
+      },
+      {
+        cat: "Deeper thoughts",
+        prompts: [
+          "Is being 'easygoing' a strength or a way of avoiding conflict?",
+          "Is stubbornness just loyalty to your past self?",
+          "Do you admire decisiveness more than correctness?",
+          "Is curiosity a moral trait?",
+          "Is patience something you practice or something you have?",
+          "Is it possible to be ambitious without being competitive?",
+          "Is comfort addictive?",
+          "Do people romanticise chaos only when they don't have to live in it?",
+          "Is being 'low-maintenance' actually high effort?",
+          "Is meaning something you discover, or something you decide?",
+          "Is change easier when it's chosen or when it's imposed?",
+          "Is intimacy more about access or about restraint?",
+          "Is boredom a lack of stimulation or a lack of attention?",
+          "When does silence feel shared rather than empty?",
+          "What do you think people underestimate about others most often?",
+          "What's something you respect in people even if you don't share it?"
+        ]
+      },
+      {
+        cat: "Fun facts",
+        prompts: [
+          "Most people remember the first and last thing in a sequence best — it's called the serial position effect. Does that match your experience?",
+          "There are more possible games of chess than atoms in the observable universe. What do you make of that?",
+          "We perceive unfamiliar music as faster than familiar music — even at the same tempo. Does that ring true?",
+          "Smells are more strongly linked to memory than any other sense. What smell takes you back?",
+          "Walking increases creative output more than sitting, even on a treadmill. Do you buy it?",
+          "People enjoy food more when they chose it themselves — even if it's identical. Why do you think that is?",
+          "Time feels slower when we pay attention, and faster when we remember. What does that change for you?"
+        ]
+      }
+    ];
+
+    // Flatten for easy indexing: { id, cat, text }
+    const ALL_PROMPTS = [];
+    PROMPTS.forEach(group => {
+      group.prompts.forEach((text, i) => {
+        ALL_PROMPTS.push({
+          id: group.cat.toLowerCase().replace(/\s+/g, "-") + "-" + i,
+          cat: group.cat,
+          text
+        });
+      });
+    });
+
+    /* ---------- state ---------- */
+    // state = { done: { [promptId]: { note, doneAt } }, version: 1 }
+    let state = { done: {}, version: 1 };
+    let currentPrompt = null;
+    let loaded = false;
+
+    const $ = (s) => document.querySelector(s);
+    const show = (el) => el?.classList.remove("hidden");
+    const hide = (el) => el?.classList.add("hidden");
+
+    /* ---------- persistence ---------- */
+    async function loadState() {
+      try {
+        const res = await fetch("/.netlify/functions/prompts-load");
+        const data = await res.json();
+        if (data && data.done) {
+          state = data;
+        }
+      } catch (e) {
+        console.warn("Could not load prompts state", e);
+      }
+      loaded = true;
+      render();
+    }
+
+    async function saveState() {
+      try {
+        await fetch("/.netlify/functions/prompts-save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state),
+        });
+      } catch (e) {
+        console.warn("Could not save prompts state", e);
+      }
+    }
+
+    /* ---------- rendering ---------- */
+    function getRemaining() {
+      return ALL_PROMPTS.filter(p => !state.done[p.id]);
+    }
+
+    function render() {
+      const total = ALL_PROMPTS.length;
+      const doneCount = Object.keys(state.done).length;
+      const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+      $("#progressFill").style.width = pct + "%";
+      $("#progressText").textContent = `${doneCount} / ${total} discussed`;
+
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const el = $("#historyList");
+      const entries = Object.entries(state.done)
+        .map(([id, info]) => {
+          const prompt = ALL_PROMPTS.find(p => p.id === id);
+          return prompt ? { ...prompt, ...info } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.doneAt) - new Date(a.doneAt));
+
+      if (entries.length === 0) {
+        el.innerHTML = '<p class="empty-history">Nothing yet — spin to get started.</p>';
+        return;
+      }
+
+      el.innerHTML = entries.map(e => `
+        <div class="history-item">
+          <div class="history-top">
+            <span class="history-cat">${e.cat}</span>
+            <span class="history-date">${e.doneAt?.slice(0, 10) || ""}</span>
+          </div>
+          <p class="history-text">${e.text}</p>
+          ${e.note ? `<p class="history-note">📝 ${e.note}</p>` : ""}
+        </div>
+      `).join("");
+    }
+
+    /* ---------- spin ---------- */
+    function pickRandom() {
+      const pool = getRemaining();
+      if (pool.length === 0) return null;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function showPrompt(prompt) {
+      if (!prompt) {
+        $("#promptText").textContent = "You've been through them all! Start a new round?";
+        $("#catTag").textContent = "🎉 Complete";
+        hide($("#skipBtn"));
+        hide($("#doneBtn"));
+        hide($("#noteArea"));
+        show($("#promptActive"));
+        hide($("#promptIdle"));
+        currentPrompt = null;
+        return;
+      }
+
+      currentPrompt = prompt;
+      $("#catTag").textContent = prompt.cat;
+      $("#promptText").textContent = prompt.text;
+      $("#noteInput").value = "";
+      hide($("#noteArea"));
+      show($("#skipBtn"));
+      show($("#doneBtn"));
+      show($("#promptActive"));
+      hide($("#promptIdle"));
+    }
+
+    /* ---------- events ---------- */
+    $("#spinBtn")?.addEventListener("click", () => {
+      showPrompt(pickRandom());
+    });
+
+    $("#skipBtn")?.addEventListener("click", () => {
+      showPrompt(pickRandom());
+    });
+
+    $("#doneBtn")?.addEventListener("click", () => {
+      show($("#noteArea"));
+      $("#noteInput").focus();
+      // also allow just clicking done without a note — handle in saveNote
+    });
+
+    $("#saveNoteBtn")?.addEventListener("click", async () => {
+      if (!currentPrompt) return;
+      const note = $("#noteInput").value.trim();
+      state.done[currentPrompt.id] = {
+        note: note || "",
+        doneAt: new Date().toISOString(),
+      };
+      await saveState();
+      render();
+
+      // show idle again
+      hide($("#promptActive"));
+      show($("#promptIdle"));
+      currentPrompt = null;
+    });
+
+    // Allow marking done without note by pressing done again
+    $("#doneBtn")?.addEventListener("dblclick", async () => {
+      if (!currentPrompt) return;
+      state.done[currentPrompt.id] = {
+        note: "",
+        doneAt: new Date().toISOString(),
+      };
+      await saveState();
+      render();
+      hide($("#promptActive"));
+      show($("#promptIdle"));
+      currentPrompt = null;
+    });
+
+    $("#resetBtn")?.addEventListener("click", async () => {
+      if (!confirm("Start a new round? This clears all progress (notes are lost).")) return;
+      state.done = {};
+      await saveState();
+      render();
+      hide($("#promptActive"));
+      show($("#promptIdle"));
+      currentPrompt = null;
+    });
+
+    /* ---------- init ---------- */
+    loadState();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .prompts-shell {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .prompts-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .prompts-header h1 {
+    margin-bottom: .35rem;
+  }
+
+  .prompts-header h1::after {
+    content: "";
+    display: block;
+    width: 48px;
+    height: 3px;
+    margin: .5rem auto 0;
+    border-radius: 999px;
+    background: #0a74c9;
+  }
+
+  .subtitle {
+    font-size: .95rem;
+    opacity: .7;
+  }
+
+  /* progress */
+  .progress-wrap {
+    margin-top: 1.2rem;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: rgba(255,255,255,.08);
+    border-radius: 999px;
+    overflow: hidden;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #0a74c9, #5eb3f5);
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+
+  .progress-text {
+    font-size: .82rem;
+    opacity: .5;
+    margin-top: .45rem;
+  }
+
+  /* prompt card */
+  .prompt-card {
+    background: linear-gradient(180deg, #282d36 0%, #232830 100%);
+    border: 1px solid #3a3f4a;
+    border-radius: 1.25rem;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    margin-bottom: 2rem;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .prompt-state {
+    width: 100%;
+  }
+
+  .prompt-state.hidden {
+    display: none;
+  }
+
+  .prompt-cta {
+    font-size: 1.05rem;
+    opacity: .7;
+    margin-bottom: 1.2rem;
+  }
+
+  .spin-btn {
+    background: #0a74c9;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: .75rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+
+  .spin-btn:hover {
+    background: #0960a8;
+    transform: scale(1.03);
+  }
+
+  .cat-tag {
+    display: inline-block;
+    background: rgba(10,116,201,.2);
+    color: #6bc0f7;
+    border-radius: 999px;
+    padding: .3rem .9rem;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    margin-bottom: .8rem;
+  }
+
+  .prompt-text {
+    font-size: 1.3rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .prompt-actions {
+    display: flex;
+    gap: .8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    border: none;
+    border-radius: 999px;
+    padding: .55rem 1.3rem;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .skip-btn {
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.65);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+
+  .skip-btn:hover {
+    background: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.85);
+  }
+
+  .done-btn {
+    background: #24486e;
+    color: white;
+  }
+
+  .done-btn:hover {
+    background: #2d5a88;
+  }
+
+  /* note area */
+  .note-area {
+    margin-top: 1.2rem;
+  }
+
+  .note-area.hidden {
+    display: none;
+  }
+
+  .note-area textarea {
+    width: 100%;
+    max-width: 460px;
+    padding: .7rem .85rem;
+    font-size: .92rem;
+    border-radius: .75rem;
+    border: 1px solid #3a3f4a;
+    background: #1e2228;
+    color: white;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 70px;
+    box-sizing: border-box;
+  }
+
+  .save-note-btn {
+    margin-top: .6rem;
+    background: #0a74c9;
+    color: white;
+  }
+
+  .save-note-btn:hover {
+    background: #0960a8;
+  }
+
+  /* history */
+  .history-card {
+    background: linear-gradient(180deg, #282d36 0%, #232830 100%);
+    border: 1px solid #3a3f4a;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .history-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .reset-btn {
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.5);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 999px;
+    padding: .4rem 1rem;
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .reset-btn:hover {
+    background: rgba(255,255,255,.1);
+    color: rgba(255,255,255,.75);
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+  }
+
+  .empty-history {
+    text-align: center;
+    opacity: .45;
+    font-style: italic;
+    padding: 1rem 0;
+  }
+
+  .history-item {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .75rem;
+    padding: .75rem 1rem;
+  }
+
+  .history-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .35rem;
+  }
+
+  .history-cat {
+    font-size: .75rem;
+    font-weight: 600;
+    color: #6bc0f7;
+    opacity: .8;
+  }
+
+  .history-date {
+    font-size: .72rem;
+    opacity: .4;
+  }
+
+  .history-text {
+    font-size: .92rem;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .history-note {
+    margin: .4rem 0 0;
+    font-size: .82rem;
+    opacity: .6;
+    font-style: italic;
+  }
+
+  @media (max-width: 600px) {
+    .prompt-card {
+      padding: 1.5rem 1.2rem;
+    }
+
+    .prompt-text {
+      font-size: 1.1rem;
+    }
+
+    .prompt-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>
