@@ -67,16 +67,24 @@ bets.sort((a, b) => {
         <div id="diceStep1" class="dice-step hidden">
           <p class="dice-prompt"><span id="playerLabel"></span>, roll for the category.</p>
 
+          <div class="mode-switch">
+            <button type="button" class="mode-btn active" data-mode="roll" data-step="cat">🎲 Roll</button>
+            <button type="button" class="mode-btn" data-mode="pick" data-step="cat">✋ Pick</button>
+          </div>
+
           <div id="catOverview" class="overview-grid">
             <!-- filled by JS -->
           </div>
 
-          <div class="dice-container">
-            <div class="die" id="dieCat">
-              <div class="die-face">?</div>
+          <div id="catRollArea">
+            <div class="dice-container">
+              <div class="die" id="dieCat">
+                <div class="die-face">?</div>
+              </div>
             </div>
+            <button type="button" id="rollCatBtn" class="roll-btn">Roll for category</button>
           </div>
-          <button type="button" id="rollCatBtn" class="roll-btn">Roll for category</button>
+
           <div id="catResult" class="roll-result hidden">
             <p class="result-name" id="catName"></p>
             <button type="button" id="goToBetRoll" class="continue-btn">Continue to the bet roll →</button>
@@ -88,16 +96,24 @@ bets.sort((a, b) => {
           <p class="dice-prompt">Category: <strong id="catLabel2"></strong></p>
           <button type="button" id="backToCat" class="back-link">← back to categories</button>
 
+          <div class="mode-switch">
+            <button type="button" class="mode-btn active" data-mode="roll" data-step="bet">🎲 Roll</button>
+            <button type="button" class="mode-btn" data-mode="pick" data-step="bet">✋ Pick</button>
+          </div>
+
           <div id="betOverview" class="overview-list">
             <!-- filled by JS -->
           </div>
 
-          <div class="dice-container">
-            <div class="die" id="dieBet">
-              <div class="die-face">?</div>
+          <div id="betRollArea">
+            <div class="dice-container">
+              <div class="die" id="dieBet">
+                <div class="die-face">?</div>
+              </div>
             </div>
+            <button type="button" id="rollBetBtn" class="roll-btn">Roll for the bet</button>
           </div>
-          <button type="button" id="rollBetBtn" class="roll-btn">Roll for the bet</button>
+
           <div id="betResult" class="roll-result hidden">
             <p class="tonight-label">Tonight's bet</p>
             <p class="tonight-bet" id="betText">—</p>
@@ -527,13 +543,14 @@ bets.sort((a, b) => {
     let chosenCatIdx = -1;
     let chosenBetIdx = -1;
     let rolling = false;
+    let catMode = "roll";  // "roll" or "pick"
+    let betMode = "roll";
 
     /* ---------- helpers ---------- */
     const $ = (sel) => document.querySelector(sel);
     const show = (el) => el?.classList.remove("hidden");
     const hide = (el) => el?.classList.add("hidden");
 
-    /** Truly uniform random index from 0 to len-1 */
     function randomIndex(len) {
       return Math.floor(Math.random() * len);
     }
@@ -560,27 +577,85 @@ bets.sort((a, b) => {
       }, 90);
     }
 
+    /* ---------- mode switching ---------- */
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const step = btn.dataset.step; // "cat" or "bet"
+        const mode = btn.dataset.mode; // "roll" or "pick"
+
+        // update active state on sibling buttons
+        btn.parentElement.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (step === "cat") {
+          catMode = mode;
+          if (mode === "pick") {
+            hide($("#catRollArea"));
+            $("#catOverview").classList.add("pickable");
+          } else {
+            show($("#catRollArea"));
+            $("#catOverview").classList.remove("pickable");
+          }
+        } else {
+          betMode = mode;
+          if (mode === "pick") {
+            hide($("#betRollArea"));
+            $("#betOverview").classList.add("pickable");
+          } else {
+            show($("#betRollArea"));
+            $("#betOverview").classList.remove("pickable");
+          }
+        }
+      });
+    });
+
     /* ---------- render overview grids ---------- */
     function renderCatOverview() {
       const el = $("#catOverview");
       el.innerHTML = CATEGORIES.map((cat, i) =>
-        `<div class="overview-card">
+        `<div class="overview-card" data-idx="${i}">
           <span class="overview-num">${i + 1}</span>
           <span class="overview-title">${cat.name}</span>
           <span class="overview-tag">${cat.tag}</span>
         </div>`
       ).join("");
+
+      // attach pick-click handlers
+      el.querySelectorAll(".overview-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          if (catMode !== "pick") return;
+          const idx = parseInt(card.dataset.idx, 10);
+          chosenCatIdx = idx;
+          highlightOverviewItem("#catOverview", idx);
+          $("#catName").textContent = CATEGORIES[idx].name + " — " + CATEGORIES[idx].tag;
+          show($("#catResult"));
+        });
+      });
     }
 
     function renderBetOverview(catIdx) {
       const cat = CATEGORIES[catIdx];
       const el = $("#betOverview");
       el.innerHTML = cat.bets.map((b, i) =>
-        `<div class="overview-item">
+        `<div class="overview-item" data-idx="${i}">
           <span class="overview-num">${i + 1}</span>
           <span class="overview-title">${b.title}</span>
         </div>`
       ).join("");
+
+      // attach pick-click handlers
+      el.querySelectorAll(".overview-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          if (betMode !== "pick") return;
+          const idx = parseInt(item.dataset.idx, 10);
+          chosenBetIdx = idx;
+          const bet = cat.bets[idx];
+          highlightOverviewItem("#betOverview", idx);
+          $("#betText").textContent = bet.title;
+          $("#betDesc").textContent = bet.desc;
+          show($("#betResult"));
+        });
+      });
     }
 
     function highlightOverviewItem(container, idx) {
@@ -629,6 +704,12 @@ bets.sort((a, b) => {
       $("#dieBet .die-face").textContent = "?";
       hide($("#betResult"));
       renderBetOverview(chosenCatIdx);
+      // reset bet mode to roll
+      betMode = "roll";
+      show($("#betRollArea"));
+      $("#betOverview").classList.remove("pickable");
+      const betBtns = $("#diceStep2").querySelectorAll(".mode-btn");
+      betBtns.forEach(b => b.classList.toggle("active", b.dataset.mode === "roll"));
     });
 
     /* ---------- step 2: roll for bet ---------- */
@@ -655,6 +736,7 @@ bets.sort((a, b) => {
       const cat = CATEGORIES[chosenCatIdx];
       const bet = cat.bets[chosenBetIdx];
       const today = new Date().toISOString().slice(0, 10);
+      const method = (catMode === "pick" || betMode === "pick") ? "Picked" : "Rolled";
 
       const form = new FormData();
       form.append("betDate", today);
@@ -663,7 +745,7 @@ bets.sort((a, b) => {
       form.append("owner", chosenPlayer);
       form.append("status", "open");
       form.append("executedDate", "");
-      form.append("notes", "\uD83C\uDFB2 Rolled via Dice & Dares — " + bet.desc);
+      form.append("notes", "\uD83C\uDFB2 " + method + " via Dice & Dares — " + bet.desc);
 
       $("#saveDiceBet").disabled = true;
       $("#saveDiceBet").textContent = "Saving…";
@@ -692,6 +774,8 @@ bets.sort((a, b) => {
       chosenPlayer = "";
       chosenCatIdx = -1;
       chosenBetIdx = -1;
+      catMode = "roll";
+      betMode = "roll";
     });
   </script>
 </BaseLayout>
@@ -709,8 +793,8 @@ bets.sort((a, b) => {
 
   .dice-toggle-btn {
     width: 100%;
-    background: linear-gradient(180deg, #101214 0%, #0d0f11 100%);
-    border: 1px solid #20242a;
+    background: linear-gradient(180deg, #1e2228 0%, #1a1d22 100%);
+    border: 1px solid #2e333b;
     border-radius: 1.25rem;
     padding: 1rem 1.5rem;
     color: white;
@@ -733,13 +817,13 @@ bets.sort((a, b) => {
   }
 
   .dice-panel {
-    background: linear-gradient(180deg, #101214 0%, #0d0f11 100%);
-    border: 1px solid #20242a;
+    background: linear-gradient(180deg, #1e2228 0%, #1a1d22 100%);
+    border: 1px solid #2e333b;
     border-top: none;
     border-radius: 0 0 1.25rem 1.25rem;
     padding: 2rem 1.5rem;
     text-align: center;
-    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
   }
 
   .dice-panel.hidden {
@@ -763,7 +847,7 @@ bets.sort((a, b) => {
   }
 
   .player-btn {
-    background: #143252;
+    background: #1d3a5c;
     color: white;
     border: 2px solid transparent;
     border-radius: 999px;
@@ -775,8 +859,39 @@ bets.sort((a, b) => {
   }
 
   .player-btn:hover {
+    border-color: #3a9eed;
+    background: #244d78;
+  }
+
+  /* mode switch (roll / pick) */
+  .mode-switch {
+    display: flex;
+    justify-content: center;
+    gap: .35rem;
+    margin-bottom: 1rem;
+  }
+
+  .mode-btn {
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 999px;
+    padding: .4rem 1.1rem;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .mode-btn.active {
+    background: #0a74c9;
+    color: white;
     border-color: #0a74c9;
-    background: #1a4a75;
+  }
+
+  .mode-btn:hover:not(.active) {
+    background: rgba(255,255,255,.1);
+    color: rgba(255,255,255,.8);
   }
 
   /* die */
@@ -786,16 +901,21 @@ bets.sort((a, b) => {
     margin: 1.2rem 0;
   }
 
+  #catRollArea.hidden,
+  #betRollArea.hidden {
+    display: none;
+  }
+
   .die {
     width: 96px;
     height: 96px;
-    background: linear-gradient(135deg, #1a1e24, #0e1116);
-    border: 2px solid #2a3040;
+    background: linear-gradient(135deg, #262b33, #1c2028);
+    border: 2px solid #3a4050;
     border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 20px rgba(0,0,0,.45);
+    box-shadow: 0 6px 20px rgba(0,0,0,.3);
     transition: transform .15s;
   }
 
@@ -852,14 +972,14 @@ bets.sort((a, b) => {
   .result-name {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #5eb3f5;
+    color: #6bc0f7;
     margin: .3rem 0 .8rem;
   }
 
   .continue-btn {
-    background: #143252;
+    background: #1d3a5c;
     color: white;
-    border: 1px solid rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.15);
     border-radius: 999px;
     padding: .55rem 1.4rem;
     font-size: .9rem;
@@ -869,13 +989,13 @@ bets.sort((a, b) => {
   }
 
   .continue-btn:hover {
-    background: #1a4a75;
+    background: #244d78;
   }
 
   .back-link {
     background: none;
     border: none;
-    color: rgba(255,255,255,.55);
+    color: rgba(255,255,255,.5);
     font-size: .85rem;
     cursor: pointer;
     text-decoration: underline;
@@ -898,7 +1018,7 @@ bets.sort((a, b) => {
   .tonight-bet {
     font-size: 1.35rem;
     font-weight: 800;
-    color: #5eb3f5;
+    color: #6bc0f7;
     margin: .2rem 0 .4rem;
   }
 
@@ -930,6 +1050,7 @@ bets.sort((a, b) => {
     opacity: .55;
     cursor: not-allowed;
   }
+
   /* overview grids */
   .overview-grid {
     display: grid;
@@ -939,8 +1060,8 @@ bets.sort((a, b) => {
   }
 
   .overview-card {
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
     border-radius: .75rem;
     padding: .65rem .8rem;
     text-align: left;
@@ -948,9 +1069,20 @@ bets.sort((a, b) => {
   }
 
   .overview-card.selected {
-    border-color: #0a74c9;
-    background: rgba(10,116,201,.15);
-    box-shadow: 0 0 12px rgba(10,116,201,.25);
+    border-color: #3a9eed;
+    background: rgba(10,116,201,.18);
+    box-shadow: 0 0 14px rgba(10,116,201,.2);
+  }
+
+  .pickable .overview-card,
+  .pickable .overview-item {
+    cursor: pointer;
+  }
+
+  .pickable .overview-card:hover,
+  .pickable .overview-item:hover {
+    border-color: rgba(58,158,237,.5);
+    background: rgba(10,116,201,.1);
   }
 
   .overview-list {
@@ -964,8 +1096,8 @@ bets.sort((a, b) => {
     display: flex;
     align-items: center;
     gap: .65rem;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
     border-radius: .6rem;
     padding: .55rem .8rem;
     text-align: left;
@@ -973,9 +1105,9 @@ bets.sort((a, b) => {
   }
 
   .overview-item.selected {
-    border-color: #0a74c9;
-    background: rgba(10,116,201,.15);
-    box-shadow: 0 0 12px rgba(10,116,201,.25);
+    border-color: #3a9eed;
+    background: rgba(10,116,201,.18);
+    box-shadow: 0 0 14px rgba(10,116,201,.2);
   }
 
   .overview-num {
@@ -984,11 +1116,11 @@ bets.sort((a, b) => {
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: rgba(10,116,201,.25);
+    background: rgba(10,116,201,.2);
     border-radius: 50%;
     font-size: .75rem;
     font-weight: 700;
-    color: #5eb3f5;
+    color: #6bc0f7;
     flex-shrink: 0;
   }
 
