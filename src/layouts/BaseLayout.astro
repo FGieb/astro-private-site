@@ -49,9 +49,9 @@ const { title } = Astro.props;
     }
 
     .nav-group { position: relative; display: flex; align-items: center; }
-    .nav-group-label { cursor: pointer; opacity: 0.85; user-select: none; padding-bottom: 0.6rem; margin-bottom: -0.6rem; }
+    .nav-group-label { cursor: pointer; opacity: 0.85; user-select: none; padding-bottom: 1.2rem; margin-bottom: -1.2rem; }
     .nav-group-label:hover { opacity: 1; }
-    .nav-group-menu { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 0.6rem; z-index: 100; }
+    .nav-group-menu { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding: 1.2rem 1.5rem 0.5rem; margin: 0 -1.5rem; z-index: 100; }
     .nav-group-menu-inner { background: rgba(14,18,26,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 0.35rem; min-width: 130px; display: flex; flex-direction: column; gap: 0.1rem; backdrop-filter: blur(10px); }
     .nav-group:hover .nav-group-menu { display: block; }
     .nav-group-menu a { display: block; padding: 0.4rem 0.75rem; border-radius: 0.5rem; white-space: nowrap; opacity: 0.85; }
