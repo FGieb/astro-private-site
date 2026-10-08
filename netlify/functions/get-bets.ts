@@ -3,6 +3,7 @@ export const config = {
 };
 
 import { getStore } from "@netlify/blobs";
+import { requireSession } from "./_shared/auth.mjs";
 
 function blobToText(raw) {
   if (!raw) return "";
@@ -11,7 +12,10 @@ function blobToText(raw) {
   return String(raw);
 }
 
-export default async function handler() {
+export default async function handler(request: Request) {
+  const denied = requireSession(request);
+  if (denied) return denied;
+
   try {
     const store = getStore("bets");
     const raw = await store.get("bets");

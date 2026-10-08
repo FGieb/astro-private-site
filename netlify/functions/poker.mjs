@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
+import { requireSession } from "./_shared/auth.mjs";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -361,6 +362,9 @@ function clientView(state, player) {
 // ========================
 
 export default async function handler(req) {
+  const denied = requireSession(req);
+  if (denied) return denied;
+
   try {
     if (req.method !== "POST") return json({ error: "POST only" }, 405);
 

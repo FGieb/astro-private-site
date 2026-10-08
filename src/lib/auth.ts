@@ -67,3 +67,18 @@ export async function destroySession(_token?: string) {
   // Nothing to do — session validity is purely cryptographic
   return;
 }
+
+/**
+ * Guard for API routes. Returns a 401 Response if the request has no
+ * valid session, otherwise null.
+ *
+ *   const denied = await requireSession(context.cookies);
+ *   if (denied) return denied;
+ */
+export async function requireSession(cookies: { get(name: string): { value: string } | undefined }) {
+  if (await isValidSession(cookies.get("auth")?.value)) return null;
+  return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" },
+  });
+}

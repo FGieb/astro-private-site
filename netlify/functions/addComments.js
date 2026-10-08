@@ -1,4 +1,9 @@
+import { requireSessionEvent } from "./_shared/auth.mjs";
+
 export async function handler(event) {
+  const denied = requireSessionEvent(event);
+  if (denied) return denied;
+
   try {
     const { date, text } = JSON.parse(event.body);
 

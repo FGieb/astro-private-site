@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
 import { extractMention } from "../../src/lib/mentions";
 import { sendMentionNotification } from "./_shared/pushover.mjs";
+import { requireSession } from "./_shared/auth.mjs";
  
 const MENTION_CONFIG = {
   notes: { source: "New note", link: "/notes" },
@@ -49,6 +50,9 @@ async function saveEntries(storeName, entries) {
 }
 
 export default async function handler(req) {
+  const denied = requireSession(req);
+  if (denied) return denied;
+
   try {
     if (req.method !== "POST") {
       return json({ error: "Method not allowed" }, 405);

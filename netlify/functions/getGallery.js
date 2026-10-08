@@ -1,13 +1,11 @@
-console.log('🔑 ENV CHECK:', {
-  apiKey: process.env.CLOUDINARY_API_KEY,
-  apiSecret: process.env.CLOUDINARY_API_SECRET,
-  cloudName: process.env.CLOUDINARY_CLOUD_NAME
-});
-
 const axios = require("axios");
 const crypto = require("crypto");
+const { requireSessionEvent } = require("./_shared/auth.mjs");
 
-exports.handler = async function () {
+exports.handler = async function (event) {
+  const denied = requireSessionEvent(event);
+  if (denied) return denied;
+
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
