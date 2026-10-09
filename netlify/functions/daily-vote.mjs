@@ -1,4 +1,5 @@
 import { getStore } from "@netlify/blobs";
+import { requireSession } from "./_shared/auth.mjs";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -10,6 +11,9 @@ function json(body, status = 200) {
 const MODEL_LABEL = { openai: "GPT-4o", anthropic: "Claude" };
 
 export default async function handler(req) {
+  const denied = requireSession(req);
+  if (denied) return denied;
+
   try {
     if (req.method !== "POST") return json({ error: "POST only" }, 405);
 

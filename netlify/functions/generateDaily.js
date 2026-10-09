@@ -1,4 +1,5 @@
 import { getStore } from "@netlify/blobs";
+import { requireSession } from "./_shared/auth.mjs";
 
 const FALLBACK_REFLECTION =
   "What people call sincerity is often just consistency observed over time.";
@@ -105,6 +106,9 @@ function clientSafeEntry(entry) {
 }
 
 export default async function handler(req) {
+  const denied = requireSession(req);
+  if (denied) return denied;
+
   try {
     const url = new URL(req.url);
     const force = url.searchParams.get("force") === "true";

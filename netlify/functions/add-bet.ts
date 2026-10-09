@@ -6,6 +6,7 @@ import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
 import { extractMention } from "../../src/lib/mentions";
 import { sendMentionNotification } from "./_shared/pushover.mjs";
+import { requireSession } from "./_shared/auth.mjs";
 
 function blobToText(raw: unknown) {
   if (!raw) return "";
@@ -15,6 +16,9 @@ function blobToText(raw: unknown) {
 }
 
 export default async function handler(req: Request) {
+  const denied = requireSession(req);
+  if (denied) return denied;
+
   try {
     if (req.method !== "POST") {
       return new Response(

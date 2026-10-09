@@ -1,6 +1,10 @@
 import { getStore } from "@netlify/blobs";
+import { requireSession } from "./_shared/auth.mjs";
 
-export default async function handler() {
+export default async function handler(request) {
+  const denied = requireSession(request);
+  if (denied) return denied;
+
   try {
     const store = getStore("daily");
 

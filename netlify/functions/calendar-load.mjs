@@ -1,5 +1,6 @@
 // netlify/functions/calendar-load.mjs
 import { getStore } from "@netlify/blobs";
+import { requireSession } from "./_shared/auth.mjs";
 
 function coerceToObject(raw) {
   if (!raw) return {};
@@ -28,7 +29,10 @@ function coerceToObject(raw) {
   return {};
 }
 
-export default async function handler() {
+export default async function handler(request) {
+  const denied = requireSession(request);
+  if (denied) return denied;
+
   try {
     const store = getStore("calendar");
 
