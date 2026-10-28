@@ -124,6 +124,7 @@ const year = new Date().getFullYear();
   .trip-day.empty { background: transparent; cursor: default; }
   .trip-day.today { outline: 2px solid rgba(255,255,255,0.85); outline-offset: 1px; z-index: 1; }
   .trip-day.in-trip { color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+  .trip-day .trip-start-icon { font-size: 0.95rem; line-height: 1; text-shadow: none; }
 
   /* Shared trips: champagne metal with a slow light sweep. The sweep layer is
      fixed to the viewport so one band of light glides across all shared days. */
@@ -295,7 +296,7 @@ const year = new Date().getFullYear();
 (async () => {
   // Whose trip it is decides its colour. Rename the labels here if you like.
   const WHO = {
-    shared: { label: "Shared", icon: "🤍", color: "#cdb98f" },
+    shared: { label: "Shared", icon: "🖤", color: "#cdb98f" },
     LM: { label: "LM solo", icon: "🐝", color: "#2f9e6e" },
     BM: { label: "BM solo", icon: "🐙", color: "#2e7fb8" },
   };
@@ -423,6 +424,11 @@ const year = new Date().getFullYear();
       for (let d = 1; d <= days; d++) {
         const dateIso = iso(year, m, d);
         const onDay = tripsOn(dateIso, yearTrips);
+        // The first day of a trip shows its symbol instead of the date
+        const starting = onDay.find((t) => t.start === dateIso);
+        const label = starting
+          ? `<span class="trip-start-icon">${WHO[whoOf(starting)].icon}</span>`
+          : d;
         const classes = ["trip-day"];
         let style = "";
         let title = "";
@@ -440,7 +446,8 @@ const year = new Date().getFullYear();
         if (pickingEnd && dateIso === startInput.value) classes.push("pending");
 
         cells += `<button type="button" class="${classes.join(" ")}" data-date="${dateIso}"
-          style="${style}" title="${escapeHtml(title)}">${d}</button>`;
+          style="${style}" title="${escapeHtml(title)}"
+          aria-label="${dateIso}${title ? `: ${escapeHtml(title)}` : ""}">${label}</button>`;
       }
 
       return `
