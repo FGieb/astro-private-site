@@ -1,13 +1,7 @@
-console.log('🔑 ENV CHECK:', {
-  apiKey: process.env.CLOUDINARY_API_KEY,
-  apiSecret: process.env.CLOUDINARY_API_SECRET,
-  cloudName: process.env.CLOUDINARY_CLOUD_NAME
-});
+import axios from "axios";
+import crypto from "crypto";
 
-const axios = require("axios");
-const crypto = require("crypto");
-
-exports.handler = async function () {
+export const handler = async function () {
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
