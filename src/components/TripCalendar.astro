@@ -122,8 +122,37 @@ const year = new Date().getFullYear();
 
   .trip-day:hover { background: #2a2a2a; }
   .trip-day.empty { background: transparent; cursor: default; }
-  .trip-day.today { outline: 1.5px solid rgba(255,255,255,0.75); outline-offset: -1.5px; }
-  .trip-day.in-trip { color: white; font-weight: 700; }
+  .trip-day.today { outline: 2px solid rgba(255,255,255,0.85); outline-offset: 1px; z-index: 1; }
+  .trip-day.in-trip { color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+
+  /* Shared trips: champagne metal with a slow light sweep. The sweep layer is
+     fixed to the viewport so one band of light glides across all shared days. */
+  .trip-metal { background: linear-gradient(145deg, #efe2c2 0%, #cdb98f 45%, #b29c6a 100%); }
+
+  .trip-day.shared {
+    color: #2a2010;
+    font-weight: 800;
+    text-shadow: none;
+    background:
+      linear-gradient(110deg, transparent 46%, rgba(255, 250, 235, 0.85) 50%, transparent 54%),
+      linear-gradient(145deg, #efe2c2 0%, #cdb98f 45%, #b29c6a 100%);
+    background-attachment: fixed, scroll;
+    background-size: 300% 100%, 100% 100%;
+    background-position: 100% 0, 0 0;
+    animation: trip-shimmer 7s ease-in-out infinite;
+  }
+
+  .trip-day.shared:hover { filter: brightness(1.08); }
+
+  @keyframes trip-shimmer {
+    0% { background-position: 100% 0, 0 0; }
+    45%, 100% { background-position: 0% 0, 0 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trip-day.shared { animation: none; }
+  }
+
   .trip-day.multi::after {
     content: "";
     position: absolute;
@@ -131,12 +160,14 @@ const year = new Date().getFullYear();
     width: 5px; height: 5px;
     border-radius: 999px;
     background: white;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
   }
   .trip-day.pending {
     outline: 2px dashed white;
-    outline-offset: -2px;
+    outline-offset: 1px;
+    z-index: 1;
   }
-  .trip-day.focused { box-shadow: 0 0 0 2px white inset; }
+  .trip-day.focused { box-shadow: inset 0 0 0 2px white, inset 0 0 0 3px rgba(0,0,0,0.55); }
 
   .trip-hint { font-size: 0.8rem; opacity: 0.6; margin: 0 0 1rem 0; }
 
@@ -220,6 +251,8 @@ const year = new Date().getFullYear();
     color: white;
   }
 
+  .trip-item-tag.trip-metal { color: #2a2010; }
+
   .trip-form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
   .trip-delete-btn { margin-left: auto; color: #ff8a8a; }
 
@@ -262,13 +295,16 @@ const year = new Date().getFullYear();
 (async () => {
   // Whose trip it is decides its colour. Rename the labels here if you like.
   const WHO = {
-    shared: { label: "Shared", icon: "💞", color: "#b8862b" },
+    shared: { label: "Shared", icon: "💞", color: "#cdb98f" },
     LM: { label: "LM solo", icon: "🧳", color: "#2f9e6e" },
     BM: { label: "BM solo", icon: "🎒", color: "#2e7fb8" },
   };
   // Trips saved before "who" existed count as shared
   const whoOf = (t) => (WHO[t.who] ? t.who : "shared");
   const colorOf = (t) => WHO[whoOf(t)].color;
+  // Swatch markup: shared gets the metallic class, solo trips a flat colour
+  const swatchAttrs = (key) => key === "shared"
+    ? `class="trip-metal"` : `style="background:${WHO[key].color}"`;
   const MONTHS = Array.from({ length: 12 }, (_, m) =>
     new Date(2000, m, 1).toLocaleString("default", { month: "long" }));
 
@@ -351,7 +387,7 @@ const year = new Date().getFullYear();
     whoRow.innerHTML = Object.entries(WHO).map(([key, w]) => `
       <button type="button" class="trip-who${key === selectedWho ? " selected" : ""}"
         data-who="${key}" role="radio" aria-checked="${key === selectedWho}">
-        <i style="background:${w.color}"></i>${w.label}
+        <i ${swatchAttrs(key)}></i>${w.label}
       </button>
     `).join("");
     whoRow.querySelectorAll(".trip-who").forEach((btn) => {
@@ -359,8 +395,8 @@ const year = new Date().getFullYear();
     });
   };
 
-  legend.innerHTML = Object.values(WHO).map((w) =>
-    `<span><i style="background:${w.color}"></i>${w.label}</span>`).join("");
+  legend.innerHTML = Object.entries(WHO).map(([key, w]) =>
+    `<span><i ${swatchAttrs(key)}></i>${w.label}</span>`).join("");
 
   // One colour per day, or a split when e.g. a shared and a solo trip overlap
   const dayBackground = (onDay) => {
@@ -396,7 +432,8 @@ const year = new Date().getFullYear();
           classes.push("in-trip");
           if (onDay.length > 1) classes.push("multi");
           if (onDay.some((t) => t.id === editingId)) classes.push("focused");
-          style = `background:${dayBackground(onDay)}`;
+          if (onDay.every((t) => whoOf(t) === "shared")) classes.push("shared");
+          else style = `background:${dayBackground(onDay)}`;
           title = onDay.map((t) => `${t.title} (${WHO[whoOf(t)].label})`).join(", ");
         }
         if (dateIso === todayIso) classes.push("today");
@@ -440,10 +477,11 @@ const year = new Date().getFullYear();
       ? yearTrips.map((t) => `
           <div class="trip-item${t.id === editingId ? " active" : ""}" data-id="${escapeHtml(t.id)}"
             role="button" tabindex="0">
-            <div class="trip-swatch" style="background:${colorOf(t)}"></div>
+            <div class="trip-swatch${whoOf(t) === "shared" ? " trip-metal" : ""}"
+              style="${whoOf(t) === "shared" ? "" : `background:${colorOf(t)}`}"></div>
             <div>
-              <div class="trip-item-title">${escapeHtml(t.title)}<span class="trip-item-tag"
-                style="background:${colorOf(t)}">${WHO[whoOf(t)].icon} ${WHO[whoOf(t)].label}</span></div>
+              <div class="trip-item-title">${escapeHtml(t.title)}<span class="trip-item-tag${whoOf(t) === "shared" ? " trip-metal" : ""}"
+                style="${whoOf(t) === "shared" ? "" : `background:${colorOf(t)}`}">${WHO[whoOf(t)].icon} ${WHO[whoOf(t)].label}</span></div>
               <div class="trip-item-meta">
                 ${t.location ? `📍 ${escapeHtml(t.location)} · ` : ""}${formatRange(t)} · ${dayCount(t)} day${dayCount(t) === 1 ? "" : "s"}
               </div>
