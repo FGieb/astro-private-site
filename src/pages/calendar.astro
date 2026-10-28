@@ -2,6 +2,7 @@
 import { isValidSession } from "../lib/auth";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CalendarWidget from "../components/CalendarWidget.astro";
+import TripCalendar from "../components/TripCalendar.astro";
 
 const cookie = Astro.cookies.get("auth");
 
@@ -13,6 +14,73 @@ if (!(await isValidSession(cookie?.value))) {
 <BaseLayout title="Calendar">
   <main style="max-width: 1100px; margin: 0 auto; padding: 2rem;">
     <h1 style="margin: 0 0 1rem 0;">🗓️ Shared Calendar</h1>
-    <CalendarWidget />
+
+    <div class="cal-tabs" role="tablist">
+      <button type="button" class="cal-tab active" role="tab" data-tab="memories" aria-selected="true">🧠 Memories</button>
+      <button type="button" class="cal-tab" role="tab" data-tab="trips" aria-selected="false">✈️ Trips</button>
+    </div>
+
+    <div class="cal-panel" data-panel="memories">
+      <CalendarWidget />
+    </div>
+    <div class="cal-panel" data-panel="trips" hidden>
+      <TripCalendar />
+    </div>
   </main>
 </BaseLayout>
+
+<style>
+  .cal-tabs {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    margin-bottom: 1.5rem;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 999px;
+    backdrop-filter: blur(6px);
+  }
+
+  .cal-tab {
+    background: transparent;
+    border: none;
+    color: white;
+    opacity: 0.7;
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .cal-tab:hover { opacity: 1; }
+
+  .cal-tab.active {
+    background: rgba(255, 255, 255, 0.15);
+    opacity: 1;
+    font-weight: 600;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const tabs = document.querySelectorAll(".cal-tab");
+    const panels = document.querySelectorAll(".cal-panel");
+
+    const show = (name) => {
+      tabs.forEach((t) => {
+        const on = t.dataset.tab === name;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", String(on));
+      });
+      panels.forEach((p) => { p.hidden = p.dataset.panel !== name; });
+    };
+
+    tabs.forEach((t) => {
+      t.addEventListener("click", () => {
+        show(t.dataset.tab);
+        history.replaceState(null, "", t.dataset.tab === "trips" ? "#trips" : location.pathname);
+      });
+    });
+
+    if (location.hash === "#trips") show("trips");
+  })();
+</script>
