@@ -9,6 +9,7 @@ const year = new Date().getFullYear();
       <div class="trip-year-title">
         <h2 id="tripYearLabel">{year}</h2>
         <div id="tripYearStats" class="trip-year-stats"></div>
+        <div id="tripLegend" class="trip-legend"></div>
       </div>
       <button id="tripNextYear" type="button" class="trip-nav-btn" aria-label="Next year">▶</button>
     </div>
@@ -35,7 +36,7 @@ const year = new Date().getFullYear();
         </label>
       </div>
 
-      <div class="trip-color-row" id="tripColorRow"></div>
+      <div class="trip-who-row" id="tripWhoRow" role="radiogroup" aria-label="Whose trip"></div>
 
       <textarea id="tripNote" placeholder="Notes (optional)"></textarea>
 
@@ -163,17 +164,61 @@ const year = new Date().getFullYear();
     opacity: 0.85;
   }
 
-  .trip-color-row { display: flex; gap: 0.45rem; flex-wrap: wrap; }
-
-  .trip-color {
-    width: 26px; height: 26px;
-    border-radius: 999px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    padding: 0;
+  .trip-legend {
+    display: flex;
+    justify-content: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    opacity: 0.85;
   }
 
-  .trip-color.selected { border-color: white; }
+  .trip-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .trip-legend i {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  .trip-who-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+  }
+
+  .trip-who {
+    padding: 0.5rem 0.4rem;
+    border-radius: 0.6rem;
+    border: 2px solid transparent;
+    background: #1a1a1a;
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .trip-who i {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 999px;
+  }
+
+  .trip-who.selected { border-color: white; background: #262626; font-weight: 700; }
+
+  .trip-item-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+    color: white;
+  }
 
   .trip-form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
   .trip-delete-btn { margin-left: auto; color: #ff8a8a; }
@@ -215,7 +260,15 @@ const year = new Date().getFullYear();
 
 <script type="module" is:inline>
 (async () => {
-  const COLORS = ["#0a74c9", "#e0663d", "#2f9e6e", "#b04fc4", "#d9a520", "#d6457a", "#4b8b9b"];
+  // Whose trip it is decides its colour. Rename the labels here if you like.
+  const WHO = {
+    shared: { label: "Shared", icon: "💞", color: "#d6457a" },
+    LM: { label: "LM solo", icon: "🧳", color: "#0a74c9" },
+    BM: { label: "BM solo", icon: "🎒", color: "#2f9e6e" },
+  };
+  // Trips saved before "who" existed count as shared
+  const whoOf = (t) => (WHO[t.who] ? t.who : "shared");
+  const colorOf = (t) => WHO[whoOf(t)].color;
   const MONTHS = Array.from({ length: 12 }, (_, m) =>
     new Date(2000, m, 1).toLocaleString("default", { month: "long" }));
 
@@ -229,7 +282,8 @@ const year = new Date().getFullYear();
   const startInput = $("tripStart");
   const endInput = $("tripEnd");
   const noteInput = $("tripNote");
-  const colorRow = $("tripColorRow");
+  const whoRow = $("tripWhoRow");
+  const legend = $("tripLegend");
   const formHeading = $("tripFormHeading");
   const saveBtn = $("tripSaveBtn");
   const cancelBtn = $("tripCancelBtn");
@@ -241,7 +295,7 @@ const year = new Date().getFullYear();
   let year = today.getFullYear();
   let trips = [];
   let editingId = null;
-  let selectedColor = COLORS[0];
+  let selectedWho = "shared";
   let pickingEnd = false;
 
   const pad = (n) => String(n).padStart(2, "0");
@@ -293,14 +347,28 @@ const year = new Date().getFullYear();
     if (!res.ok) throw new Error(data?.error || `trips-save failed with ${res.status}`);
   };
 
-  const renderColors = () => {
-    colorRow.innerHTML = COLORS.map((c) => `
-      <button type="button" class="trip-color${c === selectedColor ? " selected" : ""}"
-        data-color="${c}" style="background:${c}" aria-label="Colour ${c}"></button>
+  const renderWho = () => {
+    whoRow.innerHTML = Object.entries(WHO).map(([key, w]) => `
+      <button type="button" class="trip-who${key === selectedWho ? " selected" : ""}"
+        data-who="${key}" role="radio" aria-checked="${key === selectedWho}">
+        <i style="background:${w.color}"></i>${w.label}
+      </button>
     `).join("");
-    colorRow.querySelectorAll(".trip-color").forEach((btn) => {
-      btn.onclick = () => { selectedColor = btn.dataset.color; renderColors(); };
+    whoRow.querySelectorAll(".trip-who").forEach((btn) => {
+      btn.onclick = () => { selectedWho = btn.dataset.who; renderWho(); };
     });
+  };
+
+  legend.innerHTML = Object.values(WHO).map((w) =>
+    `<span><i style="background:${w.color}"></i>${w.label}</span>`).join("");
+
+  // One colour per day, or a split when e.g. a shared and a solo trip overlap
+  const dayBackground = (onDay) => {
+    const colors = [...new Set(onDay.map(colorOf))];
+    if (colors.length === 1) return colors[0];
+    const step = 100 / colors.length;
+    return `linear-gradient(135deg, ${colors.map((c, i) =>
+      `${c} ${i * step}% ${(i + 1) * step}%`).join(", ")})`;
   };
 
   const renderYear = () => {
@@ -328,8 +396,8 @@ const year = new Date().getFullYear();
           classes.push("in-trip");
           if (onDay.length > 1) classes.push("multi");
           if (onDay.some((t) => t.id === editingId)) classes.push("focused");
-          style = `background:${onDay[0].color}`;
-          title = onDay.map((t) => t.title).join(", ");
+          style = `background:${dayBackground(onDay)}`;
+          title = onDay.map((t) => `${t.title} (${WHO[whoOf(t)].label})`).join(", ");
         }
         if (dateIso === todayIso) classes.push("today");
         if (pickingEnd && dateIso === startInput.value) classes.push("pending");
@@ -350,8 +418,13 @@ const year = new Date().getFullYear();
 
     monthGrid.innerHTML = html;
 
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const counts = Object.keys(WHO)
+      .map((k) => [k, yearTrips.filter((t) => whoOf(t) === k).length])
+      .filter(([, n]) => n)
+      .map(([k, n]) => `${n} ${WHO[k].label}`);
     yearStats.textContent = yearTrips.length
-      ? `${yearTrips.length} trip${yearTrips.length === 1 ? "" : "s"} · ${daysAway} day${daysAway === 1 ? "" : "s"} away`
+      ? `${plural(yearTrips.length, "trip")} (${counts.join(", ")}) · ${plural(daysAway, "day")} away`
       : "No trips yet";
 
     monthGrid.querySelectorAll(".trip-day[data-date]").forEach((btn) => {
@@ -367,9 +440,10 @@ const year = new Date().getFullYear();
       ? yearTrips.map((t) => `
           <div class="trip-item${t.id === editingId ? " active" : ""}" data-id="${escapeHtml(t.id)}"
             role="button" tabindex="0">
-            <div class="trip-swatch" style="background:${t.color}"></div>
+            <div class="trip-swatch" style="background:${colorOf(t)}"></div>
             <div>
-              <div class="trip-item-title">${escapeHtml(t.title)}</div>
+              <div class="trip-item-title">${escapeHtml(t.title)}<span class="trip-item-tag"
+                style="background:${colorOf(t)}">${WHO[whoOf(t)].icon} ${WHO[whoOf(t)].label}</span></div>
               <div class="trip-item-meta">
                 ${t.location ? `📍 ${escapeHtml(t.location)} · ` : ""}${formatRange(t)} · ${dayCount(t)} day${dayCount(t) === 1 ? "" : "s"}
               </div>
@@ -393,12 +467,12 @@ const year = new Date().getFullYear();
     editingId = null;
     pickingEnd = false;
     form.reset();
-    selectedColor = COLORS[trips.length % COLORS.length];
+    selectedWho = "shared";
     formHeading.textContent = "✈️ Add a trip";
     saveBtn.textContent = "Save trip";
     cancelBtn.hidden = true;
     deleteBtn.hidden = true;
-    renderColors();
+    renderWho();
   };
 
   const startEditing = (id) => {
@@ -411,12 +485,12 @@ const year = new Date().getFullYear();
     startInput.value = t.start;
     endInput.value = t.end;
     noteInput.value = t.note || "";
-    selectedColor = t.color;
+    selectedWho = whoOf(t);
     formHeading.textContent = "✏️ Edit trip";
     saveBtn.textContent = "Update trip";
     cancelBtn.hidden = false;
     deleteBtn.hidden = false;
-    renderColors();
+    renderWho();
     render();
   };
 
@@ -460,7 +534,7 @@ const year = new Date().getFullYear();
       location: locationInput.value.trim(),
       start,
       end,
-      color: selectedColor,
+      who: selectedWho,
       note: noteInput.value.trim(),
     };
 
