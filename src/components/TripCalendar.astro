@@ -215,7 +215,7 @@ const year = new Date().getFullYear();
 
   .trip-who-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.4rem;
   }
 
@@ -299,6 +299,8 @@ const year = new Date().getFullYear();
     shared: { label: "Shared", icon: "🖤", color: "#cdb98f" },
     LM: { label: "LM solo", icon: "🐝", color: "#2f9e6e" },
     BM: { label: "BM solo", icon: "🐙", color: "#2e7fb8" },
+    // Someone came to stay with us: not a trip away, so it doesn't count as days away
+    visitors: { label: "Visitors", icon: "🏡", color: "#8a63c9", atHome: true },
   };
   // Trips saved before "who" existed count as shared
   const whoOf = (t) => (WHO[t.who] ? t.who : "shared");
@@ -434,7 +436,7 @@ const year = new Date().getFullYear();
         let title = "";
 
         if (onDay.length) {
-          daysAway++;
+          if (onDay.some((t) => !WHO[whoOf(t)].atHome)) daysAway++;
           classes.push("in-trip");
           if (onDay.length > 1) classes.push("multi");
           if (onDay.some((t) => t.id === editingId)) classes.push("focused");
@@ -463,13 +465,18 @@ const year = new Date().getFullYear();
     monthGrid.innerHTML = html;
 
     const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const away = yearTrips.filter((t) => !WHO[whoOf(t)].atHome);
+    const visits = yearTrips.length - away.length;
     const counts = Object.keys(WHO)
-      .map((k) => [k, yearTrips.filter((t) => whoOf(t) === k).length])
+      .filter((k) => !WHO[k].atHome)
+      .map((k) => [k, away.filter((t) => whoOf(t) === k).length])
       .filter(([, n]) => n)
       .map(([k, n]) => `${n} ${WHO[k].label}`);
-    yearStats.textContent = yearTrips.length
-      ? `${plural(yearTrips.length, "trip")} (${counts.join(", ")}) · ${plural(daysAway, "day")} away`
-      : "No trips yet";
+    const parts = [];
+    if (away.length) parts.push(`${plural(away.length, "trip")} (${counts.join(", ")})`);
+    if (visits) parts.push(plural(visits, "visit"));
+    if (away.length) parts.push(`${plural(daysAway, "day")} away`);
+    yearStats.textContent = parts.length ? parts.join(" · ") : "No trips yet";
 
     monthGrid.querySelectorAll(".trip-day[data-date]").forEach((btn) => {
       btn.onclick = () => handleDayClick(btn.dataset.date);
