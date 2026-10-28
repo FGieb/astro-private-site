@@ -1,0 +1,518 @@
+---
+const year = new Date().getFullYear();
+---
+
+<section class="trip-shell">
+  <section class="trip-year-card">
+    <div class="trip-year-header">
+      <button id="tripPrevYear" type="button" class="trip-nav-btn" aria-label="Previous year">◀</button>
+      <div class="trip-year-title">
+        <h2 id="tripYearLabel">{year}</h2>
+        <div id="tripYearStats" class="trip-year-stats"></div>
+      </div>
+      <button id="tripNextYear" type="button" class="trip-nav-btn" aria-label="Next year">▶</button>
+    </div>
+
+    <div class="trip-month-grid" id="tripMonthGrid"></div>
+  </section>
+
+  <aside class="trip-side-card">
+    <h3 id="tripFormHeading">✈️ Add a trip</h3>
+    <p class="trip-hint">Tip: click a day in the calendar to set the start date, then another day for the end date.</p>
+
+    <form class="trip-form" id="tripForm">
+      <input id="tripTitle" type="text" placeholder="Trip name (e.g. Weekend in Lisbon)" required />
+      <input id="tripLocation" type="text" placeholder="📍 Where (optional)" />
+
+      <div class="trip-date-row">
+        <label>
+          <span>From</span>
+          <input id="tripStart" type="date" required />
+        </label>
+        <label>
+          <span>To</span>
+          <input id="tripEnd" type="date" required />
+        </label>
+      </div>
+
+      <div class="trip-color-row" id="tripColorRow"></div>
+
+      <textarea id="tripNote" placeholder="Notes (optional)"></textarea>
+
+      <div class="trip-form-actions">
+        <button type="submit" class="trip-save-btn" id="tripSaveBtn">Save trip</button>
+        <button type="button" class="trip-secondary-btn" id="tripCancelBtn" hidden>Cancel</button>
+        <button type="button" class="trip-delete-btn" id="tripDeleteBtn" hidden>Delete</button>
+      </div>
+    </form>
+
+    <h3 class="trip-list-heading" id="tripListHeading">Trips</h3>
+    <div class="trip-list" id="tripList"></div>
+  </aside>
+</section>
+
+<style is:global>
+  .trip-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .trip-year-card,
+  .trip-side-card {
+    background: #0f0f0f;
+    border: 1px solid #1f1f1f;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+  }
+
+  .trip-year-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .trip-year-title { text-align: center; }
+  .trip-year-title h2 { margin: 0; font-size: 1.8rem; }
+  .trip-year-stats { font-size: 0.85rem; opacity: 0.65; margin-top: 0.2rem; }
+
+  .trip-month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem 1rem;
+  }
+
+  .trip-month h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+
+  .trip-mini-weekdays,
+  .trip-mini-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  .trip-mini-weekdays div {
+    font-size: 0.65rem;
+    opacity: 0.45;
+    text-align: center;
+  }
+
+  .trip-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    border-radius: 0.35rem;
+    background: #181818;
+    color: rgba(255,255,255,0.8);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .trip-day:hover { background: #2a2a2a; }
+  .trip-day.empty { background: transparent; cursor: default; }
+  .trip-day.today { outline: 1.5px solid rgba(255,255,255,0.75); outline-offset: -1.5px; }
+  .trip-day.in-trip { color: white; font-weight: 700; }
+  .trip-day.multi::after {
+    content: "";
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 5px; height: 5px;
+    border-radius: 999px;
+    background: white;
+  }
+  .trip-day.pending {
+    outline: 2px dashed white;
+    outline-offset: -2px;
+  }
+  .trip-day.focused { box-shadow: 0 0 0 2px white inset; }
+
+  .trip-hint { font-size: 0.8rem; opacity: 0.6; margin: 0 0 1rem 0; }
+
+  .trip-form { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .trip-form input,
+  .trip-form textarea {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .trip-form textarea { min-height: 70px; resize: vertical; }
+
+  .trip-date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .trip-date-row label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    opacity: 0.85;
+  }
+
+  .trip-color-row { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+
+  .trip-color {
+    width: 26px; height: 26px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .trip-color.selected { border-color: white; }
+
+  .trip-form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .trip-delete-btn { margin-left: auto; color: #ff8a8a; }
+
+  .trip-list-heading { margin: 1.5rem 0 0.75rem 0; }
+
+  .trip-item {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.7rem;
+    border: 1px solid #242424;
+    border-radius: 0.75rem;
+    background: #141414;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+  }
+
+  .trip-item:hover { border-color: #3a3a3a; }
+  .trip-item.active { border-color: white; }
+
+  .trip-swatch {
+    width: 6px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  .trip-item-title { font-weight: 700; }
+  .trip-item-meta { font-size: 0.82rem; opacity: 0.7; margin-top: 0.15rem; }
+  .trip-item-note { font-size: 0.85rem; margin-top: 0.35rem; opacity: 0.9; white-space: pre-wrap; }
+
+  @media (max-width: 1000px) {
+    .trip-shell { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .trip-month-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+
+<script type="module" is:inline>
+(async () => {
+  const COLORS = ["#0a74c9", "#e0663d", "#2f9e6e", "#b04fc4", "#d9a520", "#d6457a", "#4b8b9b"];
+  const MONTHS = Array.from({ length: 12 }, (_, m) =>
+    new Date(2000, m, 1).toLocaleString("default", { month: "long" }));
+
+  const $ = (id) => document.getElementById(id);
+  const monthGrid = $("tripMonthGrid");
+  const yearLabel = $("tripYearLabel");
+  const yearStats = $("tripYearStats");
+  const form = $("tripForm");
+  const titleInput = $("tripTitle");
+  const locationInput = $("tripLocation");
+  const startInput = $("tripStart");
+  const endInput = $("tripEnd");
+  const noteInput = $("tripNote");
+  const colorRow = $("tripColorRow");
+  const formHeading = $("tripFormHeading");
+  const saveBtn = $("tripSaveBtn");
+  const cancelBtn = $("tripCancelBtn");
+  const deleteBtn = $("tripDeleteBtn");
+  const listHeading = $("tripListHeading");
+  const list = $("tripList");
+
+  const today = new Date();
+  let year = today.getFullYear();
+  let trips = [];
+  let editingId = null;
+  let selectedColor = COLORS[0];
+  let pickingEnd = false;
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+  const todayIso = iso(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const parseIso = (s) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const dayCount = (t) =>
+    Math.round((parseIso(t.end) - parseIso(t.start)) / 86400000) + 1;
+
+  const formatRange = (t) => {
+    const s = parseIso(t.start);
+    const e = parseIso(t.end);
+    const opts = { day: "numeric", month: "short" };
+    const sameYear = s.getFullYear() === e.getFullYear();
+    const startStr = s.toLocaleDateString(undefined, sameYear ? opts : { ...opts, year: "numeric" });
+    const endStr = e.toLocaleDateString(undefined, { ...opts, year: "numeric" });
+    return t.start === t.end ? endStr : `${startStr} – ${endStr}`;
+  };
+
+  const tripsInYear = (y) =>
+    trips
+      .filter((t) => t.start <= `${y}-12-31` && t.end >= `${y}-01-01`)
+      .sort((a, b) => a.start.localeCompare(b.start));
+
+  const tripsOn = (dateIso, yearTrips) =>
+    yearTrips.filter((t) => t.start <= dateIso && t.end >= dateIso);
+
+  const loadTrips = async () => {
+    const res = await fetch("/.netlify/functions/trips-load");
+    const data = await res.json();
+    trips = Array.isArray(data) ? data : [];
+  };
+
+  const saveTrips = async () => {
+    const res = await fetch("/.netlify/functions/trips-save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(trips),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || `trips-save failed with ${res.status}`);
+  };
+
+  const renderColors = () => {
+    colorRow.innerHTML = COLORS.map((c) => `
+      <button type="button" class="trip-color${c === selectedColor ? " selected" : ""}"
+        data-color="${c}" style="background:${c}" aria-label="Colour ${c}"></button>
+    `).join("");
+    colorRow.querySelectorAll(".trip-color").forEach((btn) => {
+      btn.onclick = () => { selectedColor = btn.dataset.color; renderColors(); };
+    });
+  };
+
+  const renderYear = () => {
+    yearLabel.textContent = year;
+    const yearTrips = tripsInYear(year);
+
+    let daysAway = 0;
+    const html = MONTHS.map((name, m) => {
+      const first = new Date(year, m, 1);
+      const offset = (first.getDay() + 6) % 7;
+      const days = new Date(year, m + 1, 0).getDate();
+
+      let cells = "";
+      for (let i = 0; i < offset; i++) cells += `<div class="trip-day empty"></div>`;
+
+      for (let d = 1; d <= days; d++) {
+        const dateIso = iso(year, m, d);
+        const onDay = tripsOn(dateIso, yearTrips);
+        const classes = ["trip-day"];
+        let style = "";
+        let title = "";
+
+        if (onDay.length) {
+          daysAway++;
+          classes.push("in-trip");
+          if (onDay.length > 1) classes.push("multi");
+          if (onDay.some((t) => t.id === editingId)) classes.push("focused");
+          style = `background:${onDay[0].color}`;
+          title = onDay.map((t) => t.title).join(", ");
+        }
+        if (dateIso === todayIso) classes.push("today");
+        if (pickingEnd && dateIso === startInput.value) classes.push("pending");
+
+        cells += `<button type="button" class="${classes.join(" ")}" data-date="${dateIso}"
+          style="${style}" title="${escapeHtml(title)}">${d}</button>`;
+      }
+
+      return `
+        <div class="trip-month">
+          <h4>${name}</h4>
+          <div class="trip-mini-weekdays">
+            <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+          </div>
+          <div class="trip-mini-days">${cells}</div>
+        </div>`;
+    }).join("");
+
+    monthGrid.innerHTML = html;
+
+    yearStats.textContent = yearTrips.length
+      ? `${yearTrips.length} trip${yearTrips.length === 1 ? "" : "s"} · ${daysAway} day${daysAway === 1 ? "" : "s"} away`
+      : "No trips yet";
+
+    monthGrid.querySelectorAll(".trip-day[data-date]").forEach((btn) => {
+      btn.onclick = () => handleDayClick(btn.dataset.date);
+    });
+  };
+
+  const renderList = () => {
+    const yearTrips = tripsInYear(year);
+    listHeading.textContent = `Trips in ${year}`;
+
+    list.innerHTML = yearTrips.length
+      ? yearTrips.map((t) => `
+          <div class="trip-item${t.id === editingId ? " active" : ""}" data-id="${escapeHtml(t.id)}"
+            role="button" tabindex="0">
+            <div class="trip-swatch" style="background:${t.color}"></div>
+            <div>
+              <div class="trip-item-title">${escapeHtml(t.title)}</div>
+              <div class="trip-item-meta">
+                ${t.location ? `📍 ${escapeHtml(t.location)} · ` : ""}${formatRange(t)} · ${dayCount(t)} day${dayCount(t) === 1 ? "" : "s"}
+              </div>
+              ${t.note ? `<div class="trip-item-note">${escapeHtml(t.note)}</div>` : ""}
+            </div>
+          </div>`).join("")
+      : `<div class="trip-item" style="cursor:default">Nothing planned yet for ${year}.</div>`;
+
+    list.querySelectorAll(".trip-item[data-id]").forEach((el) => {
+      const open = () => startEditing(el.dataset.id);
+      el.onclick = open;
+      el.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+      };
+    });
+  };
+
+  const render = () => { renderYear(); renderList(); };
+
+  const resetForm = () => {
+    editingId = null;
+    pickingEnd = false;
+    form.reset();
+    selectedColor = COLORS[trips.length % COLORS.length];
+    formHeading.textContent = "✈️ Add a trip";
+    saveBtn.textContent = "Save trip";
+    cancelBtn.hidden = true;
+    deleteBtn.hidden = true;
+    renderColors();
+  };
+
+  const startEditing = (id) => {
+    const t = trips.find((x) => x.id === id);
+    if (!t) return;
+    editingId = id;
+    pickingEnd = false;
+    titleInput.value = t.title;
+    locationInput.value = t.location || "";
+    startInput.value = t.start;
+    endInput.value = t.end;
+    noteInput.value = t.note || "";
+    selectedColor = t.color;
+    formHeading.textContent = "✏️ Edit trip";
+    saveBtn.textContent = "Update trip";
+    cancelBtn.hidden = false;
+    deleteBtn.hidden = false;
+    renderColors();
+    render();
+  };
+
+  const handleDayClick = (dateIso) => {
+    // Clicking a day that belongs to a trip opens it (unless we're mid-selection)
+    const onDay = tripsOn(dateIso, trips);
+    if (!pickingEnd && onDay.length && !editingId) {
+      startEditing(onDay[0].id);
+      return;
+    }
+
+    if (!pickingEnd) {
+      startInput.value = dateIso;
+      endInput.value = dateIso;
+      pickingEnd = true;
+    } else {
+      if (dateIso < startInput.value) {
+        endInput.value = startInput.value;
+        startInput.value = dateIso;
+      } else {
+        endInput.value = dateIso;
+      }
+      pickingEnd = false;
+      if (!editingId) titleInput.focus();
+    }
+    renderYear();
+  };
+
+  startInput.addEventListener("change", () => {
+    if (!endInput.value || endInput.value < startInput.value) endInput.value = startInput.value;
+  });
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    let start = startInput.value;
+    let end = endInput.value || start;
+    if (end < start) [start, end] = [end, start];
+
+    const data = {
+      title: titleInput.value.trim(),
+      location: locationInput.value.trim(),
+      start,
+      end,
+      color: selectedColor,
+      note: noteInput.value.trim(),
+    };
+
+    const backup = trips.slice();
+    if (editingId) {
+      trips = trips.map((t) => t.id === editingId ? { ...t, ...data, updatedAt: new Date().toISOString() } : t);
+    } else {
+      const id = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      trips.push({ id, ...data, createdAt: new Date().toISOString() });
+    }
+
+    try {
+      await saveTrips();
+      year = parseIso(start).getFullYear();
+      resetForm();
+    } catch (err) {
+      console.error("Failed to save trip:", err);
+      alert("Could not save the trip.");
+      trips = backup;
+    }
+    render();
+  };
+
+  cancelBtn.onclick = () => { resetForm(); render(); };
+
+  deleteBtn.onclick = async () => {
+    const t = trips.find((x) => x.id === editingId);
+    if (!t || !confirm(`Delete "${t.title}"?`)) return;
+    const backup = trips.slice();
+    trips = trips.filter((x) => x.id !== editingId);
+    try {
+      await saveTrips();
+      resetForm();
+    } catch (err) {
+      console.error("Failed to delete trip:", err);
+      alert("Could not delete the trip.");
+      trips = backup;
+    }
+    render();
+  };
+
+  $("tripPrevYear").onclick = () => { year--; render(); };
+  $("tripNextYear").onclick = () => { year++; render(); };
+
+  try {
+    await loadTrips();
+  } catch (err) {
+    console.warn("Trips could not be loaded, continuing empty.", err);
+    trips = [];
+  }
+
+  resetForm();
+  render();
+})();
+</script>
