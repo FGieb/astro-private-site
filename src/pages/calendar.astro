@@ -72,6 +72,7 @@ if (!(await isValidSession(cookie?.value))) {
         t.setAttribute("aria-selected", String(on));
       });
       panels.forEach((p) => { p.hidden = p.dataset.panel !== name; });
+      if (name === "trips") window.dispatchEvent(new Event("trips-tab-shown"));
     };
 
     tabs.forEach((t) => {
