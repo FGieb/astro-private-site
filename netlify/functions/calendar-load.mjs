@@ -1,5 +1,6 @@
 // netlify/functions/calendar-load.mjs
 import { getStore } from "@netlify/blobs";
+import { isAuthorized, unauthorized } from "./_shared/auth.mjs";
 
 function coerceToObject(raw) {
   if (!raw) return {};
@@ -28,7 +29,9 @@ function coerceToObject(raw) {
   return {};
 }
 
-export default async function handler() {
+export default async function handler(request) {
+  if (!isAuthorized(request)) return unauthorized();
+
   try {
     const store = getStore("calendar");
 

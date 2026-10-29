@@ -52,6 +52,21 @@ const year = new Date().getFullYear();
   </aside>
 </section>
 
+<section class="trip-map-card">
+  <div class="trip-map-header">
+    <div>
+      <h3>🗺️ Where we've been</h3>
+      <div class="trip-map-stats" id="tripMapStats"></div>
+    </div>
+    <div class="trip-map-toggle" role="tablist">
+      <button type="button" class="active" data-scope="year" id="tripMapYearBtn">This year</button>
+      <button type="button" data-scope="all">All years</button>
+    </div>
+  </div>
+  <div class="trip-map" id="tripMap"></div>
+  <div class="trip-map-note" id="tripMapNote"></div>
+</section>
+
 <style is:global>
   .trip-shell {
     display: grid;
@@ -283,8 +298,72 @@ const year = new Date().getFullYear();
   .trip-item-meta { font-size: 0.82rem; opacity: 0.7; margin-top: 0.15rem; }
   .trip-item-note { font-size: 0.85rem; margin-top: 0.35rem; opacity: 0.9; white-space: pre-wrap; }
 
+  .trip-memories {
+    margin-top: 0.6rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid #262626;
+    font-size: 0.83rem;
+  }
+  .trip-memories-title { font-weight: 700; opacity: 0.85; margin-bottom: 0.35rem; }
+  .trip-memory { margin-bottom: 0.3rem; line-height: 1.35; }
+  .trip-memory-date { opacity: 0.55; margin-right: 0.35rem; white-space: nowrap; }
+  .trip-memory-note { opacity: 0.7; }
+  .trip-memories-empty { opacity: 0.55; }
+
   @media (max-width: 1000px) {
     .trip-shell { grid-template-columns: 1fr; }
+  }
+
+  .trip-map-card {
+    margin-top: 2rem;
+    background: #0f0f0f;
+    border: 1px solid #1f1f1f;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+  }
+  .trip-map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .trip-map-header h3 { margin: 0; }
+  .trip-map-stats { font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem; }
+  .trip-map-toggle {
+    display: inline-flex;
+    gap: 0.2rem;
+    padding: 0.25rem;
+    background: #1a1a1a;
+    border-radius: 999px;
+  }
+  .trip-map-toggle button {
+    background: transparent;
+    border: none;
+    color: white;
+    opacity: 0.7;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .trip-map-toggle button.active { background: #2e2e2e; opacity: 1; font-weight: 600; }
+  .trip-map {
+    height: 420px;
+    border-radius: 0.9rem;
+    overflow: hidden;
+    background: #111;
+  }
+  .trip-map.leaflet-container { background: #0d0f12; }
+  .trip-map-note { font-size: 0.8rem; opacity: 0.6; margin-top: 0.6rem; min-height: 1em; }
+  .trip-map .leaflet-popup-content-wrapper,
+  .trip-map .leaflet-popup-tip { background: #161616; color: white; }
+  .trip-map .leaflet-popup-content { margin: 0.6rem 0.8rem; font-size: 0.85rem; }
+  .trip-map .leaflet-container a { color: #9cc7ff; }
+
+  @media (max-width: 600px) {
+    .trip-map { height: 320px; }
   }
 
   @media (max-width: 600px) {
@@ -333,6 +412,7 @@ const year = new Date().getFullYear();
   const today = new Date();
   let year = today.getFullYear();
   let trips = [];
+  let memories = {}; // Memories tab entries, keyed "MM-DD" (no year)
   let editingId = null;
   let selectedWho = "shared";
   let pickingEnd = false;
@@ -374,6 +454,86 @@ const year = new Date().getFullYear();
     const res = await fetch("/.netlify/functions/trips-load");
     const data = await res.json();
     trips = Array.isArray(data) ? data : [];
+  };
+
+  const loadMemories = async () => {
+    const res = await fetch("/.netlify/functions/calendar-load");
+    const data = await res.json();
+    memories = res.ok && data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  };
+
+  const MEMORY_ICONS = { note: "📝", plan: "📍", memory: "🧠", occasion: "🌟" };
+
+  // Memories-tab entries on the days of a trip. Those entries have no year,
+  // so this matches on day and month only.
+  const memoriesFor = (t) => {
+    const found = [];
+    const end = parseIso(t.end);
+    for (let d = parseIso(t.start), n = 0; d <= end && n < 366; d.setDate(d.getDate() + 1), n++) {
+      const key = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      for (const e of Array.isArray(memories[key]) ? memories[key] : []) {
+        found.push({ ...e, date: new Date(d) });
+      }
+    }
+    return found;
+  };
+
+  const memoriesHtml = (t) => {
+    const found = memoriesFor(t);
+    if (!found.length) {
+      return `<div class="trip-memories"><div class="trip-memories-empty">🧠 No memories on these days yet.</div></div>`;
+    }
+    return `
+      <div class="trip-memories">
+        <div class="trip-memories-title">🧠 Memories from these days</div>
+        ${found.map((e) => `
+          <div class="trip-memory">
+            <span class="trip-memory-date">${e.date.toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>
+            ${MEMORY_ICONS[e.type] || "📝"} ${escapeHtml(e.title)}
+            ${e.note ? `<span class="trip-memory-note">· ${escapeHtml(e.note)}</span>` : ""}
+          </div>`).join("")}
+      </div>`;
+  };
+
+  // Same rule as netlify/functions/_shared/places.mjs
+  const placesKey = (t) => `${t.title || ""}|${t.location || ""}`.trim().toLowerCase();
+  const needsPlaces = (t) => !Array.isArray(t.places) || t.placesKey !== placesKey(t);
+
+  // Ask the server to work out places (with AI) for trips that don't have them.
+  // Runs in the background; the map picks the results up when they arrive.
+  let placesRequestedAt = 0;
+  const requestPlaces = () => {
+    if (!trips.some(needsPlaces) || Date.now() - placesRequestedAt < 60000) return;
+    placesRequestedAt = Date.now();
+    fetch("/.netlify/functions/trips-places-background", { method: "POST" })
+      .catch((err) => console.warn("Could not start place lookup:", err));
+    watchForPlaces();
+  };
+
+  let placesTimer = null;
+  const watchForPlaces = (tries = 0) => {
+    clearTimeout(placesTimer);
+    if (tries >= 12 || !trips.some(needsPlaces)) return;
+    placesTimer = setTimeout(async () => {
+      try {
+        const res = await fetch("/.netlify/functions/trips-load");
+        const fresh = await res.json();
+        if (Array.isArray(fresh)) {
+          const byId = new Map(fresh.map((t) => [t.id, t]));
+          // Only take over the places, so edits made meanwhile are kept
+          trips = trips.map((t) => {
+            const f = byId.get(t.id);
+            return f && !needsPlaces(f) && f.placesKey === placesKey(t)
+              ? { ...t, places: f.places, placesKey: f.placesKey }
+              : t;
+          });
+          renderMap();
+        }
+      } catch (err) {
+        console.warn("Could not refresh places:", err);
+      }
+      watchForPlaces(tries + 1);
+    }, 6000);
   };
 
   const saveTrips = async () => {
@@ -497,9 +657,13 @@ const year = new Date().getFullYear();
               <div class="trip-item-title">${escapeHtml(t.title)}<span class="trip-item-tag${whoOf(t) === "shared" ? " trip-metal" : ""}"
                 style="${whoOf(t) === "shared" ? "" : `background:${colorOf(t)}`}">${WHO[whoOf(t)].icon} ${WHO[whoOf(t)].label}</span></div>
               <div class="trip-item-meta">
-                ${t.location ? `📍 ${escapeHtml(t.location)} · ` : ""}${formatRange(t)} · ${dayCount(t)} day${dayCount(t) === 1 ? "" : "s"}
+                ${t.location ? `📍 ${escapeHtml(t.location)} · ` : ""}${formatRange(t)} · ${dayCount(t)} day${dayCount(t) === 1 ? "" : "s"}${(() => {
+                  const n = memoriesFor(t).length;
+                  return n ? ` · 🧠 ${n}` : "";
+                })()}
               </div>
               ${t.note ? `<div class="trip-item-note">${escapeHtml(t.note)}</div>` : ""}
+              ${t.id === editingId ? memoriesHtml(t) : ""}
             </div>
           </div>`).join("")
       : `<div class="trip-item" style="cursor:default">Nothing planned yet for ${year}.</div>`;
@@ -513,7 +677,109 @@ const year = new Date().getFullYear();
     });
   };
 
-  const render = () => { renderYear(); renderList(); };
+  const render = () => { renderYear(); renderList(); renderMap(); };
+
+  // ---------- Map ----------
+  const mapEl = $("tripMap");
+  const mapStats = $("tripMapStats");
+  const mapNote = $("tripMapNote");
+  let mapScope = "year";
+  let map = null;
+  let markerLayer = null;
+  let lastFit = ""; // only re-zoom when the set of pins changes
+
+  const loadLeaflet = () => new Promise((resolve, reject) => {
+    if (window.L) return resolve(window.L);
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(css);
+    const js = document.createElement("script");
+    js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    js.onload = () => resolve(window.L);
+    js.onerror = reject;
+    document.head.appendChild(js);
+  });
+
+  const ensureMap = async () => {
+    if (map) return map;
+    const L = await loadLeaflet();
+    map = L.map(mapEl, { worldCopyJump: true, zoomControl: true }).setView([48, 10], 3);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      subdomains: "abcd",
+      maxZoom: 18,
+    }).addTo(map);
+    markerLayer = L.layerGroup().addTo(map);
+    return map;
+  };
+
+  const renderMap = async () => {
+    const scoped = mapScope === "year" ? tripsInYear(year) : trips.slice();
+    const located = scoped.filter((t) => Array.isArray(t.places) && t.places.length);
+    const waiting = scoped.filter(needsPlaces).length;
+
+    // Countries and places count trips away only (visits happen at home)
+    const away = located.filter((t) => !WHO[whoOf(t)].atHome);
+    const countries = new Set(away.flatMap((t) => t.places.map((p) => p.country_code || p.country)));
+    const places = new Set(away.flatMap((t) => t.places.map((p) => `${p.name}|${p.country}`)));
+    const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+    const label = mapScope === "year" ? `in ${year}` : "so far";
+    mapStats.textContent = places.size
+      ? `${plural(countries.size, "country", "countries")} · ${plural(places.size, "place")} ${label}`
+      : `No places on the map ${label} yet`;
+    mapNote.textContent = waiting
+      ? `📍 Working out where ${plural(waiting, "trip")} ${waiting === 1 ? "was" : "were"}…`
+      : "";
+
+    let L;
+    try {
+      await ensureMap();
+      L = window.L;
+    } catch (err) {
+      mapNote.textContent = "The map could not be loaded.";
+      return;
+    }
+
+    markerLayer.clearLayers();
+    const bounds = [];
+    for (const t of located) {
+      const w = WHO[whoOf(t)];
+      for (const p of t.places) {
+        const marker = L.circleMarker([p.lat, p.lng], {
+          radius: 7,
+          color: "#0b0b0b",
+          weight: 1.5,
+          fillColor: w.color,
+          fillOpacity: 0.95,
+        }).bindPopup(`
+          <strong>${w.icon} ${escapeHtml(t.title)}</strong><br>
+          📍 ${escapeHtml(p.name)}, ${escapeHtml(p.country)}<br>
+          <span style="opacity:.7">${formatRange(t)}</span>`);
+        marker.addTo(markerLayer);
+        bounds.push([p.lat, p.lng]);
+      }
+    }
+    map.invalidateSize();
+    const fitKey = JSON.stringify(bounds);
+    if (fitKey !== lastFit && mapEl.offsetWidth) {
+      lastFit = fitKey;
+      if (bounds.length === 1) map.setView(bounds[0], 6);
+      else if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+    }
+  };
+
+  // The Trips tab starts hidden, so the map has no size until it's opened
+  window.addEventListener("trips-tab-shown", () => renderMap());
+
+  document.querySelectorAll(".trip-map-toggle button").forEach((btn) => {
+    btn.onclick = () => {
+      mapScope = btn.dataset.scope;
+      document.querySelectorAll(".trip-map-toggle button")
+        .forEach((b) => b.classList.toggle("active", b === btn));
+      renderMap();
+    };
+  });
 
   const resetForm = () => {
     editingId = null;
@@ -602,6 +868,7 @@ const year = new Date().getFullYear();
       await saveTrips();
       year = parseIso(start).getFullYear();
       resetForm();
+      requestPlaces();
     } catch (err) {
       console.error("Failed to save trip:", err);
       alert("Could not save the trip.");
@@ -638,7 +905,15 @@ const year = new Date().getFullYear();
     trips = [];
   }
 
+  try {
+    await loadMemories();
+  } catch (err) {
+    console.warn("Memories could not be loaded; trips will show without them.", err);
+    memories = {};
+  }
+
   resetForm();
   render();
+  requestPlaces();
 })();
 </script>
