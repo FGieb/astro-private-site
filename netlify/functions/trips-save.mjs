@@ -1,6 +1,9 @@
 import { getStore } from "@netlify/blobs";
+import { isAuthorized, unauthorized } from "./_shared/auth.mjs";
 
 export default async function handler(request) {
+  if (!isAuthorized(request)) return unauthorized();
+
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }

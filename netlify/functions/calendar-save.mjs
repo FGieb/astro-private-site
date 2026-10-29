@@ -2,8 +2,11 @@
 import { getStore } from "@netlify/blobs";
 import { extractMention } from "../../src/lib/mentions";
 import { sendMentionNotification } from "./_shared/pushover.mjs";
+import { isAuthorized, unauthorized } from "./_shared/auth.mjs";
 
 export default async function handler(request) {
+  if (!isAuthorized(request)) return unauthorized();
+
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
