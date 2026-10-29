@@ -1,0 +1,213 @@
+---
+import { isValidSession } from "../lib/auth";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const cookie = Astro.cookies.get("auth");
+
+if (!(await isValidSession(cookie?.value))) {
+  return Astro.redirect("/login");
+}
+
+const requested = Number(Astro.url.searchParams.get("year"));
+const year = requested >= 2000 && requested <= 2100 ? requested : new Date().getFullYear();
+---
+
+<BaseLayout title="Year in Review">
+  <main class="review-main">
+    <div class="review-header">
+      <a class="review-nav" id="prevYear" href={`/review?year=${year - 1}`} aria-label="Previous year">◀</a>
+      <div>
+        <h1>✨ Our <span id="yearLabel">{year}</span></h1>
+        <div class="review-sub" id="reviewSub">Loading…</div>
+      </div>
+      <a class="review-nav" id="nextYear" href={`/review?year=${year + 1}`} aria-label="Next year">▶</a>
+    </div>
+
+    <section class="review-story" id="storyCard" hidden>
+      <div id="storyText"></div>
+      <div class="review-story-actions">
+        <button type="button" id="writeBtn"></button>
+        <span id="storyStatus"></span>
+      </div>
+    </section>
+
+    <section class="review-grid" id="highlights"></section>
+
+    <p class="review-footer">
+      <a href="/calendar#trips">🗺️ See the trips on the map</a>
+    </p>
+  </main>
+</BaseLayout>
+
+<style is:global>
+  .review-main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+
+  .review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+  .review-header h1 { margin: 0; font-size: 2.2rem; }
+  .review-sub { opacity: 0.7; margin-top: 0.35rem; font-size: 0.95rem; }
+  .review-nav {
+    color: white;
+    text-decoration: none;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+  }
+
+  .review-story {
+    background:
+      linear-gradient(145deg, rgba(239, 226, 194, 0.14), rgba(178, 156, 106, 0.06)),
+      rgba(12, 12, 12, 0.92);
+    border: 1px solid rgba(205, 185, 143, 0.45);
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.6rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.65;
+    font-size: 1.05rem;
+  }
+  .review-story p { margin: 0 0 0.9rem; }
+  .review-story-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .review-story-actions button {
+    background: #cdb98f;
+    color: #2a2010;
+    border: none;
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .review-story-actions button:disabled { opacity: 0.6; cursor: default; }
+  #storyStatus { opacity: 0.7; }
+
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.9rem;
+  }
+  .review-card {
+    background: rgba(15, 15, 15, 0.92);
+    border: 1px solid #1f1f1f;
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+  }
+  .review-card-label { font-size: 0.8rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.04em; }
+  .review-card-value { font-size: 1.3rem; font-weight: 700; margin: 0.25rem 0; }
+  .review-card-detail { font-size: 0.85rem; opacity: 0.75; line-height: 1.4; }
+  .review-empty { opacity: 0.7; text-align: center; grid-column: 1 / -1; }
+
+  .review-footer { text-align: center; margin-top: 2rem; }
+  .review-footer a { color: #cdb98f; }
+
+  @media (max-width: 600px) {
+    .review-header h1 { font-size: 1.7rem; }
+  }
+</style>
+
+<script is:inline define:vars={{ year }}>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const sub = $("reviewSub");
+  const grid = $("highlights");
+  const storyCard = $("storyCard");
+  const storyText = $("storyText");
+  const writeBtn = $("writeBtn");
+  const storyStatus = $("storyStatus");
+
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const thisYear = new Date().getFullYear();
+  const inProgress = year >= thisYear;
+  let current = null; // the review currently shown
+  let pollTimer = null;
+
+  const load = async () => {
+    const res = await fetch(`/.netlify/functions/year-review-load?year=${year}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || `Failed with ${res.status}`);
+    return data;
+  };
+
+  const render = (review) => {
+    current = review;
+    const highlights = Array.isArray(review.highlights) ? review.highlights : [];
+    sub.textContent = highlights.length
+      ? (inProgress && !review.saved ? `Your year so far` : `Your year together`)
+      : `Nothing logged for ${year} yet`;
+
+    grid.innerHTML = highlights.length
+      ? highlights.map((h) => `
+          <div class="review-card">
+            <div class="review-card-label">${h.icon} ${escapeHtml(h.label)}</div>
+            <div class="review-card-value">${escapeHtml(h.value)}</div>
+            ${h.detail ? `<div class="review-card-detail">${escapeHtml(h.detail)}</div>` : ""}
+          </div>`).join("")
+      : `<div class="review-empty">When you add trips, memories, scores and more, they'll show up here.</div>`;
+
+    storyCard.hidden = !highlights.length;
+    storyText.innerHTML = review.story
+      ? review.story.split(/\n\s*\n/).map((p) => `<p>${escapeHtml(p.trim())}</p>`).join("")
+      : `<p style="opacity:.75">${inProgress ? "Want a little story of your year so far?" : "Your story for this year hasn't been written yet."}</p>`;
+    writeBtn.textContent = review.story ? "↻ Rewrite the story" : "✨ Write our story";
+  };
+
+  const pollForStory = (previous, tries = 0) => {
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(async () => {
+      try {
+        const review = await load();
+        if (review.generatedAt && review.generatedAt !== previous) {
+          render(review);
+          writeBtn.disabled = false;
+          storyStatus.textContent = review.story ? "" : "The story couldn't be written just now. Try again in a bit.";
+          return;
+        }
+      } catch (err) {
+        console.warn("Polling the review failed:", err);
+      }
+      if (tries < 30) pollForStory(previous, tries + 1);
+      else {
+        writeBtn.disabled = false;
+        storyStatus.textContent = "This is taking longer than expected. Refresh the page in a minute.";
+      }
+    }, 4000);
+  };
+
+  const writeStory = async () => {
+    writeBtn.disabled = true;
+    storyStatus.textContent = "✍️ Writing your story… (this takes about half a minute)";
+    try {
+      await fetch(`/.netlify/functions/year-review-background?year=${year}`, { method: "POST" });
+      pollForStory(current?.generatedAt || null);
+    } catch (err) {
+      writeBtn.disabled = false;
+      storyStatus.textContent = "Couldn't start writing the story.";
+    }
+  };
+
+  try {
+    render(await load());
+  } catch (err) {
+    console.error(err);
+    sub.textContent = "The year in review could not be loaded.";
+    return;
+  }
+  writeBtn.onclick = () => writeStory();
+
+  // A finished year whose story wasn't written in time (e.g. on 31 December):
+  // write it now.
+  if (current.saved && !current.story && current.highlights?.length) writeStory();
+})();
+</script>

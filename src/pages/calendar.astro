@@ -13,7 +13,10 @@ if (!(await isValidSession(cookie?.value))) {
 
 <BaseLayout title="Calendar">
   <main style="max-width: 1100px; margin: 0 auto; padding: 2rem;">
-    <h1 style="margin: 0 0 1rem 0;">🗓️ Shared Calendar</h1>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <h1 style="margin: 0;">🗓️ Shared Calendar</h1>
+      <a href="/review" style="color:#cdb98f; text-decoration:none; font-weight:600;">✨ Year in review →</a>
+    </div>
 
     <div class="cal-tabs" role="tablist">
       <button type="button" class="cal-tab active" role="tab" data-tab="memories" aria-selected="true">🧠 Memories</button>
