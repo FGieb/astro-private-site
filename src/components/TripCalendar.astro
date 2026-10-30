@@ -356,6 +356,10 @@ const year = new Date().getFullYear();
     background: #111;
   }
   .trip-map.leaflet-container { background: #0d0f12; }
+  /* Turn the light OpenStreetMap tiles into a dark map; pins are unaffected */
+  .trip-map .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.35);
+  }
   .trip-map-note { font-size: 0.8rem; opacity: 0.6; margin-top: 0.6rem; min-height: 1em; }
   .trip-map .leaflet-popup-content-wrapper,
   .trip-map .leaflet-popup-tip { background: #161616; color: white; }
@@ -705,9 +709,9 @@ const year = new Date().getFullYear();
     if (map) return map;
     const L = await loadLeaflet();
     map = L.map(mapEl, { worldCopyJump: true, zoomControl: true }).setView([48, 10], 3);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-      subdomains: "abcd",
+    // Standard OpenStreetMap tiles (no key needed), darkened with CSS below
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18,
     }).addTo(map);
     markerLayer = L.layerGroup().addTo(map);
